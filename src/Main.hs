@@ -33,10 +33,8 @@ import Graphics.UI.WX
 main :: IO ()
 main = start gui
 
-gui :: IO ()
-gui = do
-    frame <- frame [text := "Imitator"]
-
+addMenus :: Frame a -> IO ()
+addMenus frame = do
     file            <- menuPane [text := "&File"]
     fileOpen        <- menuItem file [text := "&Open...\tCtrl+O"]
     fileQuit        <- menuItem file [text := "&Quit\tCtrl+Q"]
@@ -56,12 +54,34 @@ gui = do
         on (menu fileQuit) := close frame         
         ]
 
+gui :: IO ()
+gui = do
+    frame <- frame [text := "Imitator"]
+    addMenus frame
+
     start <- button frame [text := "Start"]
     stop  <- button frame [text := "Stop"]
     pause <- button frame [text := "Pause"]
+    resume <- button frame [text := "Resume"]
+    
+    tempo  <- hslider frame True 0 1000 [text := "Tempo"]
+    gain   <- hslider frame True 0 1000 [text := "Gain"]
+    volume <- hslider frame True 0 1000 [text := "Volume"]
 
-    windowSetLayout frame $ margin 10 $ column 3 
-        [widget start, widget stop, widget pause]
+    transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
+    
+    
+    let buttons = margin 10 $
+            grid 10 10 [ [widget start, widget stop], 
+                         [widget pause, widget resume] ]
+        controls  = margin 10 $
+            grid 10 0 [ [label "Tempo:", widget tempo], 
+                        [label "Gain:", widget gain], 
+                        [label "Volume:", widget volume] ]
+        
+    windowSetLayout frame $ margin 10 $ 
+        column 0 [row 0 [buttons, shaped $ controls], 
+                  shaped $ row 0 [margin 10 $ widget transport]]
 
     return ()
 
