@@ -54,19 +54,16 @@ addMenus frame = do
         on (menu fileQuit) := close frame         
         ]
 
-gui :: IO ()
-gui = do
-    frame <- frame [text := "Imitator"]
-    addMenus frame
-
-    start <- button frame [text := "Start"]
-    stop  <- button frame [text := "Stop"]
-    pause <- button frame [text := "Pause"]
-    resume <- button frame [text := "Resume"]
+addWidgets :: Frame a -> IO ()
+addWidgets frame = do
+    start       <- button frame [text := "Start"]
+    stop        <- button frame [text := "Stop"]
+    pause       <- button frame [text := "Pause"]
+    resume      <- button frame [text := "Resume"]
     
-    tempo  <- hslider frame True 0 1000 [text := "Tempo"]
-    gain   <- hslider frame True 0 1000 [text := "Gain"]
-    volume <- hslider frame True 0 1000 [text := "Volume"]
+    tempo       <- hslider frame True 0 1000 [text := "Tempo"]
+    gain        <- hslider frame True 0 1000 [text := "Gain"]
+    volume      <- hslider frame True 0 1000 [text := "Volume"]
 
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
     
@@ -97,5 +94,10 @@ gui = do
         column 0 [row 0 [buttons, shaped $ controls, status], 
                   positioning]
 
+gui :: IO ()
+gui = do
+    frame <- frame [text := "Imitator"]
+    addMenus frame
+    addWidgets frame
     return ()
 
