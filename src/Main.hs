@@ -68,11 +68,11 @@ addWidgets frame = do
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
     
     let buttons = margin 10 $boxed "Transport" $
-            grid 10 10 [ [widget start, widget stop], 
-                         [widget pause, widget resume] ]
+            grid 10 10 [ [widget start, widget pause], 
+                         [widget stop, widget resume] ]
+
         controls  = margin 10 $ boxed "Controls" $
             grid 10 5 [ [label "Tempo:", widget tempo], 
-                     
                         [label "Gain:", widget gain], 
                         [label "Volume:", widget volume] ]
 
