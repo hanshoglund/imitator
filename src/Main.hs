@@ -70,18 +70,32 @@ gui = do
 
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
     
-    
-    let buttons = margin 10 $
+    let buttons = margin 10 $boxed "Transport" $
             grid 10 10 [ [widget start, widget stop], 
                          [widget pause, widget resume] ]
-        controls  = margin 10 $
-            grid 10 0 [ [label "Tempo:", widget tempo], 
+        controls  = margin 10 $ boxed "Controls" $
+            grid 10 5 [ [label "Tempo:", widget tempo], 
+                     
                         [label "Gain:", widget gain], 
                         [label "Volume:", widget volume] ]
+
+        status = margin 10 $ boxed "Status" $
+            column 0 [
+                label "CPU (%):",
+                label "Memory (MB):",
+                label "Server:",
+                label "Server mean CPU (%):",
+                label "Server peak CPU (%):"
+            ]
+
+        positioning = shaped $ margin 10 $ column 10 [
+            widget transport,
+            row 10 [label "Time:", label "Section:", label "Bar:"]
+            ]
         
     windowSetLayout frame $ margin 10 $ 
-        column 0 [row 0 [buttons, shaped $ controls], 
-                  shaped $ row 0 [margin 10 $ widget transport]]
+        column 0 [row 0 [buttons, shaped $ controls, status], 
+                  positioning]
 
     return ()
 
