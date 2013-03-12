@@ -1,68 +1,67 @@
 
 module Main where
 
-
-import Graphics.UI.Gtk
+import Graphics.UI.WX
 
 {-
     GUI:
-    
+
+        * Menus
+            * File
+                * Open...
+                * Quit
+            * Record
+                * Start
+                * Pause
+                * Resume
+                * Stop
+            * Window
+                * Minimize
+                * Zoom
+
+
         * Window
             * Button: Prepare
             * Button: Start
             * Button: Pause
-            
+
             * Slider: Position
             * Text: Section, Bar
 
 -}
-                         
 
 main :: IO ()
-main = do
-    initGUI
-    window <- windowNew
+main = start gui
 
-    hpaned <- hBoxNew False 10
-    set window [ containerBorderWidth := 10, containerChild := hpaned ]
+gui :: IO ()
+gui = do
+    frame <- frame [text := "Imitator"]
+
+    file            <- menuPane [text := "&File"]
+    fileOpen        <- menuItem file [text := "&Open...\tCtrl+O"]
+    fileQuit        <- menuItem file [text := "&Quit\tCtrl+Q"]
     
-    do
-        buttons <- vButtonBoxNew
-        set hpaned [ containerBorderWidth := 10, containerChild := buttons ]
+    record          <- menuPane [text := "&Record"]
+    recordStart     <- menuItem record [text := "&Start\tCtrl+R"]
+    recordPause     <- menuItem record [text := "&Pause\tCtrl+P"]
+    recordResume    <- menuItem record [text := "&Resume\tCtrl+U"]
+    recordStop      <- menuItem record [text := "&Stop\tCtrl+S"]
 
-        -- slider <- hScaleNewWithRange 0 1 0.01
-        -- set hpaned [ containerBorderWidth := 10, containerChild := slider ]
+    window          <- menuPane [text := "&Window"]
+    windowMinimize  <- menuItem window [text := "&Minimize\tCtrl+M"]
+    windowZoom      <- menuItem window [text := "&Zoom"]
 
-        volume <- scaleButtonNew IconSizeButton 0 100 2 ["A", "B", "C"]
-        scaleButtonSetIcons volume ["STOCK_HELP"]
-        set hpaned [ containerBorderWidth := 10, containerChild := volume ]
+    set frame [
+        menuBar            := [file, record, window],
+        on (menu fileQuit) := close frame         
+        ]
 
-        progress <- progressBarNew
-        set hpaned [ containerBorderWidth := 10, containerChild := progress ]
+    start <- button frame [text := "Start"]
+    stop  <- button frame [text := "Stop"]
+    pause <- button frame [text := "Pause"]
 
+    windowSetLayout frame $ margin 10 $ column 3 
+        [widget start, widget stop, widget pause]
 
-        do  prepare <- buttonNew
-            set buttons [ containerChild := prepare ]
-            set prepare [ buttonLabel := "Prepare" ]
-            onClicked prepare  $ do
-                putStrLn "Clicked Prepare"
-                set progress [progressBarFraction := 0]
-                
-            start <- buttonNew
-            set buttons [ containerChild := start ]
-            set start [ buttonLabel := "Start" ]
-            onClicked start $ do
-                putStrLn "Clicked Start"
-                set progress [progressBarFraction := 0.5]
-    
-            stop <- buttonNew
-            set buttons [ containerChild := stop ]
-            set stop [ buttonLabel := "Stop" ]
-            onClicked stop $ do
-                putStrLn "Clicked Stop"
-                set progress [progressBarFraction := 1.0]
-
-    onDestroy window mainQuit
-    widgetShowAll window
-    mainGUI
+    return ()
 
