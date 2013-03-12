@@ -16,8 +16,15 @@ description:
 
 library                    
     build-depends: 
-        base >= 4 && < 5
+        base        >= 4 && < 5,
+        gtk         == 0.12.3.1,
+        semigroups
+                
     hs-source-dirs: src
     exposed-modules:
         Music.Imitator
-    
+
+executable "Imitator"
+    hs-source-dirs: src
+    main-is: Main.hs
+
