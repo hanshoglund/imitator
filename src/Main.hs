@@ -3,36 +3,6 @@ module Main where
 
 import Graphics.UI.WX
 
-{-
-    GUI:
-
-        * Menus
-            * File
-                * Open...
-                * Quit
-            * Record
-                * Start
-                * Pause
-                * Resume
-                * Stop
-            * Window
-                * Minimize
-                * Zoom
-
-
-        * Window
-            * Button: Prepare
-            * Button: Start
-            * Button: Pause
-
-            * Slider: Position
-            * Text: Section, Bar
-
--}
-
-main :: IO ()
-main = start gui
-
 addMenus :: Frame a -> IO ()
 addMenus frame = do
     file            <- menuPane [text := "&File"]
@@ -51,23 +21,31 @@ addMenus frame = do
 
     set frame [
         menuBar            := [file, record, window],
-        on (menu fileQuit) := close frame         
+        on (menu fileQuit) := close frame,
+        on (menu recordStart) := putStrLn "Started recording..."
         ]
 
-addWidgets :: Frame a -> IO ()
+addWidgets :: Frame a -> IO (Gauge ())
 addWidgets frame = do
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
     pause       <- button frame [text := "Pause"]
     resume      <- button frame [text := "Resume"]
+    set start [on command := putStrLn  "start pressed!!!"]
+    set stop [on command := putStrLn   "stop pressed!!!"]
+    set pause [on command := putStrLn  "pause pressed!!!"]
+    set resume [on command := putStrLn "resume pressed!!!"]
     
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
     gain        <- hslider frame True 0 1000 [text := "Gain"]
     volume      <- hslider frame True 0 1000 [text := "Volume"]
+    set tempo [on command := putStrLn  "tempo changed!!!"]
+    set gain [on command := putStrLn   "gain changed!!!"]
+    set volume [on command := putStrLn  "volume changed!!!"]
 
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
     
-    let buttons = margin 10 $boxed "Transport" $
+    let buttons = margin 10 $ boxed "Transport" $
             grid 10 10 [ [widget start, widget pause], 
                          [widget stop, widget resume] ]
 
@@ -94,10 +72,53 @@ addWidgets frame = do
         column 0 [row 0 [buttons, shaped $ controls, status], 
                   positioning]
 
+    return transport
+
+addTimers :: Gauge () -> Frame a -> IO ()
+addTimers transport frame = do
+    timer frame [interval := 2000,
+                on command := fireTimer]
+    return ()                          
+    where
+        fireTimer = do
+            putStrLn "timer fired!!!"
+            set transport [selection := 500]
+
+
 gui :: IO ()
 gui = do
     frame <- frame [text := "Imitator"]
+
     addMenus frame
-    addWidgets frame
+    transport <- addWidgets frame
+    addTimers transport frame
     return ()
+
+main :: IO ()
+main = start gui
+
+
+
+
+-- run :: (State Action -> State Update) -> IO ()
+data Action 
+    = ButtonAction
+    | SliderAction
+    | MenuAction
+    | TimerAction 
+
+data Update
+    = ButtonUpdate
+    | SliderUpdate
+    | MenuUpdate
+    | LabelUpdate
+    | GaugeUpdate
+        
+        
+    
+
+
+
+
+
 

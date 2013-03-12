@@ -33,8 +33,6 @@ data Command
         -- stop recording                      
     | ReadBuffer FilePath
         -- read input from given file
-    | SetTempo Double
-        -- set to scale tempo by the given time
     | Play  Time Duration Transformation
         -- Play t d e
         -- Plays from time t to time t+d, using the given transformation
