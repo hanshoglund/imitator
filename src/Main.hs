@@ -3,6 +3,8 @@
 
 module Main where
 
+import Music.Imitator.Reactive
+
 import Graphics.UI.WX
 
 addMenus :: Frame a -> IO ()
@@ -98,6 +100,11 @@ gui = do
 
 -- main :: IO ()
 -- main = start gui
+
+main :: IO ()
+main = runLoop $ linesOut linesIn
+
+
 
 -- midiIn :: Chan Midi
 -- midiOut :: Chan Midi

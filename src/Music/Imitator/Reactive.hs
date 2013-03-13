@@ -15,21 +15,38 @@ module Music.Imitator.Reactive (
         writeE,
         readIOE,
         writeIOE,
+        MidiSource,
+        MidiDestination,
+        midiInE,
+        midiOutE,
+        OscMessage,
+        oscInE,
+        oscOutE,
+        linesIn,
+        linesOut,
         run,
         runLoop
   ) where
 
 import Data.Monoid
 import Data.Traversable
+import System.IO.Unsafe
 
 import Control.Newtype
+import Control.Concurrent (forkIO, forkOS, threadDelay)
 import Control.Monad.STM (atomically)
 import Control.Concurrent.STM.TChan
 
 
-import qualified Sound.PortMidi         as Midi
+import System.MIDI (MidiMessage,  MidiMessage')
+import qualified System.MIDI            as Midi
 import qualified Sound.OpenSoundControl as OSC
 
+-- kPortMidiInfo = unsafePerformIO $ do
+--     Midi.initialize
+--     num  <- Midi.countDevices
+--     infos <- Prelude.mapM Midi.getDeviceInfo [0..num - 1]
+--     return infos     
 
 
 -- Factor out channels
@@ -76,7 +93,7 @@ instance Monoid (Event a) where
             _        -> do
                 y <- g
                 case y of
-                    (Just y) -> return  $ Just y
+                    (Just y) -> return $ Just y
                     _        -> return $ Nothing
 
 
@@ -98,21 +115,39 @@ readE ch = readIOE (tryReadChan ch)
 writeE :: Chan a -> Event a -> Event a
 writeE ch e = writeIOE (writeChan ch) e
 
--- -- TODO make non-blocking    
--- linesIn  :: Event String
--- linesIn = Event $ fmap EventVal getLine
--- 
--- linesOut :: Event String -> Event String
--- linesOut (Event f) = Event $ do
---     x <- f
---     case x of
---         (EventVal x) -> putStrLn x
---         _         -> return ()
---     return x
--- 
+type MidiSource      = Midi.Source
+type MidiDestination = Midi.Destination
+
+midiInE :: MidiSource -> Event MidiMessage
+midiInE = undefined
+
+midiOutE :: MidiDestination -> Event MidiMessage -> Event MidiMessage
+midiOutE = undefined
+
+type OscMessage = OSC.Message
+
+oscInE :: Int -> Event OscMessage
+oscInE = undefined
+
+oscOutE :: String -> Int -> Event OscMessage
+oscOutE = undefined
+
+-- TODO make non-blocking    
+linesIn  :: Event String
+linesIn = unsafePerformIO $ do
+    ch <- newChan
+    forkIO $ cycleM $ do
+        getLine >>= writeChan ch
+    return $ readE ch 
+    where
+        cycleM x = x >> cycleM x
+
+
+linesOut :: Event String -> Event String
+linesOut = writeIOE putStrLn
 
 -- |
--- Run an event.                                     
+-- Run an event, distributing a single occurance if there is one.
 -- 
 -- This may result in wrapped actions being executed. 
 -- If more than one event refer to a single channel they compete for its contents (i.e. non-determinism).
@@ -123,6 +158,7 @@ run (Event f) = do
     return ()
 
 runLoop :: Event a -> IO ()
-runLoop e = run e >> runLoop e  
+runLoop e = run e >> threadDelay kloopInterval >> runLoop e  
 
+kloopInterval = 1000 * 5
 

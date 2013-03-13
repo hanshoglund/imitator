@@ -21,7 +21,7 @@ library
         unix,     
         stm,
         newtype,
-        PortMidi,
+        hamid,
         hosc,
         semigroups
                 
@@ -33,4 +33,5 @@ library
 executable "Imitator"
     hs-source-dirs: src
     main-is: Main.hs
+    ghc-options: -threaded -O3
 
