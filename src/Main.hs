@@ -1,6 +1,10 @@
 
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
+
 module Main where
 
+import Data.Traversable
+import Control.Concurrent.Chan
 import Graphics.UI.WX
 
 addMenus :: Frame a -> IO ()
@@ -94,10 +98,86 @@ gui = do
     addTimers transport frame
     return ()
 
-main :: IO ()
-main = start gui
+-- main :: IO ()
+-- main = start gui
+
+-- midiIn :: Chan Midi
+-- midiOut :: Chan Midi
+-- guiIn :: Chan GuiActions
+-- guiOut :: Chan GuiUpdates
+-- engineOut :: Chan Command
 
 
+
+
+data EvVal a = EvVal a | EvWait | EvDone
+
+instance Functor EvVal where
+    fmap f (EvVal x) = EvVal (f x)
+    fmap f EvWait    = EvWait
+    fmap f EvDone    = EvDone
+    
+instance Monad EvVal where
+    return = EvVal               
+    x >>= f = join' . fmap f $ x
+        where               
+            join' :: EvVal (EvVal a) -> EvVal a
+            join' (EvVal x) = x
+            join' EvWait    = EvWait
+            join' EvDone    = EvDone
+
+newtype Ev a = Ev { getEv :: (IO (EvVal a)) }
+
+instance Functor Ev where
+    fmap f (Ev g) = Ev $ do
+        x <- g
+        return $ fmap f x
+
+instance Monad Ev where
+    return = Ev . return . return
+    (Ev f) >>= k = Ev $ do
+        x <- f
+        case x of
+            (EvVal x) -> (getEv . k) x
+            EvWait    -> return EvWait
+            EvDone    -> return EvDone
+
+readChanE :: Chan a -> Ev a
+readChanE ch = Ev $ do
+    st <- isEmptyChan ch
+    if st then do
+            x <- readChan ch
+            return $ return x
+        else
+            return $ EvWait
+
+writeChanE :: Chan a -> Ev a -> Ev a
+writeChanE ch (Ev f) = Ev $ do
+    x <- f
+    case x of
+        (EvVal x) -> writeChan ch x
+        _         -> return ()
+    return x
+    
+linesIn  :: Ev String
+linesIn = Ev $ fmap EvVal getLine
+
+linesOut :: Ev String -> Ev String
+linesOut (Ev f) = Ev $ do
+    x <- f
+    case x of
+        (EvVal x) -> putStrLn x
+        _         -> return ()
+    return x
+
+run :: Ev a -> IO ()
+run (Ev f) = do
+    x <- f
+    return ()
+
+-- TODO break on done
+runLoop :: Ev a -> IO ()
+runLoop e = run e >> runLoop e
 
 
 -- run :: (State Action -> State Update) -> IO ()
