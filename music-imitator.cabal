@@ -18,12 +18,17 @@ library
     build-depends: 
         base        >= 4 && < 5,
         wx          == 0.90.0.1,
-        unix,
+        unix,     
+        stm,
+        newtype,
+        PortMidi,
+        hosc,
         semigroups
                 
     hs-source-dirs: src
     exposed-modules:
         Music.Imitator
+        Music.Imitator.Reactive
 
 executable "Imitator"
     hs-source-dirs: src
