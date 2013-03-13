@@ -3,8 +3,6 @@
 
 module Main where
 
-import Data.Traversable
-import Control.Concurrent.Chan
 import Graphics.UI.WX
 
 addMenus :: Frame a -> IO ()
@@ -109,91 +107,56 @@ gui = do
 
 
 
+-- data E a = E a {-...-}
+-- instance Monoid E where
+-- 
+-- data B a = B a {-...-}
+-- instance Monoid a => Monoid (B a) where
+--     mempty  = pure mempty        
+--     mappend = liftA2 mappend
+-- instance Functor (B a) where
+--     fmap f  = (pure f <*>)
+-- instance Applicative (B a) where
+--     pure x  = undefined         -- const x
+--     f <*> x = undefined         -- (f t) (f x)
+-- instance Monad (B a) where
+--     return = pure
+--     x >>= k = undefined         -- 
 
-data EvVal a = EvVal a | EvWait | EvDone
+{-
+    Functor: 
+        at (fmap f r) == fmap f (at r)
+    Applicative: 
+        at (pure a)  == pure a
+        at (s <*> r) == at s <*> at t
+    Monad: 
+        at (return a) == return a
+        at (join rr) == join (at . at rr). 
+        (r >>= f) == join (fmap f r)
+        at (r >>= f) == at r >>= at . f.
+    Monoid: a typical lifted monoid. If o is a monoid, then Reactive o is a monoid, with mempty == pure mempty, 
+    and mappend == liftA2 mappend. That is, mempty at t == mempty, and (r mappend s) at t == (r at t) mappend (s at t). 
 
-instance Functor EvVal where
-    fmap f (EvVal x) = EvVal (f x)
-    fmap f EvWait    = EvWait
-    fmap f EvDone    = EvDone
     
-instance Monad EvVal where
-    return = EvVal               
-    x >>= f = join' . fmap f $ x
-        where               
-            join' :: EvVal (EvVal a) -> EvVal a
-            join' (EvVal x) = x
-            join' EvWait    = EvWait
-            join' EvDone    = EvDone
 
-newtype Ev a = Ev { getEv :: (IO (EvVal a)) }
-
-instance Functor Ev where
-    fmap f (Ev g) = Ev $ do
-        x <- g
-        return $ fmap f x
-
-instance Monad Ev where
-    return = Ev . return . return
-    (Ev f) >>= k = Ev $ do
-        x <- f
-        case x of
-            (EvVal x) -> (getEv . k) x
-            EvWait    -> return EvWait
-            EvDone    -> return EvDone
-
-readChanE :: Chan a -> Ev a
-readChanE ch = Ev $ do
-    st <- isEmptyChan ch
-    if st then do
-            x <- readChan ch
-            return $ return x
-        else
-            return $ EvWait
-
-writeChanE :: Chan a -> Ev a -> Ev a
-writeChanE ch (Ev f) = Ev $ do
-    x <- f
-    case x of
-        (EvVal x) -> writeChan ch x
-        _         -> return ()
-    return x
-    
-linesIn  :: Ev String
-linesIn = Ev $ fmap EvVal getLine
-
-linesOut :: Ev String -> Ev String
-linesOut (Ev f) = Ev $ do
-    x <- f
-    case x of
-        (EvVal x) -> putStrLn x
-        _         -> return ()
-    return x
-
-run :: Ev a -> IO ()
-run (Ev f) = do
-    x <- f
-    return ()
-
--- TODO break on done
-runLoop :: Ev a -> IO ()
-runLoop e = run e >> runLoop e
+-}
 
 
--- run :: (State Action -> State Update) -> IO ()
-data Action 
-    = ButtonAction
-    | SliderAction
-    | MenuAction
-    | TimerAction 
 
-data Update
-    = ButtonUpdate
-    | SliderUpdate
-    | MenuUpdate
-    | LabelUpdate
-    | GaugeUpdate
-        
+
+-- data Action 
+--     = ButtonAction
+--     | SliderAction
+--     | MenuAction
+--     | TimerAction 
+-- 
+-- data Update
+--     = ButtonUpdate
+--     | SliderUpdate
+--     | MenuUpdate
+--     | LabelUpdate
+--     | GaugeUpdate
+--                     
         
     
 
