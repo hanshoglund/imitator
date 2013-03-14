@@ -8,12 +8,14 @@ module Music.Imitator.Reactive (
         writeChan,
         readChan,
         tryReadChan,
-        Event,          
+        Event,
         neverE,
         alwaysE,
         mergeE,
         sequenceE,
         filterE,
+        tick,
+        tick',          
         -- -- MidiSource,
         -- -- MidiDestination,
         -- -- midiInE,
@@ -216,6 +218,13 @@ sequenceE = ESeq
 -- Filter occurances, semantically @filter p xs@.
 filterE :: (a -> Bool) -> Event a -> Event a
 filterE p = EPred p
+
+tick :: Event a -> Event ()
+tick = tick'
+
+tick' :: Monoid b => Event a -> Event b
+tick' = fmap (const mempty)
+
 
 
 

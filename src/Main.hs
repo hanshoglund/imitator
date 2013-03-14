@@ -155,25 +155,21 @@ gui = do
     (timerSources,  timerSinks)  <- addTimers frame
 
     -- TODO split into something run by a timer
-    forkIO $ runLoop $ mempty
-        <> (notify "Start was pressed"   $ widgetSources "start")
-        <> (notify "Stop was pressed"    $ widgetSources "stop")
-        <> (notify "Pause was pressed"   $ widgetSources "pause")
-        <> (notify "Resume was pressed"  $ widgetSources "resume")
-        <> (showing "Tempo is now: "     $ widgetSources "tempo")
-        <> (showing "Entered text reversed: " $ fmap reverse $ getLineE)
-        <> (fmap (const "") $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
-        <> (fmap (const "") $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
-        <> (fmap (const "") $ widgetSinks "transport" $ widgetSources "volume")
+    forkIO $ runLoop $ mempty
+        <> (tick $ notify "Start was pressed"   $ widgetSources "start")
+        <> (tick $ notify "Stop was pressed"    $ widgetSources "stop")
+        <> (tick $ notify "Pause was pressed"   $ widgetSources "pause")
+        <> (tick $ notify "Resume was pressed"  $ widgetSources "resume")
+        <> (tick $ showing "Tempo is now: "     $ widgetSources "tempo")
+        <> (tick $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
+        <> (tick $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
+        <> (tick $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
+        <> (tick $ widgetSinks "transport" $ widgetSources "volume")
 
     return ()
 
 main :: IO ()
 main = start gui
-
-
-
-
 
 
 type Source a = Event a
