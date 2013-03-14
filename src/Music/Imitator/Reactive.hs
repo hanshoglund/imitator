@@ -26,8 +26,8 @@ module Music.Imitator.Reactive (
         writeE,
         getE,
         getUniqueE,
+        modifyE,
         putE,
-        puttingE,
         run,
         runLoop,
         runLoopUntil
@@ -221,11 +221,11 @@ getUniqueE = ESource . fmap maybeToList
 --
 -- The computation should be non-blocking.
 --
-putE :: (a -> IO b) -> Event a -> Event b
-putE = ESink
+modifyE :: (a -> IO b) -> Event a -> Event b
+modifyE = ESink
 
-puttingE :: (a -> IO ()) -> Event a -> Event a
-puttingE k = putE $ \x -> do
+putE :: (a -> IO ()) -> Event a -> Event a
+putE k = modifyE $ \x -> do
     k x
     return x
 
@@ -238,7 +238,7 @@ writeE ch = ESink (writeChan ch)
 linesIn :: Event String
 linesIn = getE getLine 
 
-linesOut :: Event String -> Event ()
+linesOut :: Event String -> Event String
 linesOut = putE putStrLn
 
 

@@ -108,9 +108,8 @@ mainE :: Event (Maybe Bool)
 mainE = output `sequenceE` result
     where  
         result      = fmap (\x -> if (x == "exit") then Just True else Nothing) linesIn  
-        output      = linesOut' $ mergeWithE (++) (alwaysE "You entered: ") linesIn        
+        output      = linesOut $ mergeWithE (++) (alwaysE "You entered: ") linesIn        
         alwaysE     = pure
-        linesOut'   = puttingE putStrLn
 
 
 
