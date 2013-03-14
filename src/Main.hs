@@ -11,12 +11,12 @@ import Data.Monoid
 import Control.Applicative
 import Graphics.UI.WX hiding (Event)
 
-addMenus :: Frame a -> IO (String -> Event (), String -> Sink ())
+addMenus :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addMenus frame = do
     file            <- menuPane [text := "&File"]
     fileOpen        <- menuItem file [text := "&Open...\tCtrl+O"]
     fileQuit        <- menuItem file [text := "&Quit\tCtrl+Q"]
-    
+
     record          <- menuPane [text := "&Record"]
     recordStart     <- menuItem record [text := "&Start\tCtrl+R"]
     recordPause     <- menuItem record [text := "&Pause\tCtrl+P"]
@@ -32,45 +32,48 @@ addMenus frame = do
         on (menu fileQuit) := close frame,
         on (menu recordStart) := return ()
         ]
-    
+
     let events    = error "No such event"
     let sinks = error "No such sink"
-    return (events, sinks)    
+    return (events, sinks)
 
 
 
-addWidgets :: Frame a -> IO (String -> Event (), String -> Sink Int)
+addWidgets :: Frame a -> IO (String -> Event Int, String -> Sink Int)
 addWidgets frame = do
     (startA, startE) <- newObsE
     (stopA, stopE) <- newObsE
     (pauseA, pauseE) <- newObsE
     (resumeA, resumeE) <- newObsE
+    (tempoA, tempoE) <- newObsE
+    (gainA, gainE) <- newObsE
+    (volumeA, volumeE) <- newObsE
 
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
     pause       <- button frame [text := "Pause"]
     resume      <- button frame [text := "Resume"]
-    set start [on command  := startA ()]
-    set stop [on command   := stopA ()]
-    set pause [on command  := pauseA ()]
-    set resume [on command := resumeA ()]
-    
+    set start [on command  := startA 0]
+    set stop [on command   := stopA 0]
+    set pause [on command  := pauseA 0]
+    set resume [on command := resumeA 0]
+
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
     gain        <- hslider frame True 0 1000 [text := "Gain"]
     volume      <- hslider frame True 0 1000 [text := "Volume"]
-    set tempo  [on command := return ()]
-    set gain   [on command := return ()]
-    set volume [on command := return ()]
+    set tempo  [on command := get tempo  selection >>= tempoA]
+    set gain   [on command := get gain   selection >>= gainA]
+    set volume [on command := get volume selection >>= volumeA]
 
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
-    
+
     let buttons = margin 10 $ boxed "Transport" $
-            grid 10 10 [ [widget start, widget pause], 
+            grid 10 10 [ [widget start, widget pause],
                          [widget stop, widget resume] ]
 
         controls  = margin 10 $ boxed "Controls" $
-            grid 10 5 [ [label "Tempo:", widget tempo], 
-                        [label "Gain:", widget gain], 
+            grid 10 5 [ [label "Tempo:", widget tempo],
+                        [label "Gain:", widget gain],
                         [label "Volume:", widget volume] ]
 
         status = margin 10 $ boxed "Status" $
@@ -86,46 +89,61 @@ addWidgets frame = do
             widget transport,
             row 10 [label "Time:", label "Section:", label "Bar:"]
             ]
-        
-    windowSetLayout frame $ margin 10 $ 
-        column 0 [row 0 [buttons, shaped $ controls, status], 
+
+    windowSetLayout frame $ margin 10 $
+        column 0 [row 0 [buttons, shaped $ controls, status],
                   positioning]
 
-    (transportA, transportS) <- newSinkE
-    
+    (tempoB, tempoS) <- newSinkE
+    (gainB, gainS) <- newSinkE
+    (volumeB, volumeS) <- newSinkE
+    (transportB, transportS) <- newSinkE
+
     let refreshWidgets = do
-        transportA >>= \x -> case x of 
-            Just x -> set transport [selection := x]
-            Nothing -> return ()        
+        tempoB      >>= setProp tempo selection
+        gainB       >>= setProp gain selection
+        volumeB     >>= setProp volume selection
+        transportB  >>= setProp transport selection
         return ()
+
     timer frame [interval := 100, on command := refreshWidgets]
-    
-    
 
-    let events     = \x -> case x of 
-        { "start"         -> startE                
-        ; "stop"          -> stopE                
-        ; "pause"         -> pauseE                
-        ; "resume"        -> resumeE                
-        ;  _              -> error "No such event"     
+
+
+    let events     = \x -> case x of
+        { "start"         -> startE
+        ; "stop"          -> stopE
+        ; "pause"         -> pauseE
+        ; "resume"        -> resumeE
+        ; "tempo"         -> tempoE
+        ; "gain"          -> gainE
+        ; "volume"        -> volumeE
+        ;  _              -> error "No such event"
         }
-    let sinks     = \x -> case x of 
-        { "transport"     -> transportS                
-        ;  _              -> error "No such sink"     
+    let sinks     = \x -> case x of
+        { "tempo"         -> tempoS
+        ; "gain"          -> gainS
+        ; "volume"        -> volumeS
+        ; "transport"     -> transportS
+        ;  _              -> error "No such sink"
         }
-    return (events, sinks)    
+    return (events, sinks)
 
+setProp :: w -> Attr w a -> Maybe a -> IO ()
+setProp widget prop x = case x of
+    Just x  -> set widget [prop := x]
+    Nothing -> return ()
 
-addTimers :: Frame a -> IO (String -> Event (), String -> Sink ())
+addTimers :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addTimers frame = do
     (timerFired, timerFiredE) <- newObsE
 
     timer frame [interval := 2000,
-                on command := timerFired ()]
+                on command := timerFired 0]
 
     let events = \x -> case x of { "fired" -> timerFiredE }
     let sinks = error "No such sink"
-    return (events, sinks)    
+    return (events, sinks)
 
 
 gui :: IO ()
@@ -135,16 +153,19 @@ gui = do
     (menuEvents,   menuSinks)   <- addMenus frame
     (widgetEvents, widgetSinks) <- addWidgets frame
     (timerEvents,  timerSinks)  <- addTimers frame
-    
-    -- TODO split into something run by a timer                              
+
+    -- TODO split into something run by a timer
     forkIO $ runLoop $ mempty
         <> (notify "Start was pressed"   $ widgetEvents "start")
-        <> (notify "Stop was pressed"   $ widgetEvents "stop")
+        <> (notify "Stop was pressed"    $ widgetEvents "stop")
         <> (notify "Pause was pressed"   $ widgetEvents "pause")
-        <> (notify "Resume was pressed"   $ widgetEvents "resume")
+        <> (notify "Resume was pressed"  $ widgetEvents "resume")
+        <> (showing "Tempo is now:"      $ widgetEvents "tempo")
         <> (notify "The timer was fired" $ timerEvents  "fired")
         <> (notify "Something happened"  $ widgetEvents "start" <> timerEvents "fired")
+
         <> (fmap (const "") $ widgetSinks "transport" $ fmap (const 500) $ widgetEvents "resume")
+        <> (fmap (const "") $ widgetSinks "tempo" $ fmap (const 500)     $ widgetEvents "stop")
 
 
     return ()
@@ -153,6 +174,10 @@ type Sink a = Event a -> Event a
 
 notify :: String -> Event a -> Event String
 notify m = putLineE . fmap (const m)
+
+showing :: Show a => String -> Event a -> Event String
+showing m = putLineE . fmap (\x -> m ++ show x)
+
 
 main :: IO ()
 main = start gui
@@ -185,20 +210,20 @@ newSinkE = do
 
 -- mainE :: Event (Maybe Bool)
 -- mainE = output `sequenceE` result
---     where  
---         result       = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE  
+--     where
+--         result       = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE
 --         output       = putLineE $ twice
 --         twice        = yourText "(original)" getLineE <> yourText "(reversed)" (fmap reverse getLineE)
--- 
+--
 --         yourText t = mergeWithE (++) (alwaysE $ "Your text " ++ t ++ ": ")
--- 
--- 
--- 
--- 
--- 
+--
+--
+--
+--
+--
 -- eventMain :: Event (Maybe Bool) -> IO ()
 -- eventMain = eventMain' . (fmap . fmap) (\r -> if r then ExitSuccess else ExitFailure (-1))
--- 
+--
 -- eventMain' :: Event (Maybe ExitCode) -> IO ()
 -- eventMain' e = do
 --     code <- runLoopUntil e
@@ -212,7 +237,7 @@ newSinkE = do
 
 
 
-    
+
 
 
 
