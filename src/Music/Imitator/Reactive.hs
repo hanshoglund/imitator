@@ -114,58 +114,59 @@ data Event a where
     EMerge  :: Event a -> Event a -> Event a
     ESeq    :: Event a -> Event b -> Event b
 
-    EMap    :: (a -> b) -> Event a -> Event b
-    EPred   :: (a -> Bool) -> Event a -> Event a
+    EMap    :: (a -> b)     -> Event a -> Event b
+    EPred   :: (a -> Bool)  -> Event a -> Event a
 
     EChan   :: Chan a       -> Event a
     ESource :: IO [a]       -> Event a
     ESink   :: (a -> IO b)  -> Event a -> Event b
 
-prepChan :: Chan a -> IO (IO [a])
-prepChan ch = do
-    ch' <- dupChan ch
-    return $ fmap maybeToList $ tryReadChan ch'
 
-prepare :: Event a -> IO (Event a)
-prepare (EChan ch)      = do
-    ch' <- prepChan ch
-    return $ ESource ch' 
-prepare (EMerge a b)     = do
-    a' <- prepare a
-    b' <- prepare b
+prepE :: Event a -> IO (Event a)
+prepE (EMerge a b)     = do
+    a' <- prepE a
+    b' <- prepE b
     return $ EMerge a' b'
-prepare (ESeq a b)     = do
-    a' <- prepare a
-    b' <- prepare b
+prepE (ESeq a b)     = do
+    a' <- prepE a
+    b' <- prepE b
     return $ ESeq a' b'
-prepare (EMap f x)    = do
-    x' <- prepare x
+prepE (EMap f x)    = do
+    x' <- prepE x
     return $ EMap f x'
-prepare (EPred p x)    = do
-    x' <- prepare x
+prepE (EPred p x)    = do
+    x' <- prepE x
     return $ EPred p x'
-prepare (ESink k a)     = do
-    a' <- prepare a
+prepE (ESink k a)     = do
+    a' <- prepE a
     return $ ESink k a'
-prepare x               = return x
+prepE (EChan ch)      = do
+    ch' <- prepC ch
+    return $ ESource ch' 
+    where
+        prepC :: Chan a -> IO (IO [a])
+        prepC ch = do
+            ch' <- dupChan ch
+            return $ fmap maybeToList $ tryReadChan ch'
+prepE x               = return x
 
 -- | 
 -- Run the given event once.
 --
 run :: Event a -> IO ()
 run e = do
-    e' <- prepare e
-    run' e' >> return ()
+    e' <- prepE e
+    runE e' >> return ()
 
 -- | 
 -- Run the given event for ever.
 --
 runLoop :: Event a -> IO ()
 runLoop e = do 
-    e' <- prepare e
+    e' <- prepE e
     runLoop' e'  
     where   
-        runLoop' e = run' e >> threadDelay loopInterval >> runLoop' e
+        runLoop' e = runE e >> threadDelay loopInterval >> runLoop' e
         loopInterval = 1000 * 5
 
 -- | 
@@ -173,28 +174,34 @@ runLoop e = do
 --
 runLoopUntil :: Event (Maybe a) -> IO a
 runLoopUntil e = do 
-    e' <- prepare e
+    e' <- prepE e
     runLoop' e'  
     where   
         runLoop' e = do
-            r <- run' e
+            r <- runE e
             case (catMaybes r) of 
                 []    -> threadDelay loopInterval >> runLoop' e
                 (a:_) -> return a
         loopInterval = 1000 * 5
 
 
-run' :: Event a -> IO [a]
-run' ENever          = return []
-run' (EMap f x)    = fmap (fmap f) (run' x)
-run' (EPred p x)     = fmap (filter p) (run' x)
-run' (EMerge a b)     = do
-    a' <- run' a
-    b' <- run' b
+runE' :: Event a -> IO [a]
+runE' e = do
+    e' <- prepE e
+    runE e'
+
+
+runE :: Event a -> IO [a]
+runE ENever          = return []
+runE (EMap f x)      = fmap (fmap f) (runE x)
+runE (EPred p x)     = fmap (filter p) (runE x)
+runE (EMerge a b)    = do
+    a' <- runE a
+    b' <- runE b
     return (a' ++ b')
-run' (ESource i)     = i
-run' (ESink o x)     = run' x >>= mapM o
-run' (ESeq a b)      = run' a >> run' b
+runE (ESource i)     = i
+runE (ESink o x)     = runE x >>= mapM o
+runE (ESeq a b)      = runE a >> runE b
 
 instance Functor (Event) where
     fmap    = EMap
@@ -312,7 +319,7 @@ putLineE = putE putStrLn
 
 -- getVar :: TMVar a -> IO a
 -- setVar :: TMVar a -> a -> IO a
--- run'   :: Event a -> IO [a]
+-- runE   :: Event a -> IO [a]
 
 -- modVar :: (a -> a) -> TMVar a -> IO ()               
 
@@ -325,27 +332,22 @@ putLineE = putE putStrLn
 
 
 
-data Reactive a where
-    RStep  :: TMVar a -> Event a -> Reactive a
 
 
-runR  :: Reactive a -> IO a
-runR (RStep x e) = atomically $ readTMVar x
--- TODO fold in event values...
+
+
+joinOccs :: Reactive (Reactive a) -> IO a
+joinOccs = join . fmap runR . runR
+    -- or (>>= runR) . runR
+
+
 
 stepper  :: a -> Event a -> Reactive a
 stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
 
-switcher :: Reactive a -> Event (Reactive a) -> Reactive a
-switcher r e = join (stepper r e)
-
 sample :: Reactive b -> Event a -> Event b
-sample r e = ESource $ do
-    e' <- run' e
-    r' <- runR r
-    case e' of
-        [] -> return []
-        _  -> return [r']
+sample r e = ESink (\_ -> runR r) e 
+        
 
 
 instance Monoid a => Monoid (Reactive a) where
@@ -360,8 +362,13 @@ instance Applicative Reactive where
     (RStep fv fe) <*> (RStep xv xe) = undefined
 
 instance Monad Reactive where
-    return = pure
+    return  = pure
     x >>= y = undefined
+        
+
+
+switcher :: Reactive a -> Event (Reactive a) -> Reactive a
+switcher r e = join (stepper r e)
 
 
 
