@@ -4,13 +4,14 @@
 module Main where
 
 import Music.Imitator.Reactive
+import Control.Concurrent (forkIO, forkOS, threadDelay)
 
 import System.Exit
 import Data.Monoid
 import Control.Applicative
 import Graphics.UI.WX hiding (Event)
 
-addMenus :: Frame a -> IO ()
+addMenus :: Frame a -> IO (String -> Event (), String -> Listener ())
 addMenus frame = do
     file            <- menuPane [text := "&File"]
     fileOpen        <- menuItem file [text := "&Open...\tCtrl+O"]
@@ -31,8 +32,14 @@ addMenus frame = do
         on (menu fileQuit) := close frame,
         on (menu recordStart) := putStrLn "Started recording..."
         ]
+    
+    let events    = error "No such event"
+    let listeners = error "No such listener"
+    return (events, listeners)    
 
-addWidgets :: Frame a -> IO (Gauge ())
+
+
+addWidgets :: Frame a -> IO (String -> Event (), String -> Listener ())
 addWidgets frame = do
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
@@ -46,8 +53,8 @@ addWidgets frame = do
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
     gain        <- hslider frame True 0 1000 [text := "Gain"]
     volume      <- hslider frame True 0 1000 [text := "Volume"]
-    set tempo [on command := putStrLn  "tempo changed!!!"]
-    set gain [on command := putStrLn   "gain changed!!!"]
+    set tempo  [on command := putStrLn  "tempo changed!!!"]
+    set gain   [on command := putStrLn  "gain changed!!!"]
     set volume [on command := putStrLn  "volume changed!!!"]
 
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
@@ -79,51 +86,67 @@ addWidgets frame = do
         column 0 [row 0 [buttons, shaped $ controls, status], 
                   positioning]
 
-    return transport
+    let events    = error "No such event"
+    let listeners = error "No such listener"
+    return (events, listeners)    
 
-addTimers :: Gauge () -> Frame a -> IO ()
-addTimers transport frame = do
+
+addTimers :: Frame a -> IO (String -> Event (), String -> Listener ())
+addTimers frame = do
+    (timerFired, timerFiredE) <- newObsE
+
     timer frame [interval := 2000,
-                on command := fireTimer]
-    return ()                          
-    where
-        fireTimer = do
-            putStrLn "timer fired!!!"
-            set transport [selection := 500]
+                on command := timerFired ()]
+
+    let events = \x -> case x of { "fired" -> timerFiredE }
+    let listeners = error "No such listener"
+    return (events, listeners)    
 
 
 gui :: IO ()
 gui = do
     frame <- frame [text := "Imitator"]
 
-    addMenus frame
-    transport <- addWidgets frame
-    addTimers transport frame
+    (menuEvents,   menuListeners)   <- addMenus frame
+    (widgetEvents, widgetListeners) <- addWidgets frame
+    (timerEvents,  timerListeners)  <- addTimers frame
+                                  
+    forkIO $ runLoop $ putLineE $ fmap (const "The timer was fired") $ timerEvents "fired"
     return ()
 
--- main :: IO ()
--- main = start gui
+type Listener a = Event a -> Event a
 
-mainE :: Event (Maybe Bool)
-mainE = output `sequenceE` result
-    where  
-        result       = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE  
-        output       = putLineE $ twice
-        twice        = yourText "(original)" getLineE <> yourText "(reversed)" (fmap reverse getLineE)
-
-        yourText t = mergeWithE (++) (alwaysE $ "Your text " ++ t ++ ": ")
+main :: IO ()
+main = start gui
+-- main = eventMain mainE
 
 
+newObsE :: IO (a -> IO (), Event a)
+newObsE = do
+    ch <- newChan
+    return (writeChan ch, readChanE ch)
 
-main = eventMain mainE
 
-eventMain :: Event (Maybe Bool) -> IO ()
-eventMain = eventMain' . (fmap . fmap) (\r -> if r then ExitSuccess else ExitFailure (-1))
-
-eventMain' :: Event (Maybe ExitCode) -> IO ()
-eventMain' e = do
-    code <- runLoopUntil e
-    exitWith code
+-- mainE :: Event (Maybe Bool)
+-- mainE = output `sequenceE` result
+--     where  
+--         result       = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE  
+--         output       = putLineE $ twice
+--         twice        = yourText "(original)" getLineE <> yourText "(reversed)" (fmap reverse getLineE)
+-- 
+--         yourText t = mergeWithE (++) (alwaysE $ "Your text " ++ t ++ ": ")
+-- 
+-- 
+-- 
+-- 
+-- 
+-- eventMain :: Event (Maybe Bool) -> IO ()
+-- eventMain = eventMain' . (fmap . fmap) (\r -> if r then ExitSuccess else ExitFailure (-1))
+-- 
+-- eventMain' :: Event (Maybe ExitCode) -> IO ()
+-- eventMain' e = do
+--     code <- runLoopUntil e
+--     exitWith code
 
 -- midiIn :: Chan Midi
 -- midiOut :: Chan Midi
