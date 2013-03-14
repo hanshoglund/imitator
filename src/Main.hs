@@ -150,21 +150,21 @@ gui :: IO ()
 gui = do
     frame <- frame [text := "Imitator"]
 
-    (menuEvents,   menuSinks)   <- addMenus frame
-    (widgetEvents, widgetSinks) <- addWidgets frame
-    (timerEvents,  timerSinks)  <- addTimers frame
+    (menuSources,   menuSinks)   <- addMenus frame
+    (widgetSources, widgetSinks) <- addWidgets frame
+    (timerSources,  timerSinks)  <- addTimers frame
 
     -- TODO split into something run by a timer
     forkIO $ runLoop $ mempty
-        <> (notify "Start was pressed"   $ widgetEvents "start")
-        <> (notify "Stop was pressed"    $ widgetEvents "stop")
-        <> (notify "Pause was pressed"   $ widgetEvents "pause")
-        <> (notify "Resume was pressed"  $ widgetEvents "resume")
-        <> (showing "Tempo is now: "     $ widgetEvents "tempo")
+        <> (notify "Start was pressed"   $ widgetSources "start")
+        <> (notify "Stop was pressed"    $ widgetSources "stop")
+        <> (notify "Pause was pressed"   $ widgetSources "pause")
+        <> (notify "Resume was pressed"  $ widgetSources "resume")
+        <> (showing "Tempo is now: "     $ widgetSources "tempo")
         <> (showing "Entered text reversed: " $ fmap reverse $ getLineE)
-        <> (fmap (const "") $ widgetSinks "transport" $ fmap (const 500) $ widgetEvents "resume")
-        <> (fmap (const "") $ widgetSinks "tempo" $ fmap (const 500)     $ widgetEvents "stop")
-        <> (fmap (const "") $ widgetSinks "transport" $ widgetEvents "volume")
+        <> (fmap (const "") $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
+        <> (fmap (const "") $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
+        <> (fmap (const "") $ widgetSinks "transport" $ widgetSources "volume")
 
     return ()
 
