@@ -2,20 +2,28 @@
 {-# LANGUAGE GADTs #-}
 
 module Music.Imitator.Reactive (
-        Chan,
+        Chan(..),
         newChan,
         dupChan,
-        writeChan,
         readChan,
         tryReadChan,
+        writeChan,
+        
+        -- * Events
         Event,
+
+        -- ** Combine events
         neverE,
         alwaysE,
         mergeE,
         sequenceE,
+        mergeWithE,
+
+        -- ** Change value of events
+        mapE,
         filterE,
-        tick,
-        tick',          
+        tickE,
+        tickE',          
         -- -- MidiSource,
         -- -- MidiDestination,
         -- -- midiInE,
@@ -24,15 +32,22 @@ module Music.Imitator.Reactive (
         -- -- oscInE,
         -- -- oscOutE,
 
-        mergeWithE,
+        -- ** Create events
+        -- *** From standard library
         getLineE,
         putLineE, 
+
+        -- *** From channels
         readChanE,
         writeChanE,
+
+        -- *** From I/O computations
         getE,
         pollE,
-        -- modifyE,
         putE,
+        -- modifyE,                 
+        
+        -- ** Run events
         run,
         runLoop,
         runLoopUntil
@@ -64,7 +79,7 @@ import qualified Sound.OpenSoundControl as OSC
 
 
 -- Factor out channels
-data Chan a = Chan (TChan a)
+newtype Chan a = Chan { getChan :: TChan a }
 newChan     :: IO (Chan a)
 dupChan     :: Chan a -> IO (Chan a)
 writeChan   :: Chan a -> a -> IO ()
@@ -86,10 +101,10 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 data Event a where
     ENever  :: Event a
+    EPure   :: a -> Event a
+
     EBoth   :: Event a -> Event a -> Event a
     ESeq    :: Event a -> Event b -> Event b
-
-    EPure   :: a -> Event a
     EApply  :: Event (a -> b) -> Event a -> Event b
     EPred   :: (a -> Bool) -> Event a -> Event a
 
@@ -176,18 +191,31 @@ run' (ESource i)     = i
 run' (ESink o x)     = run' x >>= mapM o
 run' (ESeq a b)      = run' a >> run' b
 
-single x = [x]
-
 instance Functor (Event) where
     fmap f = (pure f <*>)
 
 instance Applicative (Event) where
-    pure  = EPure
-    (<*>) = EApply
+    pure    = EPure
+    (<*>)   = EApply
 
 instance Monoid (Event a) where
     mempty  = ENever
     mappend = EBoth
+
+-- |
+-- Map over occurances, semantically @map p xs@.
+mapE :: (a -> b) -> Event a -> Event b
+mapE = fmap
+
+-- |
+-- Filter occurances, semantically @filter p xs@.
+filterE :: (a -> Bool) -> Event a -> Event a
+filterE p = EPred p
+
+-- |
+-- Run both and behave as the second event, sematically @a `seq` b@.
+sequenceE :: Event a -> Event b -> Event b
+sequenceE = ESeq
 
 -- |
 -- The empty event, semantically @[]@.
@@ -200,7 +228,7 @@ alwaysE :: a -> Event a
 alwaysE = pure
 
 -- |
--- Merge occurences, semantically @merge xs ys@.
+-- Interleave occurences, semantically @merge xs ys@.
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
@@ -209,21 +237,11 @@ mergeE = mappend
 mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
 mergeWithE = liftA2
 
--- |
--- Run both and behave as the second event, sematically @a `seq` b@.
-sequenceE :: Event a -> Event b -> Event b
-sequenceE = ESeq
+tickE :: Event a -> Event ()
+tickE = tickE'
 
--- |
--- Filter occurances, semantically @filter p xs@.
-filterE :: (a -> Bool) -> Event a -> Event a
-filterE p = EPred p
-
-tick :: Event a -> Event ()
-tick = tick'
-
-tick' :: Monoid b => Event a -> Event b
-tick' = fmap (const mempty)
+tickE' :: Monoid b => Event a -> Event b
+tickE' = fmap (const mempty)
 
 
 
@@ -231,7 +249,9 @@ tick' = fmap (const mempty)
 -- |
 -- Event reading from external world.
 --
--- The computation may block and its values will be shared.
+-- The computation should be blocking and its values will be shared. 
+--
+-- This function can be used with standard I/O functions.
 --
 getE :: IO a -> Event a
 getE k = unsafePerformIO $ do
@@ -244,26 +264,26 @@ getE k = unsafePerformIO $ do
 -- Event reading from external world.
 --
 -- The computation should be non-blocking and its values will be contested.
--- Note that this implies that @pollE x \<> pollE y@ may not behave as you expect.
+--
+-- This function should be used with /impure/ but /non-effectful/ functions such as @tryReadTMVar x@.
+-- You should /not/ use this function with standard I/O functions as this
+-- may lead to non-deterministic reads.
 --
 pollE :: IO (Maybe a) -> Event a
 pollE = ESource . fmap maybeToList
 
--- |
 -- Event interacting with the external world.
 --
 -- The computation should be non-blocking and its values will be contested.
 --
-modifyE :: (a -> IO b) -> Event a -> Event b
-modifyE = ESink
+-- modifyE :: (a -> IO b) -> Event a -> Event b
+-- modifyE = ESink
 
 -- |
 -- Event writing to the external world.
 --
--- The computation should be non-blocking.
---
 putE :: (a -> IO ()) -> Event a -> Event a
-putE k = modifyE $ \x -> do
+putE k = ESink $ \x -> do
     k x
     return x
 
@@ -317,3 +337,6 @@ list z f xs = f xs
 filterMap p = catMaybes . map p   
 
 cycleM x = x >> cycleM x 
+
+single x = [x]
+

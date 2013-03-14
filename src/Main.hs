@@ -156,15 +156,15 @@ gui = do
 
     -- TODO split into something run by a timer
     forkIO $ runLoop $ mempty
-        <> (tick $ notify "Start was pressed"   $ widgetSources "start")
-        <> (tick $ notify "Stop was pressed"    $ widgetSources "stop")
-        <> (tick $ notify "Pause was pressed"   $ widgetSources "pause")
-        <> (tick $ notify "Resume was pressed"  $ widgetSources "resume")
-        <> (tick $ showing "Tempo is now: "     $ widgetSources "tempo")
-        <> (tick $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
-        <> (tick $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
-        <> (tick $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
-        <> (tick $ widgetSinks "transport" $ widgetSources "volume")
+        <> (tickE $ notify "Start was pressed"   $ widgetSources "start")
+        <> (tickE $ notify "Stop was pressed"    $ widgetSources "stop")
+        <> (tickE $ notify "Pause was pressed"   $ widgetSources "pause")
+        <> (tickE $ notify "Resume was pressed"  $ widgetSources "resume")
+        <> (tickE $ showing "Tempo is now: "     $ widgetSources "tempo")
+        <> (tickE $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
+        <> (tickE $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
+        <> (tickE $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
+        <> (tickE $ widgetSinks "transport" $ widgetSources "volume")
 
     return ()
 
@@ -181,8 +181,7 @@ notify m = putLineE . fmap (const m)
 showing :: Show a => String -> Event a -> Event String
 showing m = putLineE . fmap (\x -> m ++ show x)
 
-
-newSourceE :: IO (a -> IO (), Event a)
+newSourceE :: IO (a -> IO (), Source a)
 newSourceE = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
@@ -197,6 +196,19 @@ set' :: w -> Attr w a -> Maybe a -> IO ()
 set' widget prop x = case x of
     Just x  -> set widget [prop := x]
     Nothing -> return ()
+
+
+
+-- type Reactive a = Event a
+
+{-
+reactive :: a       -> Event a    -> Reactive a
+sample   :: Event _ -> Reactive a -> Event a
+
+modify   :: Event (a -> a) -> Reactive a -> Reactive a
+set      :: Event a        -> Reactive a -> Reactive a
+-}
+
 
 -- mainE :: Event (Maybe Bool)
 -- mainE = output `sequenceE` result
