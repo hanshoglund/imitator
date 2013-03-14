@@ -111,22 +111,29 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 
 data Event a where
-    ENever  :: Event a
-    EMerge  :: Event a -> Event a -> Event a
-    ESeq    :: Event a -> Event b -> Event b
+    ENever  ::                             Event a
+    EMerge  :: Event a -> Event a       -> Event a
+    ESeq    :: Event a -> Event b       -> Event b
 
-    EMap    :: (a -> b)     -> Event a -> Event b
-    EPred   :: (a -> Bool)  -> Event a -> Event a
+    EMap    :: (a -> b)    -> Event a   -> Event b
+    EPred   :: (a -> Bool) -> Event a   -> Event a
 
-    EChan   :: Chan a       -> Event a
-    ESource :: IO [a]       -> Event a
-    ESink   :: (a -> IO b)  -> Event a -> Event b
+    EChan   :: Chan a                   -> Event a
+    ESource :: IO [a]                   -> Event a
+    ESink   :: (a -> IO b)  -> Event a  -> Event b
 
-    EState  :: Reactive a   -> Event b -> Event a
+    ESamp  :: Reactive a   -> Event b  -> Event a
 
 data Reactive a where
-    RStep   :: TMVar a -> Event a -> Reactive a
+    RConst  :: a                        -> Reactive a
+    RStep   :: TMVar a      -> Event a  -> Reactive a
 
+
+-- Reactive (Reactive a) -> Reactive a
+-- IO (IO a) -> IO a
+
+-- accumR :: a -> Event (a -> a) -> Reactive a
+-- accumR z f = stepper id f <*> pure z
 
 prepE :: Event a -> IO (Event a)
 prepE (EMerge a b)     = do
@@ -146,6 +153,10 @@ prepE (EPred p x)    = do
 prepE (ESink k a)     = do
     a' <- prepE a
     return $ ESink k a'
+prepE (ESamp r x)    = do
+    r' <- prepR r
+    x' <- prepE x
+    return $ ESamp r' x'
 prepE (EChan ch)      = do
     ch' <- prepC ch
     return $ ESource ch' 
@@ -156,13 +167,12 @@ prepE (EChan ch)      = do
             return $ fmap maybeToList $ tryReadChan ch'
 prepE x               = return x
 
+prepR :: Reactive a -> IO (Reactive a)
+prepR (RStep v x) = do
+    x' <- prepE x
+    return $ RStep v x'
+prepR x = return x
 
-
--- runE' :: Event a -> IO [a]
--- runE' e = do
---     e' <- prepE e
---     runE e'
--- 
 
 runE :: Event a -> IO [a]
 runE ENever          = return []
@@ -175,6 +185,19 @@ runE (EMerge a b)    = do
 runE (ESource i)     = i
 runE (ESink o x)     = runE x >>= mapM o
 runE (ESeq a b)      = runE a >> runE b
+runE (ESamp r x)    = do
+    r' <- runR r
+    x' <- runE x
+    return $ fmap (const r') x'
+
+runR :: Reactive a -> IO a
+runR (RConst v)      = return v
+runR (RStep v x)     = do
+    v' <- atomically $ readTMVar v
+    x' <- runE x
+    let y = last (v':x')
+    atomically $ swapTMVar v y
+    return y
 
 
 
@@ -358,28 +381,6 @@ putLineE = putE putStrLn
 
 
 
--- ESource :: IO [a]       -> Event a
--- ESink   :: (a -> IO b)  -> Event a -> Event b
-
--- getVar :: TMVar a -> IO a
--- setVar :: TMVar a -> a -> IO a
--- runE   :: Event a -> IO [a]
-
--- modVar :: (a -> a) -> TMVar a -> IO ()               
-
-
-
--- IO a         from the state
--- IO [a]       from the event
---      => IO [a]    "recent history"
-
-
-
-
-
-
-
-
 -- joinOccs :: Reactive (Reactive a) -> IO a
 -- joinOccs = join . fmap runR . runR
 --     -- or (>>= runR) . runR
@@ -390,8 +391,7 @@ stepper  :: a -> Event a -> Reactive a
 stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
 
 sample :: Reactive b -> Event a -> Event b
-sample = undefined
--- sample r e = ESink (\_ -> runR r) e 
+sample = ESamp
         
 
 

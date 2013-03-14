@@ -159,6 +159,7 @@ gui = do
         startE = widgetSources "start"
         stopE = widgetSources "stop"
         pauseE = widgetSources "pause"
+        tempoE = widgetSources "tempo"
 
     -- TODO split into something run by a timer
     forkIO $ runLoop $ mempty
@@ -167,7 +168,7 @@ gui = do
         -- <> (tickE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
         -- <> (tickE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
 
-        <> (tickE $ showing "Current step value: "    $ sample (stepper 1 startE) stopE)
+        <> (tickE $ showing "Current tempo: "    $ sample (stepper 50 tempoE) stopE)
 
         -- <> (tickE $ notify "Start was pressed"   $ widgetSources "start")
         -- <> (tickE $ notify "Stop was pressed"    $ widgetSources "stop")
