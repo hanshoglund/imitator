@@ -11,6 +11,7 @@ module Music.Imitator.Reactive (
         tryReadChan,
         tryPeekChan,
         Event,
+        filterE,
         readE,
         writeE,
         readIOE,
@@ -76,6 +77,13 @@ newtype Event a = Event { getEvent :: IO (Maybe a) }
 instance Functor Event where
     fmap f = Event . (fmap (fmap f)) . getEvent
 
+filterE :: (a -> Bool) -> Event a -> Event a
+filterE p (Event f) = Event $ do
+    x <- f
+    case x of
+        (Just x) -> if (p x) then return (Just x) else return Nothing
+        _        -> return Nothing
+
 instance Monad Event where
     return  = Event . return . return
     (Event f) >>= k = Event $ do
@@ -133,14 +141,15 @@ oscOutE :: String -> Int -> Event OscMessage
 oscOutE = undefined
 
 -- TODO make non-blocking    
-linesIn  :: Event String
-linesIn = unsafePerformIO $ do
-    ch <- newChan
-    forkIO $ cycleM $ do
-        getLine >>= writeChan ch
-    return $ readE ch 
-    where
-        cycleM x = x >> cycleM x
+linesIn :: Event String
+linesIn = readIOE (fmap Just getLine)
+-- linesIn = unsafePerformIO $ do
+--     ch <- newChan
+--     forkIO $ cycleM $ do
+--         getLine >>= writeChan ch
+--     return $ readE ch 
+--     where
+--         cycleM x = x >> cycleM x
 
 
 linesOut :: Event String -> Event String

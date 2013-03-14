@@ -5,6 +5,7 @@ module Main where
 
 import Music.Imitator.Reactive
 
+import Data.Monoid
 import Graphics.UI.WX
 
 addMenus :: Frame a -> IO ()
@@ -102,7 +103,7 @@ gui = do
 -- main = start gui
 
 main :: IO ()
-main = runLoop $ linesOut linesIn
+main = runLoop $ linesOut (mempty `mappend` fmap (fmap succ) linesIn)
 
 
 
