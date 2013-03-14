@@ -161,6 +161,12 @@ gui = do
         <> (tickE $ notify "Pause was pressed"   $ widgetSources "pause")
         <> (tickE $ notify "Resume was pressed"  $ widgetSources "resume")
         <> (tickE $ showing "Tempo is now: "     $ widgetSources "tempo")
+        <> (tickE $ showing "Gain is now: "     $ widgetSources "gain")
+        <> (tickE $ showing "Volume is now: "     $ widgetSources "volume")
+
+        -- <> (tickE $ showing "Tempo + Gain: "     $ liftA2 (+) (widgetSources "tempo") (widgetSources "gain"))
+
+
         <> (tickE $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
         <> (tickE $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
         <> (tickE $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")

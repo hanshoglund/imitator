@@ -14,10 +14,10 @@ module Music.Imitator.Reactive (
 
         -- ** Combine events
         neverE,
-        alwaysE,
+        -- alwaysE,
         mergeE,
         sequenceE,
-        mergeWithE,
+        -- mergeWithE,
 
         -- ** Change value of events
         mapE,
@@ -105,7 +105,7 @@ data Event a where
 
     EBoth   :: Event a -> Event a -> Event a
     ESeq    :: Event a -> Event b -> Event b
-    EApply  :: Event (a -> b) -> Event a -> Event b
+    EMap  :: (a -> b) -> Event a -> Event b
     EPred   :: (a -> Bool) -> Event a -> Event a
 
     EChan   :: Chan a       -> Event a
@@ -129,10 +129,9 @@ prepare (ESeq a b)     = do
     a' <- prepare a
     b' <- prepare b
     return $ ESeq a' b'
-prepare (EApply f x)    = do
-    f' <- prepare f
+prepare (EMap f x)    = do
     x' <- prepare x
-    return $ EApply f' x'
+    return $ EMap f x'
 prepare (EPred p x)    = do
     x' <- prepare x
     return $ EPred p x'
@@ -179,9 +178,7 @@ runLoopUntil e = do
 run' :: Event a -> IO [a]
 run' ENever          = return []
 run' (EPure x)       = return [x]
-run' (EApply f x)    = run' f <&> run' x
-    where
-        (<&>) = liftA2 (<*>)
+run' (EMap f x)    = fmap (fmap f) (run' x)
 run' (EPred p x)     = fmap (filter p) (run' x)
 run' (EBoth a b)     = do
     a' <- run' a
@@ -192,11 +189,7 @@ run' (ESink o x)     = run' x >>= mapM o
 run' (ESeq a b)      = run' a >> run' b
 
 instance Functor (Event) where
-    fmap f = (pure f <*>)
-
-instance Applicative (Event) where
-    pure    = EPure
-    (<*>)   = EApply
+    fmap = EMap
 
 instance Monoid (Event a) where
     mempty  = ENever
@@ -222,20 +215,18 @@ sequenceE = ESeq
 neverE :: Event a
 neverE = mempty
 
--- |
 -- Always occur as the given value, semantically @repeat x@.
-alwaysE :: a -> Event a
-alwaysE = pure
+-- alwaysE :: a -> Event a
+-- alwaysE = pure
 
 -- |
 -- Interleave occurences, semantically @merge xs ys@.
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
--- |
--- Merge occurences using the given function, semantically @zipWith f xs ys@.
-mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
-mergeWithE = liftA2
+-- -- Merge occurences using the given function, semantically @zipWith f xs ys@.
+-- mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
+-- mergeWithE = liftA2
 
 tickE :: Event a -> Event ()
 tickE = tickE'
