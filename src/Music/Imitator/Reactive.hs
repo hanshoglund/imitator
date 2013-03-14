@@ -23,7 +23,7 @@ module Music.Imitator.Reactive (
         linesIn,
         linesOut, 
         getE,
-        getE',
+        getNonBlockingE,
         putE,
         readE,
         writeE,
@@ -174,18 +174,18 @@ mergeE = mappend
 --
 -- The computation should be non-blocking.
 --
-getE :: IO (Maybe a) -> Event a
-getE = ESource . fmap maybeToList
+getNonBlockingE :: IO (Maybe a) -> Event a
+getNonBlockingE = ESource . fmap maybeToList
 
 -- |
 -- Event reading from external world.
 --
 -- The computation may block and will be run in a separate thread.
 --
-getE' :: IO a -> Event a
-getE' k = unsafePerformIO $ do
+getE :: IO a -> Event a
+getE k = unsafePerformIO $ do
     ch <- newChan
-    forkIO $ cycleM $ do
+    forkIO $ cycleM $ 
         k >>= writeChan ch
     return (EChan ch)
 
@@ -204,7 +204,7 @@ writeE :: Chan a -> Event a -> Event ()
 writeE ch = ESink (writeChan ch)
 
 linesIn :: Event String
-linesIn = getE' getLine 
+linesIn = getE getLine 
 
 linesOut :: Event String -> Event ()
 linesOut = putE putStrLn
