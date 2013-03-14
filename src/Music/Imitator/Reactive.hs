@@ -24,6 +24,7 @@ module Music.Imitator.Reactive (
         tickME,          
         mapE,
         filterE,
+        accumE,
         -- -- MidiSource,
         -- -- MidiDestination,
         -- -- midiInE,
@@ -58,6 +59,8 @@ module Music.Imitator.Reactive (
         stepper,
         switcher,
         sample,
+        accumR,
+
   ) where
 
 import Prelude hiding (mapM)
@@ -320,10 +323,6 @@ neverE = mempty
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
--- -- Merge occurences using the given function, semantically @zipWith f xs ys@.
--- mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
--- mergeWithE = liftA2
-
 -- |
 -- Discard values of the event.
 tickE :: Event a -> Event ()
@@ -340,7 +339,7 @@ tickME = fmap (const mempty)
 -- |
 -- Event reading from external world.
 --
--- The computation should be blocking and its values will be shared. 
+-- The computation should be blocking and is polled exactly once per occurence.
 --
 -- This function can be used with standard I/O functions.
 --
@@ -354,11 +353,12 @@ getE k = unsafePerformIO $ do
 -- |
 -- Event reading from external world.
 --
--- The computation should be non-blocking and its values will be contested.
+-- The computation should be non-blocking and may be polled repeatedly for each occurence.
 --
--- This function should be used with /impure/ but /non-effectful/ functions such as @tryReadTMVar x@.
+-- This function should be used with /non-effectful/ functions, typically functions that
+-- observe the current value of some external property.
 -- You should /not/ use this function with standard I/O functions as this
--- may lead to non-deterministic reads.
+-- may lead to non-deterministic reads (i.e. loss of data).
 --
 pollE :: IO (Maybe a) -> Event a
 pollE = ESource . fmap maybeToList
@@ -407,6 +407,12 @@ stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
 sample :: Reactive b -> Event a -> Event b
 sample = ESamp
         
+accumE :: a -> Event (a -> a) -> Event a
+accumR :: a -> Event (a -> a) -> Reactive a
+
+x `accumE` e = (x `accumR` e) `sample` e
+a `accumR` e = a `stepper` (a `accumE` e)
+
 
 
 instance Monoid a => Monoid (Reactive a) where
