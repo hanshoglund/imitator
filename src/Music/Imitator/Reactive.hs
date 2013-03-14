@@ -10,9 +10,9 @@ module Music.Imitator.Reactive (
         Event,          
         neverE,
         mergeE,
-        -- filterE,
-        -- readE,
-        -- writeE,
+        mergeWithE,
+        sequenceE,
+        filterE,
         -- -- MidiSource,
         -- -- MidiDestination,
         -- -- midiInE,
@@ -22,13 +22,15 @@ module Music.Imitator.Reactive (
         -- -- oscOutE,
         linesIn,
         linesOut, 
+        readE,
+        writeE,
         getE,
         getUniqueE,
         putE,
-        readE,
-        writeE,
+        puttingE,
         run,
-        runLoop
+        runLoop,
+        runLoopUntil
   ) where
 
 import Prelude hiding (mapM)
@@ -78,6 +80,7 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 data Event a where
     ENever  :: Event a
     EBoth   :: Event a -> Event a -> Event a
+    ESeq    :: Event a -> Event b -> Event b
 
     EPure   :: a -> Event a
     EApply  :: Event (a -> b) -> Event a -> Event b
@@ -100,6 +103,10 @@ prepare (EBoth a b)     = do
     a' <- prepare a
     b' <- prepare b
     return $ EBoth a' b'
+prepare (ESeq a b)     = do
+    a' <- prepare a
+    b' <- prepare b
+    return $ ESeq a' b'
 prepare (EApply f x)    = do
     f' <- prepare f
     x' <- prepare x
@@ -125,6 +132,19 @@ runLoop e = do
         runLoop' e = run' e >> threadDelay loopInterval >> runLoop' e
         loopInterval = 1000 * 5
 
+runLoopUntil :: Event (Maybe a) -> IO a
+runLoopUntil e = do 
+    e' <- prepare e
+    runLoop' e'  
+    where   
+        runLoop' e = do
+            r <- run' e
+            case (catMaybes r) of 
+                []    -> threadDelay loopInterval >> runLoop' e
+                (a:_) -> return a
+        loopInterval = 1000 * 5
+
+
 run' :: Event a -> IO [a]
 run' ENever          = return []
 run' (EPure x)       = return [x]
@@ -138,6 +158,7 @@ run' (EBoth a b)     = do
     return (a' ++ b')
 run' (ESource i)     = i
 run' (ESink o x)     = run' x >>= mapM o
+run' (ESeq a b)      = run' a >> run' b
 
 single x = [x]
 
@@ -162,10 +183,17 @@ neverE = mempty
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
+mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
+mergeWithE f = liftA2 f
+
+sequenceE :: Event a -> Event b -> Event b
+sequenceE = ESeq
+
 -- |
--- Filter occurances, semantically @filter p@.
+-- Filter occurances, semantically @filter p xs@.
 filterE :: (a -> Bool) -> Event a -> Event a
 filterE p = EPred p
+
 
 
 -- |
@@ -195,6 +223,11 @@ getUniqueE = ESource . fmap maybeToList
 --
 putE :: (a -> IO b) -> Event a -> Event b
 putE = ESink
+
+puttingE :: (a -> IO ()) -> Event a -> Event a
+puttingE k = putE $ \x -> do
+    k x
+    return x
 
 readE :: Chan a -> Event a
 readE = EChan

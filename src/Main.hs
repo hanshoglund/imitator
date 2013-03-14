@@ -5,9 +5,10 @@ module Main where
 
 import Music.Imitator.Reactive
 
+import System.Exit
 import Data.Monoid
 import Control.Applicative
-import Graphics.UI.WX
+import Graphics.UI.WX hiding (Event)
 
 addMenus :: Frame a -> IO ()
 addMenus frame = do
@@ -103,10 +104,25 @@ gui = do
 -- main :: IO ()
 -- main = start gui
 
-main :: IO ()
-main = runLoop $ linesOut $ (liftA2 (++) linesIn $ pure " is the line you entered")
+mainE :: Event (Maybe Bool)
+mainE = output `sequenceE` result
+    where  
+        result      = fmap (\x -> if (x == "exit") then Just True else Nothing) linesIn  
+        output      = linesOut' $ mergeWithE (++) (alwaysE "You entered: ") linesIn        
+        alwaysE     = pure
+        linesOut'   = puttingE putStrLn
 
 
+
+main = eventMain mainE
+
+eventMain :: Event (Maybe Bool) -> IO ()
+eventMain = eventMain' . (fmap . fmap) (\r -> if r then ExitSuccess else ExitFailure (-1))
+
+eventMain' :: Event (Maybe ExitCode) -> IO ()
+eventMain' e = do
+    code <- runLoopUntil e
+    exitWith code
 
 -- midiIn :: Chan Midi
 -- midiOut :: Chan Midi
