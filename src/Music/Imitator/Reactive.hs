@@ -7,7 +7,9 @@ module Music.Imitator.Reactive (
         dupChan,
         writeChan,
         tryReadChan,
-        Event,
+        Event,          
+        neverE,
+        mergeE,
         -- filterE,
         -- readE,
         -- writeE,
@@ -21,7 +23,10 @@ module Music.Imitator.Reactive (
         linesIn,
         linesOut, 
         getE,
+        getE',
         putE,
+        readE,
+        writeE,
         run,
         runLoop
   ) where
@@ -151,69 +156,58 @@ instance Monoid (Event a) where
 --     f' <- f
 --     return $ f' >>= return . list [] (filterMap p)
 -- 
--- instance Monoid (Event a) where
---     mempty = Event $ return $ return []
---     
---     Event f `mappend` Event g = Event $ do
---         f' <- f
---         g' <- g
---         return $ do { x <- f'; y <- g'; return (x `mappend` y) }
--- 
--- 
+
+-- |
+-- The empty event, semantically @[]@.
 neverE :: Event a
 neverE = mempty
 
+-- |
+-- Merged events, semantically @merge xs ys@.
+mergeE :: Event a -> Event a -> Event a
+mergeE = mappend
+
+-- TODO use different names?
+
+-- |
+-- Event reading from external world.
+--
+-- The computation should be non-blocking.
+--
 getE :: IO (Maybe a) -> Event a
 getE = ESource . fmap maybeToList
 
-putE :: (a -> IO b) -> Event a -> Event b
-putE k x = ESink k x
-
-
--- prepareEvent :: Event a -> IO (Event a)
--- prepareEvent (Event cs) = fmap Event ps
---     where                   
---         ps = mapM dupChan cs
--- 
--- execEvent :: Event a -> IO [a]
--- execEvent (Event cs) = fmap catMaybes vs
---     where                       
---         vs = mapM tryReadChan cs
-
-
--- run :: Event a -> IO ()
--- run (Event channels) = ports
---     where                   
---         ports = mapM dupChan channels
---         values = fmap (fmap tryReadChan) ports
---         
---         
-
-
--- 
--- 
--- 
--- 
--- 
--- readE :: Chan a -> Event a
--- readE ch = getE (tryReadChan ch)
--- 
--- writeE :: Chan a -> Event a -> Event a
--- writeE ch e = putE (writeChan ch) e
--- 
--- TODO make non-blocking    
-linesIn :: Event String
-linesIn = unsafePerformIO $ do
+-- |
+-- Event reading from external world.
+--
+-- The computation may block and will be run in a separate thread.
+--
+getE' :: IO a -> Event a
+getE' k = unsafePerformIO $ do
     ch <- newChan
     forkIO $ cycleM $ do
-        getLine >>= writeChan ch
-    return $ 
-        EChan ch
-    where
-        cycleM x = x >> cycleM x 
+        k >>= writeChan ch
+    return (EChan ch)
+
+-- |
+-- Event interacting with the external world.
+--
+-- The computation should be non-blocking.
+--
+putE :: (a -> IO b) -> Event a -> Event b
+putE = ESink
+
+readE :: Chan a -> Event a
+readE = EChan
+
+writeE :: Chan a -> Event a -> Event ()
+writeE ch = ESink (writeChan ch)
+
+linesIn :: Event String
+linesIn = getE' getLine 
 
 linesOut :: Event String -> Event ()
-linesOut = ESink putStrLn
+linesOut = putE putStrLn
 
 
 -- 
@@ -240,12 +234,16 @@ linesOut = ESink putStrLn
 -- -- oscOutE :: String -> Int -> Event OscMessage
 -- -- oscOutE = undefined
 -- 
--- guard :: (a -> Bool) -> (a -> Maybe a)
--- guard p x
---     | p x       = Just x
---     | otherwise = Nothing
--- 
--- list z f [] = z
--- list z f xs = f xs
--- 
--- filterMap p = catMaybes . map p   
+
+
+guard :: (a -> Bool) -> (a -> Maybe a)
+guard p x
+    | p x       = Just x
+    | otherwise = Nothing
+
+list z f [] = z
+list z f xs = f xs
+
+filterMap p = catMaybes . map p   
+
+cycleM x = x >> cycleM x 
