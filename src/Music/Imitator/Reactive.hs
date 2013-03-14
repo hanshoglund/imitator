@@ -16,15 +16,15 @@ module Music.Imitator.Reactive (
         writeE,
         readIOE,
         writeIOE,
-        MidiSource,
-        MidiDestination,
-        midiInE,
-        midiOutE,
-        OscMessage,
-        oscInE,
-        oscOutE,
-        linesIn,
-        linesOut,
+        -- MidiSource,
+        -- MidiDestination,
+        -- midiInE,
+        -- midiOutE,
+        -- OscMessage,
+        -- oscInE,
+        -- oscOutE,
+        -- linesIn,
+        -- linesOut, 
         run,
         runLoop
   ) where
@@ -51,7 +51,7 @@ import qualified Sound.OpenSoundControl as OSC
 
 
 -- Factor out channels
-newtype Chan a = Chan { getChan :: TChan a}
+newtype Chan a = Chan { getChan :: TChan a }
 newChan     :: IO (Chan a)
 dupChan     :: Chan a -> IO (Chan a)
 writeChan   :: Chan a -> a -> IO ()
@@ -123,23 +123,6 @@ readE ch = readIOE (tryReadChan ch)
 writeE :: Chan a -> Event a -> Event a
 writeE ch e = writeIOE (writeChan ch) e
 
-type MidiSource      = Midi.Source
-type MidiDestination = Midi.Destination
-
-midiInE :: MidiSource -> Event MidiMessage
-midiInE = undefined
-
-midiOutE :: MidiDestination -> Event MidiMessage -> Event MidiMessage
-midiOutE = undefined
-
-type OscMessage = OSC.Message
-
-oscInE :: Int -> Event OscMessage
-oscInE = undefined
-
-oscOutE :: String -> Int -> Event OscMessage
-oscOutE = undefined
-
 -- TODO make non-blocking    
 linesIn :: Event String
 linesIn = readIOE (fmap Just getLine)
@@ -171,3 +154,23 @@ runLoop e = run e >> threadDelay kloopInterval >> runLoop e
 
 kloopInterval = 1000 * 5
 
+
+
+
+-- 
+-- type MidiSource      = Midi.Source
+-- type MidiDestination = Midi.Destination
+-- 
+-- midiInE :: MidiSource -> Event MidiMessage
+-- midiInE = undefined
+-- 
+-- midiOutE :: MidiDestination -> Event MidiMessage -> Event MidiMessage
+-- midiOutE = undefined
+-- 
+-- type OscMessage = OSC.Message
+-- 
+-- oscInE :: Int -> Event OscMessage
+-- oscInE = undefined
+-- 
+-- oscOutE :: String -> Int -> Event OscMessage
+-- oscOutE = undefined
