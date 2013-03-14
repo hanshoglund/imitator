@@ -20,10 +20,10 @@ module Music.Imitator.Reactive (
         -- mergeWithE,
 
         -- ** Change value of events
+        tickE,
+        tickME,          
         mapE,
         filterE,
-        tickE,
-        tickE',          
         -- -- MidiSource,
         -- -- MidiDestination,
         -- -- midiInE,
@@ -50,21 +50,31 @@ module Music.Imitator.Reactive (
         -- ** Run events
         run,
         runLoop,
-        runLoopUntil
+        runLoopUntil,
+        
+        
+        -- * Reactive values
+        Reactive,
+        stepper,
+        switcher,
+        sample,
   ) where
 
 import Prelude hiding (mapM)
 
 import Data.Monoid  
 import Data.Maybe
-import Data.Traversable
-import System.IO.Unsafe
 
+import Control.Monad
 import Control.Applicative
 import Control.Newtype
+
 import Control.Concurrent (forkIO, forkOS, threadDelay)
 import Control.Monad.STM (atomically)
 import Control.Concurrent.STM.TChan
+import Control.Concurrent.STM.TMVar
+
+import System.IO.Unsafe
 
 
 import System.MIDI (MidiMessage,  MidiMessage')
@@ -101,9 +111,9 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 data Event a where
     ENever  :: Event a
-
-    EBoth   :: Event a -> Event a -> Event a
+    EMerge   :: Event a -> Event a -> Event a
     ESeq    :: Event a -> Event b -> Event b
+
     EMap    :: (a -> b) -> Event a -> Event b
     EPred   :: (a -> Bool) -> Event a -> Event a
 
@@ -120,10 +130,10 @@ prepare :: Event a -> IO (Event a)
 prepare (EChan ch)      = do
     ch' <- prepChan ch
     return $ ESource ch' 
-prepare (EBoth a b)     = do
+prepare (EMerge a b)     = do
     a' <- prepare a
     b' <- prepare b
-    return $ EBoth a' b'
+    return $ EMerge a' b'
 prepare (ESeq a b)     = do
     a' <- prepare a
     b' <- prepare b
@@ -178,7 +188,7 @@ run' :: Event a -> IO [a]
 run' ENever          = return []
 run' (EMap f x)    = fmap (fmap f) (run' x)
 run' (EPred p x)     = fmap (filter p) (run' x)
-run' (EBoth a b)     = do
+run' (EMerge a b)     = do
     a' <- run' a
     b' <- run' b
     return (a' ++ b')
@@ -191,7 +201,7 @@ instance Functor (Event) where
 
 instance Monoid (Event a) where
     mempty  = ENever
-    mappend = EBoth
+    mappend = EMerge
 
 -- |
 -- Map over occurances, semantically @map p xs@.
@@ -226,11 +236,15 @@ mergeE = mappend
 -- mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
 -- mergeWithE = liftA2
 
+-- |
+-- Discard values of the event.
 tickE :: Event a -> Event ()
-tickE = tickE'
+tickE = tickME
 
-tickE' :: Monoid b => Event a -> Event b
-tickE' = fmap (const mempty)
+-- |
+-- Discard values, using an arbitrary empty element.
+tickME :: Monoid b => Event a -> Event b
+tickME = fmap (const mempty)
 
 
 
@@ -287,6 +301,81 @@ getLineE = getE getLine
 
 putLineE :: Event String -> Event String
 putLineE = putE putStrLn
+
+
+
+
+
+
+
+
+
+
+data Reactive a where
+    RStep  :: TMVar a -> Event a -> Reactive a
+
+instance Monoid a => Monoid (Reactive a) where
+    mempty  = pure mempty
+    mappend = liftA2 mappend
+
+instance Functor Reactive where
+    fmap f = (pure f <*>)
+
+instance Applicative Reactive where
+    pure x = stepper x neverE 
+    f <*> x = undefined
+
+instance Monad Reactive where
+    return = pure
+    x >>= y = undefined
+
+
+stepper  :: a -> Event a -> Reactive a
+stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
+
+switcher :: Reactive a -> Event (Reactive a) -> Reactive a
+switcher r e = join (stepper r e)
+
+sample :: Event a -> Reactive b -> Event b
+sample = undefined
+
+
+unpollR  :: Reactive a -> IO a
+unpollR (RStep x e) = atomically $ readTMVar x
+
+{-
+
+sample   :: Event a -> Reactive b -> Event b
+
+
+
+
+
+
+
+joinR    :: Reactive (Reactive a) -> Reactive a
+
+
+
+
+modify   :: Event (a -> a) -> Reactive a -> Reactive a
+set      :: Event a        -> Reactive a -> Reactive a
+-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- 

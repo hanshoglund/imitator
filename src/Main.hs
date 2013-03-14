@@ -205,17 +205,7 @@ set' widget prop x = case x of
 
 
 
--- type Reactive a = Event a
 
-{-
-reactive :: a       -> Event a    -> Reactive a
-sample   :: Event b -> Reactive a -> Event a
-unpollR  :: Reactive a -> IO a
-
-
-modify   :: Event (a -> a) -> Reactive a -> Reactive a
-set      :: Event a        -> Reactive a -> Reactive a
--}
 
 
 -- mainE :: Event (Maybe Bool)
