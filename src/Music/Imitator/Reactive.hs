@@ -9,8 +9,6 @@ module Music.Imitator.Reactive (
         tryReadChan,
         Event,
         -- filterE,
-        -- getE,
-        -- putE,
         -- readE,
         -- writeE,
         -- -- MidiSource,
@@ -22,7 +20,9 @@ module Music.Imitator.Reactive (
         -- -- oscOutE,
         linesIn,
         linesOut, 
-        -- run,
+        getE,
+        putE,
+        run,
         runLoop
   ) where
 
@@ -160,26 +160,15 @@ instance Monoid (Event a) where
 --         return $ do { x <- f'; y <- g'; return (x `mappend` y) }
 -- 
 -- 
--- getE :: IO (Maybe a) -> Event a
--- getE f = Event $ return $ h
---     where
---         h = fmap maybeToList $ f
--- 
--- putE :: (a -> IO ()) -> Event a -> Event a
--- putE g (Event f) = Event $ do
---     f' <- f
---     return $ do
---         x <- f'
---         list (return []) (Prelude.mapM g) x
---         return x
--- 
--- 
--- |
--- Run an event, distributing recent occurances.
--- 
--- This may result in wrapped actions being executed. 
--- If more than one event refer to a single channel they compete for its contents (i.e. non-determinism).
---
+neverE :: Event a
+neverE = mempty
+
+getE :: IO (Maybe a) -> Event a
+getE = ESource . fmap maybeToList
+
+putE :: (a -> IO b) -> Event a -> Event b
+putE k x = ESink k x
+
 
 -- prepareEvent :: Event a -> IO (Event a)
 -- prepareEvent (Event cs) = fmap Event ps

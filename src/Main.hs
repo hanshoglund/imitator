@@ -6,6 +6,7 @@ module Main where
 import Music.Imitator.Reactive
 
 import Data.Monoid
+import Control.Applicative
 import Graphics.UI.WX
 
 addMenus :: Frame a -> IO ()
@@ -103,7 +104,7 @@ gui = do
 -- main = start gui
 
 main :: IO ()
-main = runLoop $ linesOut $ (fmap reverse linesIn `mappend` linesIn)
+main = runLoop $ linesOut $ (liftA2 (++) linesIn $ pure " is the line you entered")
 
 
 
