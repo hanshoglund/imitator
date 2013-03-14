@@ -72,24 +72,48 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 data Event a where
     ENever  :: Event a
+    EBoth   :: Event a -> Event a -> Event a
+
     EPure   :: a -> Event a
     EApply  :: Event (a -> b) -> Event a -> Event b
-    EBoth   :: Event a -> Event a -> Event a
+
+    EChan   :: Chan a       -> Event a
     ESource :: IO [a]       -> Event a
     ESink   :: (a -> IO b)  -> Event a -> Event b
 
-run :: Event a -> IO [a]
-run ENever          = return []
-run (EPure x)       = return [x]
-run (EApply f x)    = run f <&> run x
+prepChan :: Chan a -> IO [a]
+prepChan ch = do
+    ch' <- dupChan ch
+    fmap maybeToList $ tryReadChan ch'
+
+prepare :: Event a -> Event a
+prepare (EChan ch)      = ESource $ prepChan $ ch 
+prepare (EBoth a b)     = EBoth (prepare a) (prepare b)
+prepare (EApply f x)    = EApply (prepare f) (prepare x)
+prepare (ESink k a)     = ESink k (prepare a)
+prepare x               = x
+
+run :: Event a -> IO ()
+run e = run' (prepare e) >> return ()
+
+runLoop :: Event a -> IO ()
+runLoop e = runLoop' (prepare e)  
+    where   
+        runLoop' e = run' e >> threadDelay loopInterval >> runLoop' e
+        loopInterval = 1000 * 5
+
+run' :: Event a -> IO [a]
+run' ENever          = return []
+run' (EPure x)       = return [x]
+run' (EApply f x)    = run' f <&> run' x
     where
         (<&>) = liftA2 (<*>)
-run (EBoth a b)     = do
-    a' <- run a
-    b' <- run b
+run' (EBoth a b)     = do
+    a' <- run' a
+    b' <- run' b
     return (a' ++ b')
-run (ESource i)     = i
-run (ESink o x)     = run x >>= mapM o
+run' (ESource i)     = i
+run' (ESink o x)     = run' x >>= mapM o
 
 single x = [x]
 
@@ -161,10 +185,6 @@ instance Monoid (Event a) where
 --         values = fmap (fmap tryReadChan) ports
 --         
 --         
-runLoop :: Event a -> IO ()
-runLoop e = run e >> threadDelay kloopInterval >> runLoop e  
-
-kloopInterval = 1000 * 5
 
 
 -- 
