@@ -154,12 +154,23 @@ gui = do
     (widgetSources, widgetSinks) <- addWidgets frame
     (timerSources,  timerSinks)  <- addTimers frame
 
+
+    let 
+        startE = widgetSources "start"
+        stopE = widgetSources "stop"
+        pauseE = widgetSources "pause"
+
     -- TODO split into something run by a timer
     forkIO $ runLoop $ mempty
-        <> (tickE $ notify "Start was pressed"   $ widgetSources "start")
-        <> (tickE $ notify "Stop was pressed"    $ widgetSources "stop")
-        <> (tickE $ notify "Pause was pressed"   $ widgetSources "pause")
-        <> (tickE $ notify "Resume was pressed"  $ widgetSources "resume")
+
+        <> (tickE $ notify "Foo" $ mempty)
+        <> (tickE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
+        <> (tickE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
+
+        -- <> (tickE $ notify "Start was pressed"   $ widgetSources "start")
+        -- <> (tickE $ notify "Stop was pressed"    $ widgetSources "stop")
+        -- <> (tickE $ notify "Pause was pressed"   $ widgetSources "pause")
+        -- <> (tickE $ notify "Resume was pressed"  $ widgetSources "resume")
         <> (tickE $ showing "Tempo is now: "     $ widgetSources "tempo")
         <> (tickE $ showing "Gain is now: "     $ widgetSources "gain")
         <> (tickE $ showing "Volume is now: "     $ widgetSources "volume")

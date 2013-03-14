@@ -111,7 +111,7 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 data Event a where
     ENever  :: Event a
-    EMerge   :: Event a -> Event a -> Event a
+    EMerge  :: Event a -> Event a -> Event a
     ESeq    :: Event a -> Event b -> Event b
 
     EMap    :: (a -> b) -> Event a -> Event b
@@ -197,7 +197,7 @@ run' (ESink o x)     = run' x >>= mapM o
 run' (ESeq a b)      = run' a >> run' b
 
 instance Functor (Event) where
-    fmap = EMap
+    fmap    = EMap
 
 instance Monoid (Event a) where
     mempty  = ENever
@@ -307,12 +307,46 @@ putLineE = putE putStrLn
 
 
 
+-- ESource :: IO [a]       -> Event a
+-- ESink   :: (a -> IO b)  -> Event a -> Event b
+
+-- getVar :: TMVar a -> IO a
+-- setVar :: TMVar a -> a -> IO a
+-- run'   :: Event a -> IO [a]
+
+-- modVar :: (a -> a) -> TMVar a -> IO ()               
+
+
+
+-- IO a         from the state
+-- IO [a]       from the event
+--      => IO [a]    "recent history"
 
 
 
 
 data Reactive a where
     RStep  :: TMVar a -> Event a -> Reactive a
+
+
+runR  :: Reactive a -> IO a
+runR (RStep x e) = atomically $ readTMVar x
+-- TODO fold in event values...
+
+stepper  :: a -> Event a -> Reactive a
+stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
+
+switcher :: Reactive a -> Event (Reactive a) -> Reactive a
+switcher r e = join (stepper r e)
+
+sample :: Reactive b -> Event a -> Event b
+sample r e = ESource $ do
+    e' <- run' e
+    r' <- runR r
+    case e' of
+        [] -> return []
+        _  -> return [r']
+
 
 instance Monoid a => Monoid (Reactive a) where
     mempty  = pure mempty
@@ -323,25 +357,13 @@ instance Functor Reactive where
 
 instance Applicative Reactive where
     pure x = stepper x neverE 
-    f <*> x = undefined
+    (RStep fv fe) <*> (RStep xv xe) = undefined
 
 instance Monad Reactive where
     return = pure
     x >>= y = undefined
 
 
-stepper  :: a -> Event a -> Reactive a
-stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
-
-switcher :: Reactive a -> Event (Reactive a) -> Reactive a
-switcher r e = join (stepper r e)
-
-sample :: Event a -> Reactive b -> Event b
-sample = undefined
-
-
-unpollR  :: Reactive a -> IO a
-unpollR (RStep x e) = atomically $ readTMVar x
 
 {-
 
