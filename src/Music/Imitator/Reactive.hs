@@ -109,6 +109,7 @@ readChan  (Chan c)    = atomically $ readTChan c
 tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 
+
 data Event a where
     ENever  :: Event a
     EMerge  :: Event a -> Event a -> Event a
@@ -120,6 +121,11 @@ data Event a where
     EChan   :: Chan a       -> Event a
     ESource :: IO [a]       -> Event a
     ESink   :: (a -> IO b)  -> Event a -> Event b
+
+    EState  :: Reactive a   -> Event b -> Event a
+
+data Reactive a where
+    RStep   :: TMVar a -> Event a -> Reactive a
 
 
 prepE :: Event a -> IO (Event a)
@@ -149,6 +155,63 @@ prepE (EChan ch)      = do
             ch' <- dupChan ch
             return $ fmap maybeToList $ tryReadChan ch'
 prepE x               = return x
+
+
+
+-- runE' :: Event a -> IO [a]
+-- runE' e = do
+--     e' <- prepE e
+--     runE e'
+-- 
+
+runE :: Event a -> IO [a]
+runE ENever          = return []
+runE (EMap f x)      = fmap (fmap f) (runE x)
+runE (EPred p x)     = fmap (filter p) (runE x)
+runE (EMerge a b)    = do
+    a' <- runE a
+    b' <- runE b
+    return (a' ++ b')
+runE (ESource i)     = i
+runE (ESink o x)     = runE x >>= mapM o
+runE (ESeq a b)      = runE a >> runE b
+
+
+
+
+-- newR  :: Reactive a -> IO [a]
+-- newR (RStep v e) = do
+--     -- old value <> new occs if any
+--     x  <- atomically $ readTMVar v
+--     xs <- runE' e
+--     return (x:xs)
+-- 
+-- runR  :: Reactive a -> IO a
+-- runR r@(RStep v e) = do
+--     x  <- atomically $ readTMVar v
+--     -- FIXME we can not runE' here... needs to assure replace is called
+--     xs <- runE' e             
+--     let y = last (x:xs)
+--     atomically $ swapTMVar v y
+--     return y
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- | 
 -- Run the given event once.
@@ -183,25 +246,6 @@ runLoopUntil e = do
                 []    -> threadDelay loopInterval >> runLoop' e
                 (a:_) -> return a
         loopInterval = 1000 * 5
-
-
-runE' :: Event a -> IO [a]
-runE' e = do
-    e' <- prepE e
-    runE e'
-
-
-runE :: Event a -> IO [a]
-runE ENever          = return []
-runE (EMap f x)      = fmap (fmap f) (runE x)
-runE (EPred p x)     = fmap (filter p) (runE x)
-runE (EMerge a b)    = do
-    a' <- runE a
-    b' <- runE b
-    return (a' ++ b')
-runE (ESource i)     = i
-runE (ESink o x)     = runE x >>= mapM o
-runE (ESeq a b)      = runE a >> runE b
 
 instance Functor (Event) where
     fmap    = EMap
@@ -336,9 +380,9 @@ putLineE = putE putStrLn
 
 
 
-joinOccs :: Reactive (Reactive a) -> IO a
-joinOccs = join . fmap runR . runR
-    -- or (>>= runR) . runR
+-- joinOccs :: Reactive (Reactive a) -> IO a
+-- joinOccs = join . fmap runR . runR
+--     -- or (>>= runR) . runR
 
 
 
@@ -346,7 +390,8 @@ stepper  :: a -> Event a -> Reactive a
 stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
 
 sample :: Reactive b -> Event a -> Event b
-sample r e = ESink (\_ -> runR r) e 
+sample = undefined
+-- sample r e = ESink (\_ -> runR r) e 
         
 
 
