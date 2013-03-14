@@ -122,11 +122,13 @@ data Event a where
     ESource :: IO [a]                   -> Event a
     ESink   :: (a -> IO b)  -> Event a  -> Event b
 
-    ESamp  :: Reactive a   -> Event b  -> Event a
+    ESamp  :: Reactive a   -> Event b   -> Event a
 
 data Reactive a where
     RConst  :: a                        -> Reactive a
     RStep   :: TMVar a      -> Event a  -> Reactive a
+    RApply  :: Reactive (a -> b) -> Reactive a -> Reactive b
+    RJoin   :: Reactive (Reactive a)    -> Reactive a
 
 
 -- Reactive (Reactive a) -> Reactive a
@@ -171,6 +173,13 @@ prepR :: Reactive a -> IO (Reactive a)
 prepR (RStep v x) = do
     x' <- prepE x
     return $ RStep v x'
+prepR (RApply f x) = do
+    f' <- prepR f
+    x' <- prepR x
+    return $ RApply f' x'
+prepR (RJoin r) = do
+    r' <- prepR r
+    return $ RJoin r'
 prepR x = return x
 
 
@@ -198,8 +207,13 @@ runR (RStep v x)     = do
     let y = last (v':x')
     atomically $ swapTMVar v y
     return y
-
-
+runR (RApply f x)   = do
+    f' <- runR f
+    x' <- runR x
+    return (f' x')
+runR (RJoin r)   = do
+    r' <- runR r
+    runR r'
 
 
 -- newR  :: Reactive a -> IO [a]
@@ -404,12 +418,11 @@ instance Functor Reactive where
 
 instance Applicative Reactive where
     pure x = stepper x neverE 
-    (RStep fv fe) <*> (RStep xv xe) = undefined
+    (<*>) = RApply
 
 instance Monad Reactive where
     return  = pure
-    x >>= y = undefined
-        
+    x >>= k = (RJoin . fmap k) x
 
 
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
