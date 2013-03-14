@@ -81,23 +81,37 @@ data Event a where
     ESource :: IO [a]       -> Event a
     ESink   :: (a -> IO b)  -> Event a -> Event b
 
-prepChan :: Chan a -> IO [a]
+prepChan :: Chan a -> IO (IO [a])
 prepChan ch = do
     ch' <- dupChan ch
-    fmap maybeToList $ tryReadChan ch'
+    return $ fmap maybeToList $ tryReadChan ch'
 
-prepare :: Event a -> Event a
-prepare (EChan ch)      = ESource $ prepChan $ ch 
-prepare (EBoth a b)     = EBoth (prepare a) (prepare b)
-prepare (EApply f x)    = EApply (prepare f) (prepare x)
-prepare (ESink k a)     = ESink k (prepare a)
-prepare x               = x
+prepare :: Event a -> IO (Event a)
+prepare (EChan ch)      = do
+    ch' <- prepChan ch
+    return $ ESource ch' 
+prepare (EBoth a b)     = do
+    a' <- prepare a
+    b' <- prepare b
+    return $ EBoth a' b'
+prepare (EApply f x)    = do
+    f' <- prepare f
+    x' <- prepare x
+    return $ EApply f' x'
+prepare (ESink k a)     = do
+    a' <- prepare a
+    return $ ESink k a'
+prepare x               = return x
 
 run :: Event a -> IO ()
-run e = run' (prepare e) >> return ()
+run e = do
+    e' <- prepare e
+    run' e' >> return ()
 
 runLoop :: Event a -> IO ()
-runLoop e = runLoop' (prepare e)  
+runLoop e = do 
+    e' <- prepare e
+    runLoop' e'  
     where   
         runLoop' e = run' e >> threadDelay loopInterval >> runLoop' e
         loopInterval = 1000 * 5
@@ -205,7 +219,7 @@ linesIn = unsafePerformIO $ do
     forkIO $ cycleM $ do
         getLine >>= writeChan ch
     return $ 
-        ESource $ fmap maybeToList $ tryReadChan ch
+        EChan ch
     where
         cycleM x = x >> cycleM x 
 
