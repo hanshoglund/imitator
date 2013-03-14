@@ -33,40 +33,28 @@ addMenus frame = do
         on (menu recordStart) := return ()
         ]
 
-    let events    = error "No such event"
+    let sources    = error "No such source"
     let sinks = error "No such sink"
-    return (events, sinks)
+    return (sources, sinks)
 
 
 
 addWidgets :: Frame a -> IO (String -> Event Int, String -> Sink Int)
 addWidgets frame = do
-    (startA, startE) <- newObsE
-    (stopA, stopE) <- newObsE
-    (pauseA, pauseE) <- newObsE
-    (resumeA, resumeE) <- newObsE
-    (tempoA, tempoE) <- newObsE
-    (gainA, gainE) <- newObsE
-    (volumeA, volumeE) <- newObsE
-
+    
+    -- Create widgets
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
     pause       <- button frame [text := "Pause"]
     resume      <- button frame [text := "Resume"]
-    set start [on command  := startA 0]
-    set stop [on command   := stopA 0]
-    set pause [on command  := pauseA 0]
-    set resume [on command := resumeA 0]
 
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
     gain        <- hslider frame True 0 1000 [text := "Gain"]
     volume      <- hslider frame True 0 1000 [text := "Volume"]
-    set tempo  [on command := get tempo  selection >>= tempoA]
-    set gain   [on command := get gain   selection >>= gainA]
-    set volume [on command := get volume selection >>= volumeA]
 
-    transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
+    transport   <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
 
+    -- Set layout
     let buttons = margin 10 $ boxed "Transport" $
             grid 10 10 [ [widget start, widget pause],
                          [widget stop, widget resume] ]
@@ -94,23 +82,39 @@ addWidgets frame = do
         column 0 [row 0 [buttons, shaped $ controls, status],
                   positioning]
 
-    (tempoB, tempoS) <- newSinkE
-    (gainB, gainS) <- newSinkE
-    (volumeB, volumeS) <- newSinkE
-    (transportB, transportS) <- newSinkE
+    -- Create sources/sinks
+    (startA, startE)            <- newSourceE
+    (stopA, stopE)              <- newSourceE
+    (pauseA, pauseE)            <- newSourceE
+    (resumeA, resumeE)          <- newSourceE
+    (tempoA, tempoE)            <- newSourceE
+    (gainA, gainE)              <- newSourceE
+    (volumeA, volumeE)          <- newSourceE
+
+    (tempoB, tempoS)            <- newSinkE
+    (gainB, gainS)              <- newSinkE
+    (volumeB, volumeS)          <- newSinkE
+    (transportB, transportS)    <- newSinkE
+
+    set start   [on command := startA 0]
+    set stop    [on command := stopA 0]
+    set pause   [on command := pauseA 0]
+    set resume  [on command := resumeA 0]
+
+    set tempo   [on command := get tempo  selection >>= tempoA]
+    set gain    [on command := get gain   selection >>= gainA]
+    set volume  [on command := get volume selection >>= volumeA]
 
     let refreshWidgets = do
-        tempoB      >>= setProp tempo selection
-        gainB       >>= setProp gain selection
-        volumeB     >>= setProp volume selection
-        transportB  >>= setProp transport selection
+        tempoB      >>= set' tempo selection
+        gainB       >>= set' gain selection
+        volumeB     >>= set' volume selection
+        transportB  >>= set' transport selection
         return ()
 
     timer frame [interval := 100, on command := refreshWidgets]
 
-
-
-    let events     = \x -> case x of
+    let sources     = \x -> case x of
         { "start"         -> startE
         ; "stop"          -> stopE
         ; "pause"         -> pauseE
@@ -118,7 +122,7 @@ addWidgets frame = do
         ; "tempo"         -> tempoE
         ; "gain"          -> gainE
         ; "volume"        -> volumeE
-        ;  _              -> error "No such event"
+        ;  _              -> error "No such source"
         }
     let sinks     = \x -> case x of
         { "tempo"         -> tempoS
@@ -127,23 +131,19 @@ addWidgets frame = do
         ; "transport"     -> transportS
         ;  _              -> error "No such sink"
         }
-    return (events, sinks)
+    return (sources, sinks)
 
-setProp :: w -> Attr w a -> Maybe a -> IO ()
-setProp widget prop x = case x of
-    Just x  -> set widget [prop := x]
-    Nothing -> return ()
 
 addTimers :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addTimers frame = do
-    (timerFired, timerFiredE) <- newObsE
+    (timerFired, timerFiredE) <- newSourceE
 
     timer frame [interval := 2000,
                 on command := timerFired 0]
 
-    let events = \x -> case x of { "fired" -> timerFiredE }
-    let sinks = error "No such sink"
-    return (events, sinks)
+    let sources = \x -> case x of { "fired" -> timerFiredE }
+    let sinks   = error "No such sink"
+    return (sources, sinks)
 
 
 gui :: IO ()
@@ -160,17 +160,24 @@ gui = do
         <> (notify "Stop was pressed"    $ widgetEvents "stop")
         <> (notify "Pause was pressed"   $ widgetEvents "pause")
         <> (notify "Resume was pressed"  $ widgetEvents "resume")
-        <> (showing "Tempo is now:"      $ widgetEvents "tempo")
-        <> (notify "The timer was fired" $ timerEvents  "fired")
-        <> (notify "Something happened"  $ widgetEvents "start" <> timerEvents "fired")
-
+        <> (showing "Tempo is now: "     $ widgetEvents "tempo")
+        <> (showing "Entered text reversed: " $ fmap reverse $ getLineE)
         <> (fmap (const "") $ widgetSinks "transport" $ fmap (const 500) $ widgetEvents "resume")
         <> (fmap (const "") $ widgetSinks "tempo" $ fmap (const 500)     $ widgetEvents "stop")
-
+        <> (fmap (const "") $ widgetSinks "transport" $ widgetEvents "volume")
 
     return ()
 
-type Sink a = Event a -> Event a
+main :: IO ()
+main = start gui
+
+
+
+
+
+
+type Source a = Event a
+type Sink a   = Event a -> Event a
 
 notify :: String -> Event a -> Event String
 notify m = putLineE . fmap (const m)
@@ -179,13 +186,8 @@ showing :: Show a => String -> Event a -> Event String
 showing m = putLineE . fmap (\x -> m ++ show x)
 
 
-main :: IO ()
-main = start gui
--- main = eventMain mainE
-
-
-newObsE :: IO (a -> IO (), Event a)
-newObsE = do
+newSourceE :: IO (a -> IO (), Event a)
+newSourceE = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
 
@@ -194,19 +196,11 @@ newSinkE = do
     ch <- newChan
     return (tryReadChan ch, writeChanE ch)
 
-
--- combo box, text etc...
-    -- command :: IO ()        -- set to decide action
-    -- get     :: IO a         -- use on action to get value...
-    -- set     :: a -> IO ()   -- use to set value
-
--- gauge etc...
-    -- set     :: a -> IO ()   -- use to set value
-    -- get     :: IO a         -- use to get value
-
--- timer, button...
-    -- command :: IO ()        -- set to decide action
-
+-- wxhaskell extra
+set' :: w -> Attr w a -> Maybe a -> IO ()
+set' widget prop x = case x of
+    Just x  -> set widget [prop := x]
+    Nothing -> return ()
 
 -- mainE :: Event (Maybe Bool)
 -- mainE = output `sequenceE` result
