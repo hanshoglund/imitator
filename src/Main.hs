@@ -149,7 +149,7 @@ gui = do
 
     return ()
 
-type Sink a = Event a -> Event ()
+type Sink a = Event a -> Event a
 
 notify :: String -> Event a -> Event String
 notify m = putLineE . fmap (const m)
@@ -164,7 +164,7 @@ newObsE = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
 
-newSinkE :: IO (IO (Maybe a), Event a -> Event ())
+newSinkE :: IO (IO (Maybe a), Sink a)
 newSinkE = do
     ch <- newChan
     return (tryReadChan ch, writeChanE ch)

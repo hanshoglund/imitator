@@ -261,8 +261,8 @@ putE k = modifyE $ \x -> do
 readChanE :: Chan a -> Event a
 readChanE = EChan
 
-writeChanE :: Chan a -> Event a -> Event ()
-writeChanE ch = ESink (writeChan ch)
+writeChanE :: Chan a -> Event a -> Event a
+writeChanE ch e = ESink (writeChan ch) e `sequenceE` e
 
 getLineE :: Event String
 getLineE = getE getLine 
