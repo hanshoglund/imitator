@@ -23,7 +23,7 @@ module Music.Imitator.Reactive (
         linesIn,
         linesOut, 
         getE,
-        getNonBlockingE,
+        getUniqueE,
         putE,
         readE,
         writeE,
@@ -81,6 +81,7 @@ data Event a where
 
     EPure   :: a -> Event a
     EApply  :: Event (a -> b) -> Event a -> Event b
+    EPred   :: (a -> Bool) -> Event a -> Event a
 
     EChan   :: Chan a       -> Event a
     ESource :: IO [a]       -> Event a
@@ -103,6 +104,9 @@ prepare (EApply f x)    = do
     f' <- prepare f
     x' <- prepare x
     return $ EApply f' x'
+prepare (EPred p x)    = do
+    x' <- prepare x
+    return $ EPred p x'
 prepare (ESink k a)     = do
     a' <- prepare a
     return $ ESink k a'
@@ -127,6 +131,7 @@ run' (EPure x)       = return [x]
 run' (EApply f x)    = run' f <&> run' x
     where
         (<&>) = liftA2 (<*>)
+run' (EPred p x)     = fmap (filter p) (run' x)
 run' (EBoth a b)     = do
     a' <- run' a
     b' <- run' b
@@ -147,16 +152,6 @@ instance Monoid (Event a) where
     mempty  = ENever
     mappend = EBoth
 
-
--- filterE :: (a -> Bool) -> Event a -> Event a
--- filterE p = filterMapE (guard p)
--- 
--- filterMapE :: (a -> Maybe b) -> Event a -> Event b
--- filterMapE p (Event f) = Event $ do
---     f' <- f
---     return $ f' >>= return . list [] (filterMap p)
--- 
-
 -- |
 -- The empty event, semantically @[]@.
 neverE :: Event a
@@ -167,15 +162,11 @@ neverE = mempty
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
--- TODO use different names?
-
 -- |
--- Event reading from external world.
---
--- The computation should be non-blocking.
---
-getNonBlockingE :: IO (Maybe a) -> Event a
-getNonBlockingE = ESource . fmap maybeToList
+-- Filter occurances, semantically @filter p@.
+filterE :: (a -> Bool) -> Event a -> Event a
+filterE p = EPred p
+
 
 -- |
 -- Event reading from external world.
@@ -188,6 +179,14 @@ getE k = unsafePerformIO $ do
     forkIO $ cycleM $ 
         k >>= writeChan ch
     return (EChan ch)
+
+-- |
+-- Event reading from external world.
+--
+-- The computation should be non-blocking and unique.
+--
+getUniqueE :: IO (Maybe a) -> Event a
+getUniqueE = ESource . fmap maybeToList
 
 -- |
 -- Event interacting with the external world.
