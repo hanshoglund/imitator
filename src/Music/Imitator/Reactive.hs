@@ -14,8 +14,8 @@ module Music.Imitator.Reactive (
         filterE,
         readE,
         writeE,
-        readIOE,
-        writeIOE,
+        getE,
+        putE,
         -- MidiSource,
         -- MidiDestination,
         -- midiInE,
@@ -89,11 +89,11 @@ instance Monoid (Event a) where
         return (x ++ y)
 
 
-readIOE :: IO (Maybe a) -> Event a
-readIOE = Event . fmap maybeToList
+getE :: IO (Maybe a) -> Event a
+getE = Event . fmap maybeToList
 
-writeIOE :: (a -> IO ()) -> Event a -> Event a
-writeIOE g (Event f) = Event $ do
+putE :: (a -> IO ()) -> Event a -> Event a
+putE g (Event f) = Event $ do
     x <- f
     case x of
         [] -> return []
@@ -101,24 +101,25 @@ writeIOE g (Event f) = Event $ do
     return x
 
 readE :: Chan a -> Event a
-readE ch = readIOE (tryReadChan ch)
+readE ch = getE (tryReadChan ch)
 
 writeE :: Chan a -> Event a -> Event a
-writeE ch e = writeIOE (writeChan ch) e
+writeE ch e = putE (writeChan ch) e
 
 -- TODO make non-blocking    
-linesIn :: Event String
+linesIn :: [Event String]
 linesIn = unsafePerformIO $ do
     ch <- newChan
     forkIO $ cycleM $ do
         getLine >>= writeChan ch
-    return $ readE ch 
+    fmap (fmap readE) $ Prelude.mapM dupChan (replicate 10 ch)
     where
         cycleM x = x >> cycleM x
 
 
+
 linesOut :: Event String -> Event String
-linesOut = writeIOE putStrLn
+linesOut = putE putStrLn
 
 -- |
 -- Run an event, distributing a single occurance if there is one.

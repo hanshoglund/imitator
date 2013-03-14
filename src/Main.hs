@@ -103,7 +103,7 @@ gui = do
 -- main = start gui
 
 main :: IO ()
-main = runLoop $ linesOut (mempty `mappend` fmap (fmap succ) linesIn)
+main = runLoop $ linesOut ((linesIn !! 0) `mappend` fmap (fmap succ) (linesIn !! 1))
 
 
 
