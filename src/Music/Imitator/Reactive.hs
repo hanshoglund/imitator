@@ -23,13 +23,14 @@ module Music.Imitator.Reactive (
         -- OscMessage,
         -- oscInE,
         -- oscOutE,
-        -- linesIn,
-        -- linesOut, 
+        linesIn,
+        linesOut, 
         run,
         runLoop
   ) where
 
-import Data.Monoid
+import Data.Monoid  
+import Data.Maybe
 import Data.Traversable
 import System.IO.Unsafe
 
@@ -68,11 +69,7 @@ tryReadChan   = atomically . tryReadTChan . getChan
 tryPeekChan   = atomically . tryPeekTChan . getChan
 
 
-newtype Event a = Event { getEvent :: IO (Maybe a) }
-
--- instance Newtype (Event a) (IO (Maybe a)) where
---     pack    = Event
---     unpack  = getEvent
+newtype Event a = Event { getEvent :: IO [a] }
 
 instance Functor Event where
     fmap f = Event . (fmap (fmap f)) . getEvent
@@ -81,41 +78,27 @@ filterE :: (a -> Bool) -> Event a -> Event a
 filterE p (Event f) = Event $ do
     x <- f
     case x of
-        (Just x) -> if (p x) then return (Just x) else return Nothing
-        _        -> return Nothing
-
-instance Monad Event where
-    return  = Event . return . return
-    (Event f) >>= k = Event $ do
-        x <- f
-        case x of
-            (Just x) -> (getEvent . k) x
-            Nothing  -> return Nothing
+        [] -> return []
+        xs -> return (filter p xs)
 
 instance Monoid (Event a) where
-    mempty = Event $ return $ Nothing
+    mempty = Event $ return []
     Event f `mappend` Event g = Event $ do
         x <- f
-        case x of
-            (Just x) -> return $ Just x
-            _        -> do
-                y <- g
-                case y of
-                    (Just y) -> return $ Just y
-                    _        -> return $ Nothing
+        y <- g
+        return (x ++ y)
 
 
 readIOE :: IO (Maybe a) -> Event a
-readIOE = Event
+readIOE = Event . fmap maybeToList
 
 writeIOE :: (a -> IO ()) -> Event a -> Event a
 writeIOE g (Event f) = Event $ do
     x <- f
     case x of
-        (Just x)  -> g x
-        _         -> return ()
+        [] -> return []
+        xs -> Prelude.mapM g xs
     return x
-
 
 readE :: Chan a -> Event a
 readE ch = readIOE (tryReadChan ch)
@@ -125,14 +108,13 @@ writeE ch e = writeIOE (writeChan ch) e
 
 -- TODO make non-blocking    
 linesIn :: Event String
-linesIn = readIOE (fmap Just getLine)
--- linesIn = unsafePerformIO $ do
---     ch <- newChan
---     forkIO $ cycleM $ do
---         getLine >>= writeChan ch
---     return $ readE ch 
---     where
---         cycleM x = x >> cycleM x
+linesIn = unsafePerformIO $ do
+    ch <- newChan
+    forkIO $ cycleM $ do
+        getLine >>= writeChan ch
+    return $ readE ch 
+    where
+        cycleM x = x >> cycleM x
 
 
 linesOut :: Event String -> Event String
