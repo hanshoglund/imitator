@@ -101,11 +101,10 @@ tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 data Event a where
     ENever  :: Event a
-    EPure   :: a -> Event a
 
     EBoth   :: Event a -> Event a -> Event a
     ESeq    :: Event a -> Event b -> Event b
-    EMap  :: (a -> b) -> Event a -> Event b
+    EMap    :: (a -> b) -> Event a -> Event b
     EPred   :: (a -> Bool) -> Event a -> Event a
 
     EChan   :: Chan a       -> Event a
@@ -177,7 +176,6 @@ runLoopUntil e = do
 
 run' :: Event a -> IO [a]
 run' ENever          = return []
-run' (EPure x)       = return [x]
 run' (EMap f x)    = fmap (fmap f) (run' x)
 run' (EPred p x)     = fmap (filter p) (run' x)
 run' (EBoth a b)     = do

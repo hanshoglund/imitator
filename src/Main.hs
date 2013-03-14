@@ -209,7 +209,9 @@ set' widget prop x = case x of
 
 {-
 reactive :: a       -> Event a    -> Reactive a
-sample   :: Event _ -> Reactive a -> Event a
+sample   :: Event b -> Reactive a -> Event a
+unpollR  :: Reactive a -> IO a
+
 
 modify   :: Event (a -> a) -> Reactive a -> Reactive a
 set      :: Event a        -> Reactive a -> Reactive a
