@@ -9,8 +9,8 @@ module Music.Imitator.Reactive (
         tryReadChan,
         Event,          
         neverE,
+        alwaysE,
         mergeE,
-        mergeWithE,
         sequenceE,
         filterE,
         -- -- MidiSource,
@@ -20,13 +20,15 @@ module Music.Imitator.Reactive (
         -- -- OscMessage,
         -- -- oscInE,
         -- -- oscOutE,
-        linesIn,
-        linesOut, 
-        readE,
-        writeE,
+
+        mergeWithE,
+        getLineE,
+        putLineE, 
+        readChanE,
+        writeChanE,
         getE,
-        getUniqueE,
-        modifyE,
+        pollE,
+        -- modifyE,
         putE,
         run,
         runLoop,
@@ -179,13 +181,22 @@ neverE :: Event a
 neverE = mempty
 
 -- |
--- Merged events, semantically @merge xs ys@.
+-- Always occur as the given value, semantically @repeat x@.
+alwaysE :: a -> Event a
+alwaysE = pure
+
+-- |
+-- Merge occurences, semantically @merge xs ys@.
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
+-- |
+-- Merge occurences using the given function, semantically @zipWith f xs ys@.
 mergeWithE :: (a -> b -> c) -> Event a -> Event b -> Event c
-mergeWithE f = liftA2 f
+mergeWithE = liftA2
 
+-- |
+-- Run both and behave as the second event, sematically @a `seq` b@.
 sequenceE :: Event a -> Event b -> Event b
 sequenceE = ESeq
 
@@ -213,8 +224,8 @@ getE k = unsafePerformIO $ do
 --
 -- The computation should be non-blocking and unique.
 --
-getUniqueE :: IO (Maybe a) -> Event a
-getUniqueE = ESource . fmap maybeToList
+pollE :: IO (Maybe a) -> Event a
+pollE = ESource . fmap maybeToList
 
 -- |
 -- Event interacting with the external world.
@@ -224,22 +235,27 @@ getUniqueE = ESource . fmap maybeToList
 modifyE :: (a -> IO b) -> Event a -> Event b
 modifyE = ESink
 
+-- |
+-- Event writing to the external world.
+--
+-- The computation should be non-blocking.
+--
 putE :: (a -> IO ()) -> Event a -> Event a
 putE k = modifyE $ \x -> do
     k x
     return x
 
-readE :: Chan a -> Event a
-readE = EChan
+readChanE :: Chan a -> Event a
+readChanE = EChan
 
-writeE :: Chan a -> Event a -> Event ()
-writeE ch = ESink (writeChan ch)
+writeChanE :: Chan a -> Event a -> Event ()
+writeChanE ch = ESink (writeChan ch)
 
-linesIn :: Event String
-linesIn = getE getLine 
+getLineE :: Event String
+getLineE = getE getLine 
 
-linesOut :: Event String -> Event String
-linesOut = putE putStrLn
+putLineE :: Event String -> Event String
+putLineE = putE putStrLn
 
 
 -- 

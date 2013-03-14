@@ -107,9 +107,8 @@ gui = do
 mainE :: Event (Maybe Bool)
 mainE = output `sequenceE` result
     where  
-        result      = fmap (\x -> if (x == "exit") then Just True else Nothing) linesIn  
-        output      = linesOut $ mergeWithE (++) (alwaysE "You entered: ") linesIn        
-        alwaysE     = pure
+        result      = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE  
+        output      = putLineE $ mergeWithE (++) (alwaysE "You entered: ") getLineE        
 
 
 
