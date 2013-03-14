@@ -6,6 +6,7 @@ module Music.Imitator.Reactive (
         newChan,
         dupChan,
         writeChan,
+        readChan,
         tryReadChan,
         Event,          
         neverE,
@@ -65,6 +66,7 @@ data Chan a = Chan (TChan a)
 newChan     :: IO (Chan a)
 dupChan     :: Chan a -> IO (Chan a)
 writeChan   :: Chan a -> a -> IO ()
+readChan    :: Chan a -> IO a
 tryReadChan :: Chan a -> IO (Maybe a)
 
 newChan               = do
@@ -76,6 +78,7 @@ dupChan (Chan c)      = do
     return (Chan c')    
 
 writeChan (Chan c) x  = atomically $ writeTChan c x
+readChan  (Chan c)    = atomically $ readTChan c
 tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
 

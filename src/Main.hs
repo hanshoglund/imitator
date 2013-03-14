@@ -11,7 +11,7 @@ import Data.Monoid
 import Control.Applicative
 import Graphics.UI.WX hiding (Event)
 
-addMenus :: Frame a -> IO (String -> Event (), String -> Listener ())
+addMenus :: Frame a -> IO (String -> Event (), String -> Sink ())
 addMenus frame = do
     file            <- menuPane [text := "&File"]
     fileOpen        <- menuItem file [text := "&Open...\tCtrl+O"]
@@ -30,32 +30,36 @@ addMenus frame = do
     set frame [
         menuBar            := [file, record, window],
         on (menu fileQuit) := close frame,
-        on (menu recordStart) := putStrLn "Started recording..."
+        on (menu recordStart) := return ()
         ]
     
     let events    = error "No such event"
-    let listeners = error "No such listener"
-    return (events, listeners)    
+    let sinks = error "No such sink"
+    return (events, sinks)    
 
 
 
-addWidgets :: Frame a -> IO (String -> Event (), String -> Listener ())
+addWidgets :: Frame a -> IO (String -> Event (), String -> Sink ())
 addWidgets frame = do
+    (startA, startE) <- newObsE
+    (stopA, stopE) <- newObsE
+    (pauseA, pauseE) <- newObsE
+    (resumeA, resumeE) <- newObsE
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
     pause       <- button frame [text := "Pause"]
     resume      <- button frame [text := "Resume"]
-    set start [on command := putStrLn  "start pressed!!!"]
-    set stop [on command := putStrLn   "stop pressed!!!"]
-    set pause [on command := putStrLn  "pause pressed!!!"]
-    set resume [on command := putStrLn "resume pressed!!!"]
+    set start [on command  := startA ()]
+    set stop [on command   := stopA ()]
+    set pause [on command  := pauseA ()]
+    set resume [on command := resumeA ()]
     
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
     gain        <- hslider frame True 0 1000 [text := "Gain"]
     volume      <- hslider frame True 0 1000 [text := "Volume"]
-    set tempo  [on command := putStrLn  "tempo changed!!!"]
-    set gain   [on command := putStrLn  "gain changed!!!"]
-    set volume [on command := putStrLn  "volume changed!!!"]
+    set tempo  [on command := return ()]
+    set gain   [on command := return ()]
+    set volume [on command := return ()]
 
     transport <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
     
@@ -86,12 +90,21 @@ addWidgets frame = do
         column 0 [row 0 [buttons, shaped $ controls, status], 
                   positioning]
 
-    let events    = error "No such event"
-    let listeners = error "No such listener"
-    return (events, listeners)    
+    let events     = \x -> case x of 
+        { "start"         -> startE                
+        ; "stop"          -> stopE                
+        ; "pause"         -> pauseE                
+        ; "resume"        -> resumeE                
+        ;  _              -> error "No such event"     
+        }
+    let sinks     = \x -> case x of 
+        { "transport"     -> undefined                
+        ;  _              -> error "No such sink"     
+        }
+    return (events, sinks)    
 
 
-addTimers :: Frame a -> IO (String -> Event (), String -> Listener ())
+addTimers :: Frame a -> IO (String -> Event (), String -> Sink ())
 addTimers frame = do
     (timerFired, timerFiredE) <- newObsE
 
@@ -99,22 +112,33 @@ addTimers frame = do
                 on command := timerFired ()]
 
     let events = \x -> case x of { "fired" -> timerFiredE }
-    let listeners = error "No such listener"
-    return (events, listeners)    
+    let sinks = error "No such sink"
+    return (events, sinks)    
 
 
 gui :: IO ()
 gui = do
     frame <- frame [text := "Imitator"]
 
-    (menuEvents,   menuListeners)   <- addMenus frame
-    (widgetEvents, widgetListeners) <- addWidgets frame
-    (timerEvents,  timerListeners)  <- addTimers frame
-                                  
-    forkIO $ runLoop $ putLineE $ fmap (const "The timer was fired") $ timerEvents "fired"
+    (menuEvents,   menuSinks)   <- addMenus frame
+    (widgetEvents, widgetSinks) <- addWidgets frame
+    (timerEvents,  timerSinks)  <- addTimers frame
+    
+    -- TODO split into something run by a timer                              
+    forkIO $ runLoop $ mempty
+        <> (notify "Start was pressed"   $ widgetEvents "start")
+        <> (notify "Stop was pressed"   $ widgetEvents "stop")
+        <> (notify "Pause was pressed"   $ widgetEvents "pause")
+        <> (notify "Resume was pressed"   $ widgetEvents "resume")
+        <> (notify "The timer was fired" $ timerEvents  "fired")
+        <> (notify "Something happened"  $ widgetEvents "start" <> timerEvents "fired")
+
     return ()
 
-type Listener a = Event a -> Event a
+type Sink a = Event a -> Event ()
+
+notify :: String -> Event a -> Event String
+notify m = putLineE . fmap (const m)
 
 main :: IO ()
 main = start gui
@@ -125,6 +149,24 @@ newObsE :: IO (a -> IO (), Event a)
 newObsE = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
+
+newSinkE :: IO (IO a, Event a -> Event ())
+newSinkE = do
+    ch <- newChan
+    return (readChan ch, writeChanE ch)
+
+
+-- combo box, text etc...
+    -- command :: IO ()        -- set to decide action
+    -- get     :: IO a         -- use on action to get value...
+    -- set     :: a -> IO ()   -- use to set value
+
+-- gauge etc...
+    -- set     :: a -> IO ()   -- use to set value
+    -- get     :: IO a         -- use to get value
+
+-- timer, button...
+    -- command :: IO ()        -- set to decide action
 
 
 -- mainE :: Event (Maybe Bool)
