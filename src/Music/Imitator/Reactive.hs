@@ -12,10 +12,10 @@ module Music.Imitator.Reactive (
         tryPeekChan,
         Event,
         filterE,
-        readE,
-        writeE,
         getE,
         putE,
+        readE,
+        writeE,
         -- MidiSource,
         -- MidiDestination,
         -- midiInE,
@@ -23,8 +23,8 @@ module Music.Imitator.Reactive (
         -- OscMessage,
         -- oscInE,
         -- oscOutE,
-        linesIn,
-        linesOut, 
+        -- linesIn,
+        -- linesOut, 
         run,
         runLoop
   ) where
@@ -72,22 +72,22 @@ tryPeekChan   = atomically . tryPeekTChan . getChan
 newtype Event a = Event { getEvent :: IO [a] }
 
 instance Functor Event where
-    fmap f = Event . (fmap (fmap f)) . getEvent
+    fmap f = filterMapE (Just . f)
 
 filterE :: (a -> Bool) -> Event a -> Event a
-filterE p (Event f) = Event $ do
-    x <- f
-    case x of
-        [] -> return []
-        xs -> return (filter p xs)
+filterE p = filterMapE (guard p)
+
+filterMapE :: (a -> Maybe b) -> Event a -> Event b
+filterMapE p (Event f) = Event $ 
+    f >>= return . list [] (filterMap p)
+
 
 instance Monoid (Event a) where
     mempty = Event $ return []
     Event f `mappend` Event g = Event $ do
         x <- f
         y <- g
-        return (x ++ y)
-
+        return (x `mappend` y)
 
 getE :: IO (Maybe a) -> Event a
 getE = Event . fmap maybeToList
@@ -100,26 +100,6 @@ putE g (Event f) = Event $ do
         xs -> Prelude.mapM g xs
     return x
 
-readE :: Chan a -> Event a
-readE ch = getE (tryReadChan ch)
-
-writeE :: Chan a -> Event a -> Event a
-writeE ch e = putE (writeChan ch) e
-
--- TODO make non-blocking    
-linesIn :: [Event String]
-linesIn = unsafePerformIO $ do
-    ch <- newChan
-    forkIO $ cycleM $ do
-        getLine >>= writeChan ch
-    fmap (fmap readE) $ Prelude.mapM dupChan (replicate 10 ch)
-    where
-        cycleM x = x >> cycleM x
-
-
-
-linesOut :: Event String -> Event String
-linesOut = putE putStrLn
 
 -- |
 -- Run an event, distributing a single occurance if there is one.
@@ -131,6 +111,30 @@ run :: Event a -> IO ()
 run (Event f) = do
     x <- f
     return ()
+
+
+
+
+
+
+readE :: Chan a -> Event a
+readE ch = getE (tryReadChan ch)
+
+writeE :: Chan a -> Event a -> Event a
+writeE ch e = putE (writeChan ch) e
+
+-- -- TODO make non-blocking    
+-- linesIn :: [Event String]
+-- linesIn = unsafePerformIO $ do
+--     ch <- newChan
+--     forkIO $ cycleM $ do
+--         getLine >>= writeChan ch
+--     fmap (fmap readE) $ Prelude.mapM dupChan (replicate 10 ch)
+--     where
+--         cycleM x = x >> cycleM x
+-- 
+-- linesOut :: Event String -> Event String
+-- linesOut = putE putStrLn
 
 runLoop :: Event a -> IO ()
 runLoop e = run e >> threadDelay kloopInterval >> runLoop e  
@@ -157,3 +161,13 @@ kloopInterval = 1000 * 5
 -- 
 -- oscOutE :: String -> Int -> Event OscMessage
 -- oscOutE = undefined
+
+guard :: (a -> Bool) -> (a -> Maybe a)
+guard p x
+    | p x       = Just x
+    | otherwise = Nothing
+
+list z f [] = z
+list z f xs = f xs
+
+filterMap p = catMaybes . map p
