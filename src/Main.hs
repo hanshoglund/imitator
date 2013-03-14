@@ -39,12 +39,13 @@ addMenus frame = do
 
 
 
-addWidgets :: Frame a -> IO (String -> Event (), String -> Sink ())
+addWidgets :: Frame a -> IO (String -> Event (), String -> Sink Int)
 addWidgets frame = do
     (startA, startE) <- newObsE
     (stopA, stopE) <- newObsE
     (pauseA, pauseE) <- newObsE
     (resumeA, resumeE) <- newObsE
+
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
     pause       <- button frame [text := "Pause"]
@@ -90,6 +91,17 @@ addWidgets frame = do
         column 0 [row 0 [buttons, shaped $ controls, status], 
                   positioning]
 
+    (transportA, transportS) <- newSinkE
+    
+    let refreshWidgets = do
+        transportA >>= \x -> case x of 
+            Just x -> set transport [selection := x]
+            Nothing -> return ()        
+        return ()
+    timer frame [interval := 100, on command := refreshWidgets]
+    
+    
+
     let events     = \x -> case x of 
         { "start"         -> startE                
         ; "stop"          -> stopE                
@@ -98,7 +110,7 @@ addWidgets frame = do
         ;  _              -> error "No such event"     
         }
     let sinks     = \x -> case x of 
-        { "transport"     -> undefined                
+        { "transport"     -> transportS                
         ;  _              -> error "No such sink"     
         }
     return (events, sinks)    
@@ -132,6 +144,8 @@ gui = do
         <> (notify "Resume was pressed"   $ widgetEvents "resume")
         <> (notify "The timer was fired" $ timerEvents  "fired")
         <> (notify "Something happened"  $ widgetEvents "start" <> timerEvents "fired")
+        <> (fmap (const "") $ widgetSinks "transport" $ fmap (const 500) $ widgetEvents "resume")
+
 
     return ()
 
@@ -150,10 +164,10 @@ newObsE = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
 
-newSinkE :: IO (IO a, Event a -> Event ())
+newSinkE :: IO (IO (Maybe a), Event a -> Event ())
 newSinkE = do
     ch <- newChan
-    return (readChan ch, writeChanE ch)
+    return (tryReadChan ch, writeChanE ch)
 
 
 -- combo box, text etc...
@@ -198,57 +212,6 @@ newSinkE = do
 
 
 
--- data E a = E a {-...-}
--- instance Monoid E where
--- 
--- data B a = B a {-...-}
--- instance Monoid a => Monoid (B a) where
---     mempty  = pure mempty        
---     mappend = liftA2 mappend
--- instance Functor (B a) where
---     fmap f  = (pure f <*>)
--- instance Applicative (B a) where
---     pure x  = undefined         -- const x
---     f <*> x = undefined         -- (f t) (f x)
--- instance Monad (B a) where
---     return = pure
---     x >>= k = undefined         -- 
-
-{-
-    Functor: 
-        at (fmap f r) == fmap f (at r)
-    Applicative: 
-        at (pure a)  == pure a
-        at (s <*> r) == at s <*> at t
-    Monad: 
-        at (return a) == return a
-        at (join rr) == join (at . at rr). 
-        (r >>= f) == join (fmap f r)
-        at (r >>= f) == at r >>= at . f.
-    Monoid: a typical lifted monoid. If o is a monoid, then Reactive o is a monoid, with mempty == pure mempty, 
-    and mappend == liftA2 mappend. That is, mempty at t == mempty, and (r mappend s) at t == (r at t) mappend (s at t). 
-
-    
-
--}
-
-
-
-
--- data Action 
---     = ButtonAction
---     | SliderAction
---     | MenuAction
---     | TimerAction 
--- 
--- data Update
---     = ButtonUpdate
---     | SliderUpdate
---     | MenuUpdate
---     | LabelUpdate
---     | GaugeUpdate
---                     
-        
     
 
 
