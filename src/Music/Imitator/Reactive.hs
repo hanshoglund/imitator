@@ -78,27 +78,30 @@ filterE :: (a -> Bool) -> Event a -> Event a
 filterE p = filterMapE (guard p)
 
 filterMapE :: (a -> Maybe b) -> Event a -> Event b
-filterMapE p (Event f) = Event $ 
-    f >>= return . list [] (filterMap p)
-
+filterMapE p (Event f) = Event $ h
+    where
+        h = f >>= return . list [] (filterMap p)
 
 instance Monoid (Event a) where
     mempty = Event $ return []
-    Event f `mappend` Event g = Event $ do
-        x <- f
-        y <- g
-        return (x `mappend` y)
+    
+    Event f `mappend` Event g = Event $ h
+        where
+            h = do { x <- f; y <- g; return (x `mappend` y) }    
+
 
 getE :: IO (Maybe a) -> Event a
-getE = Event . fmap maybeToList
+getE f = Event $ h
+    where
+        h = fmap maybeToList $ f
 
 putE :: (a -> IO ()) -> Event a -> Event a
-putE g (Event f) = Event $ do
-    x <- f
-    case x of
-        [] -> return []
-        xs -> Prelude.mapM g xs
-    return x
+putE g (Event f) = Event $ h
+    where
+        h = do
+            x <- f
+            list (return []) (Prelude.mapM g) x
+            return x
 
 
 -- |
