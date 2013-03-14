@@ -107,8 +107,11 @@ gui = do
 mainE :: Event (Maybe Bool)
 mainE = output `sequenceE` result
     where  
-        result      = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE  
-        output      = putLineE $ mergeWithE (++) (alwaysE "You entered: ") getLineE        
+        result       = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE  
+        output       = putLineE $ twice
+        twice        = yourText "(original)" getLineE <> yourText "(reversed)" (fmap reverse getLineE)
+
+        yourText t = mergeWithE (++) (alwaysE $ "Your text " ++ t ++ ": ")
 
 
 

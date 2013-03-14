@@ -121,11 +121,17 @@ prepare (ESink k a)     = do
     return $ ESink k a'
 prepare x               = return x
 
+-- | 
+-- Run the given event once.
+--
 run :: Event a -> IO ()
 run e = do
     e' <- prepare e
     run' e' >> return ()
 
+-- | 
+-- Run the given event for ever.
+--
 runLoop :: Event a -> IO ()
 runLoop e = do 
     e' <- prepare e
@@ -134,6 +140,9 @@ runLoop e = do
         runLoop' e = run' e >> threadDelay loopInterval >> runLoop' e
         loopInterval = 1000 * 5
 
+-- | 
+-- Run the given event until the first @Just x@  occurence, then return @x@.
+--
 runLoopUntil :: Event (Maybe a) -> IO a
 runLoopUntil e = do 
     e' <- prepare e
@@ -210,7 +219,7 @@ filterE p = EPred p
 -- |
 -- Event reading from external world.
 --
--- The computation may block and will be run in a separate thread.
+-- The computation may block and its values will be shared.
 --
 getE :: IO a -> Event a
 getE k = unsafePerformIO $ do
@@ -222,7 +231,8 @@ getE k = unsafePerformIO $ do
 -- |
 -- Event reading from external world.
 --
--- The computation should be non-blocking and unique.
+-- The computation should be non-blocking and its values will be contested.
+-- Note that this implies that @pollE x \<> pollE y@ may not behave as you expect.
 --
 pollE :: IO (Maybe a) -> Event a
 pollE = ESource . fmap maybeToList
@@ -230,7 +240,7 @@ pollE = ESource . fmap maybeToList
 -- |
 -- Event interacting with the external world.
 --
--- The computation should be non-blocking.
+-- The computation should be non-blocking and its values will be contested.
 --
 modifyE :: (a -> IO b) -> Event a -> Event b
 modifyE = ESink
