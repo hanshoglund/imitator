@@ -442,7 +442,6 @@ getDatumFloat (Float x) = x
 getDatumDouble (Double x) = x
 
 
-
 -- |
 -- Print information about the server.
 --
@@ -451,16 +450,6 @@ printServerStatus = do
     status <- serverStatus
     msg <- return $ concatLines status
     putStrLn msg
-
-
-
-
-
-
-
-
-
-
 
 
 -- |

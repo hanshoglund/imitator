@@ -137,6 +137,10 @@ swapVar :: Var a -> a -> IO a
 swapVar v = atomically . swapTMVar (getVar v)
 
 
+-------------------------------------------------------------------------------------
+-- Primitives
+-------------------------------------------------------------------------------------
+
 data Event a where
     ENever  ::                             Event a
     
@@ -265,6 +269,9 @@ runR (RJoin r)   = do
     runR r'
 
 
+-------------------------------------------------------------------------------------
+-- Event API
+-------------------------------------------------------------------------------------
 
 instance Functor (Event) where
     fmap    = EMap
@@ -301,10 +308,6 @@ sequenceE = ESeq
 neverE :: Event a
 neverE = mempty
 
--- Always occur as the given value, semantically @repeat x@.
--- alwaysE :: a -> Event a
--- alwaysE = pure
-
 -- |
 -- Interleave occurences, semantically @merge xs ys@.
 mergeE :: Event a -> Event a -> Event a
@@ -319,6 +322,15 @@ tickE = tickME
 -- Discard values, using an arbitrary empty element.
 tickME :: Monoid b => Event a -> Event b
 tickME = fmap (const mempty)
+
+-- |
+-- Event accumulator.
+--
+-- > a `accumE` e = (a `accumR` e) `sample` e
+-- > a `accumR` e = a `stepper` (a `accumE` e)
+--        
+accumE :: a -> Event (a -> a) -> Event a
+a `accumE` e = (a `accumR` e) `sample` e
 
 
 delayE :: Int -> Event a -> Event a
@@ -394,47 +406,9 @@ putLineE :: Event String -> Event String
 putLineE = putE putStrLn
 
 
-
-
-
-
-stepper  :: a -> Event a -> Reactive a
-stepper x e = RStep (newVar x) e
-
-sample :: Reactive b -> Event a -> Event b
-sample = ESamp
-
-
--- |
--- Accumulating event.
---
--- > a `accumE` e = (a `accumR` e) `sample` e
--- > a `accumR` e = a `stepper` (a `accumE` e)
---        
-accumE :: a -> Event (a -> a) -> Event a
-a `accumE` e = (a `accumR` e) `sample` e
-
--- |
--- Accumulating reactive.
---
--- > a `accumE` e = (a `accumR` e) `sample` e
--- > a `accumR` e = a `stepper` (a `accumE` e)
---        
-accumR :: a -> Event (a -> a) -> Reactive a
-accumR x = RAccum (newVar x)
-
-count :: Event a -> Reactive Int
-count = accumR 0 . fmap (const succ)
-
--- diffE :: Event a -> Event a
-
-
-
--- turnOn  :: Event a -> Reactive Bool
--- turnOff :: Event a -> Reactive Bool
--- toggle  :: Event a -> Reactive Bool
-
-
+-------------------------------------------------------------------------------------
+-- Reactive API
+-------------------------------------------------------------------------------------
 
 instance Monoid a => Monoid (Reactive a) where
     mempty  = pure mempty
@@ -451,9 +425,43 @@ instance Monad Reactive where
     return  = pure
     x >>= k = (RJoin . fmap k) x
 
+-- |
+-- Step between values.
+--
+stepper  :: a -> Event a -> Reactive a
+stepper x e = RStep (newVar x) e
 
+-- |
+-- Switch between reactives.
+--
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
 switcher r e = join (stepper r e)
+
+sample :: Reactive b -> Event a -> Event b
+sample = ESamp
+
+-- |
+-- Reactive accumulator.
+--
+-- > a `accumE` e = (a `accumR` e) `sample` e
+-- > a `accumR` e = a `stepper` (a `accumE` e)
+--        
+accumR :: a -> Event (a -> a) -> Reactive a
+accumR x = RAccum (newVar x)
+
+-- |
+-- Count occurances.
+--
+count :: Event a -> Reactive Int
+count = accumR 0 . fmap (const succ)
+
+-- diffE :: Event a -> Event a
+
+
+
+-- turnOn  :: Event a -> Reactive Bool
+-- turnOff :: Event a -> Reactive Bool
+-- toggle  :: Event a -> Reactive Bool
 
 
 
@@ -522,7 +530,7 @@ loopInterval = 1000 * 1
 
 
 
-
+-------------------------------------------------------------------------------------
 
 -- 
 -- 
