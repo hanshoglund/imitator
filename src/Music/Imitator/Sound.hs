@@ -20,6 +20,8 @@ module Music.Imitator.Sound (
         UGen(..),
         Warp(..),
         Rate(..),
+        Loop(..),
+        DoneAction(..),
 
         -- ** Oscillators
         sine,
@@ -69,6 +71,11 @@ module Music.Imitator.Sound (
         -- ** Reverb
         -- freeVerb,
 
+        -- ** Buffers
+        recordBuf,
+        playBuf,
+        tGrains,
+
         -- ** Spacialization
         -- *** Encoders
         foaPanB,
@@ -95,7 +102,13 @@ module Music.Imitator.Sound (
         -- ** Play and stop
         play,
         abort,
-        sendStd,
+        sendStd,      
+        
+        -- ** Buffer allocation
+        newBuffer,
+        readBuffer,
+        closeBuffer,
+
 
         -- *** Server status
         startServer,
@@ -129,7 +142,7 @@ import Control.Concurrent (threadDelay)
 
 import System.IO.Unsafe (unsafePerformIO)
 
-import Sound.SC3.UGen (UGen(..), Rate(..), Warp(..), mce, mceChannels)
+import Sound.SC3.UGen (UGen(..), Rate(..), Warp(..), Loop(..), DoneAction(..), mce, mceChannels)
 import qualified Sound.SC3.UGen      as U
 import qualified Sound.SC3.UGen.Noise.Monad as N
 import qualified Sound.SC3.Server.FD as S
@@ -284,6 +297,30 @@ mouseButton :: UGen
 mouseButton = U.mouseX KR 0 1 Linear 0
 
 
+-- |
+-- Record to buffer.
+--
+-- > playBuf numChan bufNum offset recLevel preLevel run loop trigger doneAction
+--
+recordBuf :: Rate -> UGen -> UGen -> UGen -> UGen -> UGen -> Loop -> UGen -> DoneAction -> UGen -> UGen
+recordBuf playBuf numChan bufNum offset recLevel preLevel run loop trigger doneAction = undefined
+
+-- |
+-- Play from buffer.
+--
+-- > playBuf numChan bufNum rate trig startPos loop doneAction
+--
+playBuf :: Int -> Rate -> UGen -> UGen -> UGen -> UGen -> Loop -> DoneAction -> UGen
+playBuf numChan bufNum rate trig startPos loop doneAction = undefined
+
+-- |
+-- Play grains from buffer.
+--
+-- > tGrains numChan trig bufNum rate centerPos dur pan amp interp
+--
+tGrains :: Int -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+tGrains numChan trig bufNum rate centerPos dur pan amp interp = undefined
+
 
 
 foaOmni :: UGen -> UGen
@@ -316,7 +353,6 @@ foaTumble angle input = U.mkFilter "FoaTumble" [w,x,y,z,angle] 4
 
 numChannels :: UGen -> Int
 numChannels = length . mceChannels
-
 
 
 
@@ -396,6 +432,18 @@ sendStd :: Message -> IO ()
 sendStd msg = do
     fd <- kStdServer
     S.send fd msg
+
+newBuffer :: Int -> Int -> Int -> IO ()
+newBuffer = undefined
+
+readBuffer :: Int -> String -> Int -> Int -> IO ()
+readBuffer = undefined
+
+closeBuffer :: Int -> IO ()
+closeBuffer = undefined
+
+
+
 
 -- |
 -- Start the server.
