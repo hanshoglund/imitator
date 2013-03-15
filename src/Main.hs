@@ -96,7 +96,7 @@ addWidgets frame = do
     (volumeB, volumeS)          <- newSinkE
     (transportB, transportS)    <- newSinkE
 
-    set start   [on command := startA 0 >> putStrLn "--> startA fired"]
+    set start   [on command := startA 0]
     set stop    [on command := stopA 0]
     set pause   [on command := pauseA 0]
     set resume  [on command := resumeA 0]
@@ -177,11 +177,11 @@ gui = do
         -- <> (continueE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
         -- <> (continueE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
 
-        <> (continueE $ showing "tempo:         "    $ sample tempoR startE)
+        -- <> (continueE $ showing "tempo:         "    $ sample tempoR startE)
         -- <> (continueE $ showing "gain:          "    $ sample gainR  stopE)
         -- <> (continueE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
         <> (continueE $ showing "Start clicks: "     $ startClicksE)
-        <> (continueE $ showing "Prev start clicks: " $ withPrevE startClicksE)
+        <> (continueE $ showing "Prev start clicks: " $ delayE 3 startClicksE)
 
 
         -- <> (continueE $ transportS $ fmap (* 10) $ startClicksE)

@@ -25,12 +25,14 @@ module Music.Imitator.Reactive (
         -- mergeWithE,
 
         -- ** Change value of events
-        tickE,
-        tickME,          
         mapE,
         filterE,
+        replaceE,
+        tickE,
         justE,
         accumE,
+        delayE,
+        delayE',
         withPrevE,
         -- -- MidiSource,
         -- -- MidiDestination,
@@ -281,6 +283,11 @@ mapE = fmap
 filterE :: (a -> Bool) -> Event a -> Event a
 filterE p = EPred p
 
+-- |
+-- Replace occurances, semantically @fmap (const x) xs@.
+replaceE :: a -> Event a -> Event a
+replaceE x = fmap (const x)
+
 justE :: Event (Maybe a) -> Event a
 justE = fmap fromJust . filterE isJust
 
@@ -314,15 +321,20 @@ tickME :: Monoid b => Event a -> Event b
 tickME = fmap (const mempty)
 
 
-withPrevE :: Event a -> Event (a,a)
-withPrevE e = (joinMaybes' . fmap combineMaybes) $
-              (Nothing,Nothing) `accumE` fmap (shift.Just) e
+delayE :: Int -> Event a -> Event a
+delayE n = foldr (.) id (replicate n delayE')
+
+delayE' :: Event a -> Event a
+delayE' = fmap snd . withPrevE
+
+withPrevE :: Event a -> Event (a, a)
+withPrevE e 
+    = (joinMaybes' . fmap combineMaybes) 
+    $ dup Nothing `accumE` fmap (shift . Just) e
     where      
-        joinMaybes' = justE
-        -- Shift newer value into (new,old) pair if present.
-        shift :: u -> (u,u) -> (u,u)
-        shift newer (new,_) = (newer,new)
-        combineMaybes :: (Maybe u, Maybe v) -> Maybe (u,v)
+        shift b (a,_) = (b,a)
+        dup x         = (x,x)
+        joinMaybes'   = justE
         combineMaybes = uncurry (liftA2 (,))
 
 
@@ -391,15 +403,37 @@ stepper x e = RStep (newVar x) e
 
 sample :: Reactive b -> Event a -> Event b
 sample = ESamp
-        
+
+
+-- |
+-- Accumulating event.
+--
+-- > a `accumE` e = (a `accumR` e) `sample` e
+-- > a `accumR` e = a `stepper` (a `accumE` e)
+--        
 accumE :: a -> Event (a -> a) -> Event a
+a `accumE` e = (a `accumR` e) `sample` e
+
+-- |
+-- Accumulating reactive.
+--
+-- > a `accumE` e = (a `accumR` e) `sample` e
+-- > a `accumR` e = a `stepper` (a `accumE` e)
+--        
 accumR :: a -> Event (a -> a) -> Reactive a
 accumR x = RAccum (newVar x)
 
+count :: Event a -> Reactive Int
+count = accumR 0 . fmap (const succ)
 
-a `accumE` e = (a `accumR` e) `sample` e
--- a `accumR` e = a `stepper` (a `accumE` e)
--- a `accumR` e = id `stepper` e <*> pure a
+-- diffE :: Event a -> Event a
+
+
+
+-- turnOn  :: Event a -> Reactive Bool
+-- turnOff :: Event a -> Reactive Bool
+-- toggle  :: Event a -> Reactive Bool
+
 
 
 instance Monoid a => Monoid (Reactive a) where
