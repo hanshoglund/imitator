@@ -13,15 +13,50 @@
 --
 -------------------------------------------------------------------------------------    
 
-module Music.Imitator.Util -- (
-        -- tau,
-        -- 
-        -- concatWith,
-        -- execute
-  --) 
-  where
+module Music.Imitator.Util (
+        -- ** String and Char
+        toUpperChar,
+        toLowerChar,
+        toUpperString,
+        toLowerString,
+        toCapitalString,
+        
+        -- ** Lists
+        withPrefix,
+        withSuffix,
+        sep,
+        pre,
+        post,
+        wrap,
+        concatSep,
+        concatPre,
+        concatPost,
+        concatWrap,
+        divideList,
+        breakList, 
+        
+        -- ** Monads
+        concatMapN,
+        concatMapM,
+        concatMapA,
+        
+        -- ** Special map
+        mapIndexed,      
+        
+        -- ** Mathematics
+        tau,             
+        
+        -- ** System
+        execute,
+  ) where
 
-import Data.Monoid
+import Prelude hiding (concat)
+
+import Data.Monoid             
+import Control.Applicative
+import Data.Foldable
+import Data.Traversable
+import Control.Monad (MonadPlus)
 
 import System.Posix
 
@@ -142,12 +177,25 @@ divideList n xs
 breakList :: Int -> [a] -> [a] -> [a]
 breakList n z = mconcat . List.intersperse z . divideList n
 
+
 -- |
--- Break up a list into parts of maximum length n, inserting the given list as separator.
--- Useful for breaking up strings, as in @breakList 80 "\n" str@.
+-- A version of 'concatMap' generalized to arbitrary 'Monoid' instances.
 --
-concatMapM :: (Monad f, Functor f) => (a -> f [b]) -> [a] -> f [b]
-concatMapM f = fmap concat . mapM f
+concatMapN :: (Applicative f, Monoid b) => (a -> f b) -> [a] -> f b
+concatMapN f = fmap mconcat . traverse f
+
+-- |
+-- A version of 'concatMap' generalized to arbitrary 'MonadPlus' instances.
+--
+concatMapM :: (MonadPlus m, Applicative f, Traversable t) => (a -> f (m b)) -> t a -> f (m b)
+concatMapM f = fmap msum . traverse f
+
+-- |
+-- A version of 'concatMap' generalized to arbitrary 'Alternative' instances.
+--
+concatMapA :: (Alternative m, Applicative f, Traversable t) => (a -> f (m b)) -> t a -> f (m b)
+concatMapA f = fmap asum . traverse f
+
 
 mapIndexed :: (Int -> a -> b) -> [a] -> [b]
 mapIndexed f as = map (uncurry f) (zip is as)

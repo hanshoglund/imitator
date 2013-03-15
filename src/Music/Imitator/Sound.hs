@@ -13,14 +13,51 @@
 --
 -------------------------------------------------------------------------------------
 
-module Music.Imitator.Sound where
+module Music.Imitator.Sound (
+        
+        -- TODO remove these
+        impulseTest,
+
+        -- ** Generators
+        sineG,
+        impG,
+        mouseG,
+
+        -- ** Ambisonics
+        foaOmniB,
+        foaPanB,
+        decodeG,
+        foaRotate,
+
+        -- ** Utilities
+        numChannels,
+
+        -- ** Control
+        -- TODO
+
+        -- ** Play and stop
+        play,
+        abort,
+        sendStd,
+
+        -- *** Server status
+        printServerStatus,
+        startServer,
+        stopServer,
+        
+        -- ** Constants
+        kStdServerConnection,
+        kStdPort,
+        kMaster,
+        kNumSpeakers,        
+  ) where
 
 import Data.Monoid
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 
 import Sound.SC3.Server
-import Sound.SC3.Server.FD
+import Sound.SC3.Server.FD hiding (play)
 import Sound.SC3.UGen
 import Sound.OSC.Transport.FD.UDP (openUDP)
 import Sound.OpenSoundControl.Type
@@ -37,11 +74,15 @@ impG fq = impulse AR fq 0
 mouseG :: (UGen, UGen)
 mouseG    = (mouseX KR 0 1 Linear 0, mouseY KR 0 1 Linear 0)
 
-decodeG :: UGen -> UGen
-decodeG input = decodeB2 kNumSpeakers w x y 0
+
+decodeG :: Int -> UGen -> UGen
+decodeG numSpeakers input = decodeB2 numSpeakers w x y 0
     where
         [w,x,y,_] = mceChannels input
 
+
+foaOmniB :: UGen -> UGen
+foaOmniB input = mce $ replicate 4 input
 
 foaPanB :: UGen -> UGen -> UGen -> UGen
 foaPanB azimuth elev input = mkFilter "FoaPanB" [input, azimuth, elev] 4
@@ -52,8 +93,10 @@ foaRotate angle input = mkFilter "FoaRotate" [w,x,y,z,angle] 4
         [w,x,y,z] = mceChannels input
 
 
+-- omniTest :: 
+
 impulseTest :: UGen
-impulseTest = decodeG $ foaRotate ((fst mouseG + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impG 12 * 0.5)
+impulseTest = decodeG kNumSpeakers $ foaRotate ((fst mouseG + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impG 12 * 0.5)
 
 numChannels :: UGen -> Int
 numChannels = length . mceChannels
@@ -102,8 +145,8 @@ numChannels = length . mceChannels
 
 
 
-test :: UGen -> IO ()
-test gen = do
+play :: UGen -> IO ()
+play gen = do
     sendStd $ d_recv synthDef
 
     threadDelay $ 1000000 `div` 2
@@ -111,8 +154,8 @@ test gen = do
 
     sendStd $ addToTailMsg
         where
-            addToTailMsg    = s_new "testGen" 111 AddToTail 0 []
-            synthDef        = synthdef "testGen" (out 0 $ gen * kMaster)
+            addToTailMsg    = s_new "playGen" 111 AddToTail 0 []
+            synthDef        = synthdef "playGen" (out 0 $ gen * kMaster)
 
 startServer :: IO ()
 startServer = execute "scsynth" ["-v", "1", "-u", show kStdPort]
@@ -130,7 +173,7 @@ abort = sendStd $ g_deepFree [0]
 
 sendStd :: Message -> IO ()
 sendStd msg = do
-    t <- kStdTransport
+    t <- kStdServerConnection
     send t msg
 
 
@@ -145,15 +188,27 @@ sendStd msg = do
 
 -- Note: withSC3 using kStdPort by default
 
-kStdTransport :: IO UDP
-kStdTransport = openUDP "127.0.0.1" kStdPort
+-- |
+-- Standard server connection..
+-- 
+kStdServerConnection :: IO UDP
+kStdServerConnection = openUDP "127.0.0.1" kStdPort
 
+-- |
+-- Standard server port.
+-- 
 kStdPort :: Int
 kStdPort = 57110
 
+-- |
+-- Global master volume (low while developing)
+-- 
 kMaster :: UGen
 kMaster = 0.3
 
+-- |
+-- Number of speakers used by Ambisonic decoders
+-- 
 kNumSpeakers :: Int
 kNumSpeakers = 8
 
