@@ -23,12 +23,14 @@ library
         newtype,
         hamid,
         hosc,
+        hsc3,
         semigroups
                 
     hs-source-dirs: src
     exposed-modules:
         Music.Imitator
         Music.Imitator.Reactive
+        Music.Imitator.SC
 
 executable "Imitator"
     hs-source-dirs: src

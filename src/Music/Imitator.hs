@@ -13,7 +13,6 @@ module Music.Imitator where
             * Text: Section, Bar
 
 -}
-import System.Posix.Unistd (usleep)
 
 type Time     = Double
 type Duration = Time
@@ -45,7 +44,8 @@ runCommand = undefined
 runImitator :: [(Time, Command)] -> IO ()
 runImitator []     = return ()
 runImitator ((t,x):xs) = do
-    usleep (round t*1000000)
+    -- usleep (round t*1000000)
+    -- TODO cross-platform
     runCommand x
     runImitator xs
 
