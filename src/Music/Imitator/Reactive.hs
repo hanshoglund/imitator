@@ -10,6 +10,7 @@ module Music.Imitator.Reactive (
         writeChan,
         
         Var(..),
+        dupVar,
         newVar,
         readVar,
         swapVar,
@@ -19,7 +20,6 @@ module Music.Imitator.Reactive (
 
         -- ** Combine events
         neverE,
-        -- alwaysE,
         mergeE,
         sequenceE,
         -- mergeWithE,
@@ -29,7 +29,9 @@ module Music.Imitator.Reactive (
         tickME,          
         mapE,
         filterE,
+        justE,
         accumE,
+        withPrevE,
         -- -- MidiSource,
         -- -- MidiDestination,
         -- -- midiInE,
@@ -123,6 +125,9 @@ newtype Var a = Var { getVar :: TMVar a }
 newVar :: a -> Var a
 newVar = Var . unsafePerformIO . newTMVarIO
 
+dupVar :: Var a -> IO (Var a)
+dupVar v = atomically $ readTMVar (getVar v) >>= newTMVar >>= return . Var
+
 readVar :: Var a -> IO a
 readVar = atomically . readTMVar . getVar
 
@@ -132,31 +137,27 @@ swapVar v = atomically . swapTMVar (getVar v)
 
 data Event a where
     ENever  ::                             Event a
-    EMerge  :: Event a -> Event a       -> Event a
-    ESeq    :: Event a -> Event b       -> Event b
-
+    
+    EMerge  :: Event a     -> Event a   -> Event a
+    ESeq    :: Event a     -> Event b   -> Event b
     EMap    :: (a -> b)    -> Event a   -> Event b
     EPred   :: (a -> Bool) -> Event a   -> Event a
 
     EChan   :: Chan a                   -> Event a
     ESource :: IO [a]                   -> Event a
-    ESink   :: (a -> IO b)  -> Event a  -> Event b
+    ESink   :: (a -> IO b) -> Event a   -> Event b
 
-    ESamp  :: Reactive a -> Event b     -> Event a
+    ESamp  :: Reactive a   -> Event b   -> Event a
 
 data Reactive a where
     RConst  :: a                                -> Reactive a
+
     RStep   :: Var a -> Event a                 -> Reactive a
     RAccum  :: Var a -> Event (a -> a)          -> Reactive a
+    
     RApply  :: Reactive (a -> b) -> Reactive a  -> Reactive b
     RJoin   :: Reactive (Reactive a)            -> Reactive a
-
-
--- Reactive (Reactive a) -> Reactive a
--- IO (IO a) -> IO a
-
--- accumR :: a -> Event (a -> a) -> Reactive a
--- accumR z f = stepper id f <*> pure z
+    
 
 prepE :: Event a -> IO (Event a)
 prepE (EMerge a b)     = do
@@ -183,20 +184,17 @@ prepE (ESamp r x)    = do
 prepE (EChan ch)      = do
     ch' <- prepC ch
     return $ ESource ch' 
-    where
-        prepC :: Chan a -> IO (IO [a])
-        prepC ch = do
-            ch' <- dupChan ch
-            return $ fmap maybeToList $ tryReadChan ch'
 prepE x               = return x
 
 prepR :: Reactive a -> IO (Reactive a)
 prepR (RStep v x) = do
     x' <- prepE x
-    return $ RStep v x'
+    v' <- prepV v
+    return $ RStep v' x'
 prepR (RAccum v x) = do
     x' <- prepE x
-    return $ RAccum v x'
+    v' <- prepV v
+    return $ RAccum v' x'
 prepR (RApply f x) = do
     f' <- prepR f
     x' <- prepR x
@@ -206,22 +204,33 @@ prepR (RJoin r) = do
     return $ RJoin r'
 prepR x = return x
 
+prepC :: Chan a -> IO (IO [a])
+prepC ch = do
+    ch' <- dupChan ch
+    return $ fmap maybeToList $ tryReadChan ch'
+
+prepV :: Var a -> IO (Var a)
+prepV v = dupVar v
 
 runE :: Event a -> IO [a]
 runE ENever          = return []
 runE (EMap f x)      = fmap (fmap f) (runE x)
 runE (EPred p x)     = fmap (filter p) (runE x)
-runE (EMerge a b)    = do
-    a' <- runE a
-    b' <- runE b
-    return (a' ++ b')
-runE (ESource i)     = i
+runE (EMerge a b)    = liftM2 (++) (runE a) (runE b)
+-- runE (EMerge a b)    = do
+    -- a' <- runE a
+    -- b' <- runE b
+    -- return (a' ++ b')
+runE (ESource i)     = {-putStrLn "Read from source" >>-} i
 runE (ESink o x)     = runE x >>= mapM o
 runE (ESeq a b)      = runE a >> runE b
 runE (ESamp r x)    = do
     r' <- runRS r
     x' <- runE x
-    return $ fmap (const r') x'
+    -- return $ fmap (const r') x'
+    case x' of
+        [] -> return []
+        _  -> return [r']
 
 runRS :: Reactive a -> IO a
 runRS = fmap last . runR
@@ -232,18 +241,22 @@ runR (RStep v x)     = do
     v' <- readVar v
     x' <- runE x       
     let ys = (v':x')
---    putStrLn $ "Length of ys is: " ++ show (length ys)
     swapVar v (last ys)
     return ys
+
+-- FIXME problem if accumulator is run multiple times
+-- Solution: variables must be duplicated just like queues
 runR (RAccum v x)   = do
     v' <- readVar v
     x' <- runE x
     let w = (foldr (.) id x') v'
     swapVar v w
+    -- putStrLn $ "Number of f in accum: " ++ show (length x')
     return [w]    
 runR (RApply f x)   = do
     f' <- runR f
     x' <- runR x
+    -- putStrLn $ "Number of f <*> x in apply: " ++ show (length (f' <*> x'))
     return (f' <*> x')
 runR (RJoin r)   = do
     r' <- runRS r       -- correct ?
@@ -267,6 +280,9 @@ mapE = fmap
 -- Filter occurances, semantically @filter p xs@.
 filterE :: (a -> Bool) -> Event a -> Event a
 filterE p = EPred p
+
+justE :: Event (Maybe a) -> Event a
+justE = fmap fromJust . filterE isJust
 
 -- |
 -- Run both and behave as the second event, sematically @a `seq` b@.
@@ -297,6 +313,17 @@ tickE = tickME
 tickME :: Monoid b => Event a -> Event b
 tickME = fmap (const mempty)
 
+
+withPrevE :: Event a -> Event (a,a)
+withPrevE e = (joinMaybes' . fmap combineMaybes) $
+              (Nothing,Nothing) `accumE` fmap (shift.Just) e
+    where      
+        joinMaybes' = justE
+        -- Shift newer value into (new,old) pair if present.
+        shift :: u -> (u,u) -> (u,u)
+        shift newer (new,_) = (newer,new)
+        combineMaybes :: (Maybe u, Maybe v) -> Maybe (u,v)
+        combineMaybes = uncurry (liftA2 (,))
 
 
 
@@ -369,6 +396,7 @@ accumE :: a -> Event (a -> a) -> Event a
 accumR :: a -> Event (a -> a) -> Reactive a
 accumR x = RAccum (newVar x)
 
+
 a `accumE` e = (a `accumR` e) `sample` e
 -- a `accumR` e = a `stepper` (a `accumE` e)
 -- a `accumR` e = id `stepper` e <*> pure a
@@ -432,7 +460,7 @@ runLoop e = do
     e' <- prepE e
     runLoop' e'  
     where   
-        runLoop' e = runE e >> threadDelay loopInterval >> runLoop' e
+        runLoop' ee = runE ee >> threadDelay loopInterval >> runLoop' ee
 
 -- | 
 -- Run the given event until the first @Just x@  occurence, then return @x@.
@@ -442,13 +470,13 @@ runLoopUntil e = do
     e' <- prepE e
     runLoop' e'  
     where   
-        runLoop' e = do
-            r <- runE e
+        runLoop' ee = do
+            r <- runE ee
             case (catMaybes r) of 
-                []    -> threadDelay loopInterval >> runLoop' e
+                []    -> threadDelay loopInterval >> runLoop' ee
                 (a:_) -> return a
 
-loopInterval = 1000 * 5
+loopInterval = 1000 * 1
 
 
 
@@ -502,3 +530,13 @@ cycleM x = x >> cycleM x
 
 single x = [x]
 
+-- | Pass through @Just@ occurrences.
+joinMaybes :: MonadPlus m => m (Maybe a) -> m a
+joinMaybes = (>>= maybe mzero return)
+
+-- | Pass through values satisfying @p@.
+filterMP :: MonadPlus m => (a -> Bool) -> m a -> m a
+filterMP p m = joinMaybes (liftM f m)
+ where
+   f a | p a        = Just a
+       | otherwise  = Nothing
