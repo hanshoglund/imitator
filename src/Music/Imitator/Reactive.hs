@@ -6,7 +6,7 @@ module Music.Imitator.Reactive (
         -- * Events
         Event,
 
-        -- ** Combine events
+        -- ** Basic combinators
         neverE,
         mergeE,
         sequenceE,
@@ -18,17 +18,12 @@ module Music.Imitator.Reactive (
         replaceE,
         tickE,
         justE,
+
+        -- ** Stateful events
         accumE,
         delayE,
         delayE',
         withPrevE,
-        -- -- MidiSource,
-        -- -- MidiDestination,
-        -- -- midiInE,
-        -- -- midiOutE,
-        -- -- OscMessage,
-        -- -- oscInE,
-        -- -- oscOutE,
 
         -- ** Create events
         -- *** From standard library
@@ -44,12 +39,26 @@ module Music.Imitator.Reactive (
         pollE,
         putE,
         -- modifyE,                 
+
+        -- -- MidiSource,
+        -- -- MidiDestination,
+        -- -- midiInE,
+        -- -- midiOutE,
+        -- -- OscMessage,
+        -- -- oscInE,
+        -- -- oscOutE,
+
+
                 
-        -- * Reactive values
+        -- * Reactive
         Reactive,
+
+        -- ** Basic combinators
         stepper,
         switcher,
         sample,
+
+        -- ** Stateful reactives
         accumR,
 
 
@@ -301,7 +310,6 @@ withPrevE e
 
 -- |
 -- Event reading from external world.
---
 -- The computation should be blocking and is polled exactly once per occurence.
 --
 -- This function can be used with standard I/O functions.
@@ -315,7 +323,6 @@ getE k = unsafePerformIO $ do
 
 -- |
 -- Event reading from external world.
---
 -- The computation should be non-blocking and may be polled repeatedly for each occurence.
 --
 -- This function should be used with /non-effectful/ functions, typically functions that
@@ -327,7 +334,6 @@ pollE :: IO (Maybe a) -> Event a
 pollE = ESource . fmap maybeToList
 
 -- Event interacting with the external world.
---
 -- The computation should be non-blocking and its values will be contested.
 --
 -- modifyE :: (a -> IO b) -> Event a -> Event b
@@ -335,6 +341,8 @@ pollE = ESource . fmap maybeToList
 
 -- |
 -- Event writing to the external world.
+--
+-- This function can be used with standard I/O functions.
 --
 putE :: (a -> IO ()) -> Event a -> Event a
 putE k = ESink $ \x -> do
