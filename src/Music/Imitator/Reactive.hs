@@ -344,11 +344,6 @@ putLineE = putE putStrLn
 
 
 
--- joinOccs :: Reactive (Reactive a) -> IO a
--- joinOccs = join . fmap runR . runR
---     -- or (>>= runR) . runR
-
-
 stepper  :: a -> Event a -> Reactive a
 stepper x e = RStep (newVar x) e
 
@@ -358,9 +353,9 @@ sample = ESamp
 accumE :: a -> Event (a -> a) -> Event a
 accumR :: a -> Event (a -> a) -> Reactive a
 
-x `accumE` e = (x `accumR` e) `sample` e
-a `accumR` e = a `stepper` (a `accumE` e)
-
+a `accumE` e = (a `accumR` e) `sample` e
+-- a `accumR` e = a `stepper` (a `accumE` e)
+a `accumR` e = id `stepper` e <*> pure a
 
 
 instance Monoid a => Monoid (Reactive a) where

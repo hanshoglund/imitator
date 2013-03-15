@@ -164,6 +164,7 @@ gui = do
         
         tempoR = stepper 0 tempoE
         gainR = stepper 0 gainE
+        startClicksE = accumE 0 (fmap (const succ) startE)
 
     -- TODO split into something run by a timer
     forkIO $ runLoop $ mempty
@@ -175,6 +176,8 @@ gui = do
         <> (tickE $ showing "tempo:         "    $ sample tempoR startE)
         <> (tickE $ showing "gain:          "    $ sample gainR  stopE)
         <> (tickE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
+        
+        <> (tickE $ showing "start clicks: "     $ startE)
 
         -- <> (tickE $ notify "Start was pressed"   $ widgetSources "start")
         -- <> (tickE $ notify "Stop was pressed"    $ widgetSources "stop")
