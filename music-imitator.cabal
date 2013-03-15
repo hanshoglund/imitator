@@ -4,7 +4,7 @@ version:            0.5
 cabal-version:      >= 1.2
 author:             Hans Hoglund
 maintainer:         Hans Hoglund
-license:            BSD3
+license:            GPL-3
 license-file:       COPYING
 synopsis:           Spacial loop playback based on hsc3.
 category:           Music
@@ -30,7 +30,8 @@ library
     exposed-modules:
         Music.Imitator
         Music.Imitator.Reactive
-        Music.Imitator.SC
+        Music.Imitator.Sound    
+        Music.Imitator.Util
 
 executable "Imitator"
     hs-source-dirs: src

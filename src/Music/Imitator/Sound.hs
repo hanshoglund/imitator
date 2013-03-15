@@ -1,21 +1,34 @@
-    
-module Music.Imitator.SC where
+
+-------------------------------------------------------------------------------------
+-- |
+-- Copyright   : (c) Hans Hoglund 2012
+--
+-- License     : GPL
+--
+-- Maintainer  : hans@hanshoglund.se
+-- Stability   : stable
+-- Portability : portable
+--
+-- Sound backend (implemented as a wrapper around hsc3).
+--
+-------------------------------------------------------------------------------------
+
+module Music.Imitator.Sound where
 
 import Data.IORef
 import Data.Monoid
 import Data.List (intersperse)
 import Control.Applicative
+import Control.Concurrent (threadDelay)
 
 import Sound.SC3.Server
 import Sound.SC3.Server.FD
 import Sound.SC3.UGen
 import Sound.OSC.Transport.FD.UDP (openUDP)
 import Sound.OpenSoundControl.Type
-
 import Sound.OSC.Transport.FD.UDP (UDP)
 
-import System.Posix
-
+import Music.Imitator.Util
 
 sineG :: UGen -> UGen
 sineG fq  = sinOsc AR fq 0 * 0.05
@@ -40,12 +53,12 @@ foaRotate angle input = mkFilter "FoaRotate" [w,x,y,z,angle] 4
     where
         [w,x,y,z] = mceChannels input
 
-        
+
 impulseTest :: UGen
 impulseTest = decodeG $ foaRotate ((fst mouseG + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impG 12 * 0.5)
 
 numChannels :: UGen -> Int
-numChannels = length . mceChannels         
+numChannels = length . mceChannels
 
 
 
@@ -92,12 +105,12 @@ numChannels = length . mceChannels
 
 
 test :: UGen -> IO ()
-test gen = do               
+test gen = do
     sendStd $ d_recv synthDef
 
-    nanosleep $ 1000000000 `div` 2
+    threadDelay $ 1000000 `div` 2
     -- TODO proper async wait here
-    
+
     sendStd $ addToTailMsg
         where
             addToTailMsg    = s_new "testGen" 111 AddToTail 0 []
@@ -146,13 +159,3 @@ kMaster = 0.3
 kNumSpeakers :: Int
 kNumSpeakers = 8
 
-
-execute :: FilePath -> [String] -> IO ()
-execute program args = do
-    forkProcess $ executeFile program True args Nothing
-    return ()
-
-
-
-tau :: Floating a => a
-tau = 2 * pi
