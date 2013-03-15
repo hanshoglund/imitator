@@ -1,4 +1,6 @@
 
+-- {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+
 -------------------------------------------------------------------------------------
 -- |
 -- Copyright   : (c) Hans Hoglund 2012
@@ -30,7 +32,6 @@ module Music.Imitator.Sound (
         saw,
         vibrato,
         impulse,
-        const,
 
         noise,     
         grayNoise,
@@ -74,7 +75,12 @@ module Music.Imitator.Sound (
         -- ** Buffers
         recordBuf,
         playBuf,
-        tGrains,
+        tgrains,   
+        
+        -- ** I/O
+        input,
+        output,
+        feedback,
 
         -- ** Spacialization
         -- *** Encoders
@@ -135,12 +141,16 @@ module Music.Imitator.Sound (
         kNumSpeakers,        
   ) where
 
-import Data.Monoid        
+import Data.Monoid
+import Data.Functor.Apply
 import Control.Exception (try, SomeException)
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 
+import Data.Bits
+import System.Random
 import System.IO.Unsafe (unsafePerformIO)
+
 
 import Sound.SC3.UGen (UGen(..), Rate(..), Warp(..), Loop(..), DoneAction(..), mce, mceChannels)
 import qualified Sound.SC3.UGen      as U
@@ -166,12 +176,6 @@ impulseTest =
         $ foaPanB 0 0 
         $ (impulse 12 * 0.5)
 -}
-
-
-
-
-
-
 
 -- |
 -- Sinusoid generator.
@@ -289,9 +293,9 @@ mouse    = (U.mouseX KR 0 1 Linear 0, U.mouseY KR 0 1 Linear 0)
 
 
 -- |
--- Mouse position generator.
+-- Mouse button generator.
 --
--- > mouseButton min max lag
+-- > mouseButton
 --
 mouseButton :: UGen
 mouseButton = U.mouseX KR 0 1 Linear 0
@@ -316,11 +320,36 @@ playBuf numChan bufNum rate trig startPos loop doneAction = undefined
 -- |
 -- Play grains from buffer.
 --
--- > tGrains numChan trig bufNum rate centerPos dur pan amp interp
+-- > tgrains numChan trig bufNum rate centerPos dur pan amp interp
 --
-tGrains :: Int -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen
-tGrains numChan trig bufNum rate centerPos dur pan amp interp = undefined
+tgrains :: Int -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+tgrains numChan trig bufNum rate centerPos dur pan amp interp = undefined
 
+
+-- |
+-- Read input.
+--
+-- > input numCh bus
+--
+input :: Int -> UGen -> UGen
+input numCh bus = U.in' numCh U.AR bus
+
+
+-- |
+-- Read input.
+--
+-- > output bus input
+--
+output :: UGen -> UGen -> UGen
+output bus = U.out bus
+
+-- |
+-- Read input without erasing it.
+--
+-- > feedback numCh bus
+--
+feedback :: Int -> UGen -> UGen
+feedback numCh bus = U.inFeedback numCh bus
 
 
 foaOmni :: UGen -> UGen
@@ -405,33 +434,33 @@ numChannels = length . mceChannels
 --
 play :: UGen -> IO ()
 play gen = do
-    active <- serverActive
-    case (active) of
-        False -> fail "Server not running"
-        True  -> return ()
-
-    sendStd $ S.d_recv synthDef
-    threadDelay $ second `div` 2   -- TODO proper async wait here
-    sendStd $ addToTailMsg
-
+    asyncStd $ recvMsg
+    sendStd  $ addToTailMsg
         where           
-            second          = 1000000
+            recvMsg         = S.d_recv $ S.synthdef "playGen" (U.out kOutputOffset $ gen * kMaster)
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
-            synthDef        = S.synthdef "playGen" (U.out kOutputOffset $ gen * kMaster)
 
 -- |
 -- Abort all current synthesis (remove generators from the synthesis graph).
 --
 abort :: IO ()
-abort = sendStd $ S.g_deepFree [0]
+abort = do
+    sendStd $ S.g_deepFree [0]
 
 -- |
 -- Send a message to the server over the standard connection.
 --
 sendStd :: Message -> IO ()
 sendStd msg = do
+    checkServerActive
     fd <- kStdServer
     S.send fd msg
+
+asyncStd :: Message -> IO Message
+asyncStd msg = do
+    checkServerActive
+    fd <- kStdServer
+    S.async fd msg
 
 newBuffer :: Int -> Int -> Int -> IO ()
 newBuffer = undefined
@@ -441,8 +470,6 @@ readBuffer = undefined
 
 closeBuffer :: Int -> IO ()
 closeBuffer = undefined
-
-
 
 
 -- |
@@ -457,6 +484,12 @@ startServer = execute "scsynth" ["-v", "1", "-u", show kStdPort]
 stopServer :: IO ()
 stopServer = execute "killall" ["scsynth"]
 
+checkServerActive :: IO ()
+checkServerActive = do
+    active <- serverActive
+    case (active) of
+        False -> fail "Server not running"
+        True  -> return ()
 
 -- |
 -- Return whether the server is active.
