@@ -162,39 +162,44 @@ gui = do
         tempoE = widgetSources "tempo"
         gainE = widgetSources "gain"
         
+        transportS = widgetSinks "transport"
+        
         tempoR = stepper 0 tempoE
         gainR = stepper 0 gainE
         startClicksE = accumE 0 (fmap (const succ) startE)
+        
+        continueE = fmap (const Nothing)
 
     -- TODO split into something run by a timer
-    forkIO $ runLoop $ mempty
+    eventLoop <- return $ runLoopUntil $ neverE
+        -- <> (continueE $ notify "Foo" $ mempty)
+        -- <> (continueE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
+        -- <> (continueE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
 
-        -- <> (tickE $ notify "Foo" $ mempty)
-        -- <> (tickE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
-        -- <> (tickE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
+        <> (continueE $ showing "tempo:         "    $ sample tempoR startE)
+        <> (continueE $ showing "gain:          "    $ sample gainR  stopE)
+        <> (continueE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
+        <> (continueE $ showing "start clicks: "     $ startClicksE)
 
-        <> (tickE $ showing "tempo:         "    $ sample tempoR startE)
-        <> (tickE $ showing "gain:          "    $ sample gainR  stopE)
-        <> (tickE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
-        
-        <> (tickE $ showing "start clicks: "     $ startE)
+        <> (continueE $ transportS $ fmap (* 10) $ startClicksE)
+        <> (continueE $ filterE (> 20) startClicksE)
 
-        -- <> (tickE $ notify "Start was pressed"   $ widgetSources "start")
-        -- <> (tickE $ notify "Stop was pressed"    $ widgetSources "stop")
-        -- <> (tickE $ notify "Pause was pressed"   $ widgetSources "pause")
-        -- <> (tickE $ notify "Resume was pressed"  $ widgetSources "resume")
-        -- <> (tickE $ showing "Tempo is now: "     $ widgetSources "tempo")
-        -- <> (tickE $ showing "Gain is now: "     $ widgetSources "gain")
-        -- <> (tickE $ showing "Volume is now: "     $ widgetSources "volume")
+        -- <> (continueE $ notify "Start was pressed"   $ widgetSources "start")
+        -- <> (continueE $ notify "Stop was pressed"    $ widgetSources "stop")
+        -- <> (continueE $ notify "Pause was pressed"   $ widgetSources "pause")
+        -- <> (continueE $ notify "Resume was pressed"  $ widgetSources "resume")
+        -- <> (continueE $ showing "Tempo is now: "     $ widgetSources "tempo")
+        -- <> (continueE $ showing "Gain is now: "     $ widgetSources "gain")
+        -- <> (continueE $ showing "Volume is now: "     $ widgetSources "volume")
 
-        -- <> (tickE $ showing "Tempo + Gain: "     $ liftA2 (+) (widgetSources "tempo") (widgetSources "gain"))
+        -- <> (continueE $ showing "Tempo + Gain: "     $ liftA2 (+) (widgetSources "tempo") (widgetSources "gain"))
 
 
-        -- <> (tickE $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
-        -- <> (tickE $ widgetSinks "transport" $ fmap (const 500) $ widgetSources "resume")
-        -- <> (tickE $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
-        -- <> (tickE $ widgetSinks "transport" $ widgetSources "volume")
+        -- <> (continueE $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
+        -- <> (continueE $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
+        -- <> (continueE $ widgetSinks "transport" $ widgetSources "volume")
 
+    forkIO eventLoop
     return ()
 
 main :: IO ()

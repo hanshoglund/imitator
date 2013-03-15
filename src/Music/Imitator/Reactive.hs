@@ -147,6 +147,7 @@ data Event a where
 data Reactive a where
     RConst  :: a                                -> Reactive a
     RStep   :: Var a -> Event a                 -> Reactive a
+    RAccum  :: Var a -> Event (a -> a)          -> Reactive a
     RApply  :: Reactive (a -> b) -> Reactive a  -> Reactive b
     RJoin   :: Reactive (Reactive a)            -> Reactive a
 
@@ -193,6 +194,9 @@ prepR :: Reactive a -> IO (Reactive a)
 prepR (RStep v x) = do
     x' <- prepE x
     return $ RStep v x'
+prepR (RAccum v x) = do
+    x' <- prepE x
+    return $ RAccum v x'
 prepR (RApply f x) = do
     f' <- prepR f
     x' <- prepR x
@@ -215,25 +219,36 @@ runE (ESource i)     = i
 runE (ESink o x)     = runE x >>= mapM o
 runE (ESeq a b)      = runE a >> runE b
 runE (ESamp r x)    = do
-    r' <- runR r
+    r' <- runRS r
     x' <- runE x
     return $ fmap (const r') x'
 
-runR :: Reactive a -> IO a
-runR (RConst v)      = return v
+runRS :: Reactive a -> IO a
+runRS = fmap last . runR
+
+runR :: Reactive a -> IO [a]
+runR (RConst v)      = return [v]
 runR (RStep v x)     = do
     v' <- readVar v
+    x' <- runE x       
+    let ys = (v':x')
+--    putStrLn $ "Length of ys is: " ++ show (length ys)
+    swapVar v (last ys)
+    return ys
+runR (RAccum v x)   = do
+    v' <- readVar v
     x' <- runE x
-    let y = last (v':x')
-    swapVar v y
-    return y
+    let w = (foldr (.) id x') v'
+    swapVar v w
+    return [w]    
 runR (RApply f x)   = do
     f' <- runR f
     x' <- runR x
-    return (f' x')
+    return (f' <*> x')
 runR (RJoin r)   = do
-    r' <- runR r
+    r' <- runRS r       -- correct ?
     runR r'
+
 
 
 instance Functor (Event) where
@@ -352,10 +367,11 @@ sample = ESamp
         
 accumE :: a -> Event (a -> a) -> Event a
 accumR :: a -> Event (a -> a) -> Reactive a
+accumR x = RAccum (newVar x)
 
 a `accumE` e = (a `accumR` e) `sample` e
 -- a `accumR` e = a `stepper` (a `accumE` e)
-a `accumR` e = id `stepper` e <*> pure a
+-- a `accumR` e = id `stepper` e <*> pure a
 
 
 instance Monoid a => Monoid (Reactive a) where
@@ -417,7 +433,6 @@ runLoop e = do
     runLoop' e'  
     where   
         runLoop' e = runE e >> threadDelay loopInterval >> runLoop' e
-        loopInterval = 1000 * 5
 
 -- | 
 -- Run the given event until the first @Just x@  occurence, then return @x@.
@@ -432,7 +447,8 @@ runLoopUntil e = do
             case (catMaybes r) of 
                 []    -> threadDelay loopInterval >> runLoop' e
                 (a:_) -> return a
-        loopInterval = 1000 * 5
+
+loopInterval = 1000 * 5
 
 
 
