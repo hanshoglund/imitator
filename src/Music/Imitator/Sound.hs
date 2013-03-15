@@ -15,9 +15,7 @@
 
 module Music.Imitator.Sound where
 
-import Data.IORef
 import Data.Monoid
-import Data.List (intersperse)
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 
@@ -123,7 +121,7 @@ stopServer :: IO ()
 stopServer = execute "killall" ["scsynth"]
 
 printServerStatus :: IO ()
-printServerStatus = withSC3 serverStatus <$$> (mconcat . intersperse "\n" . (++["\n"])) >>= putStr
+printServerStatus = withSC3 serverStatus <$$> (concatSep "\n" . (++["\n"])) >>= putStr
     where
         x <$$> f = f <$> x
 
