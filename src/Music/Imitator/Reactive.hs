@@ -2,19 +2,7 @@
 {-# LANGUAGE GADTs #-}
 
 module Music.Imitator.Reactive (
-        Chan(..),
-        newChan,
-        dupChan,
-        readChan,
-        tryReadChan,
-        writeChan,
-        
-        Var(..),
-        dupVar,
-        newVar,
-        readVar,
-        swapVar,
-        
+
         -- * Events
         Event,
 
@@ -75,66 +63,26 @@ import Prelude hiding (mapM)
 
 import Data.Monoid  
 import Data.Maybe
-
 import Control.Monad
 import Control.Applicative
 import Control.Newtype
 
 import Control.Concurrent (forkIO, forkOS, threadDelay)
-import Control.Monad.STM (atomically)
-import Control.Concurrent.STM.TChan
-import Control.Concurrent.STM.TMVar
-
 import System.IO.Unsafe
 
+import Music.Imitator.Reactive.Chan
+import Music.Imitator.Reactive.Var
 
-import System.MIDI (MidiMessage,  MidiMessage')
-import qualified System.MIDI            as Midi
-import qualified Sound.OpenSoundControl as OSC
-
+-- import System.MIDI (MidiMessage,  MidiMessage')
+-- import qualified System.MIDI            as Midi
+-- import qualified Sound.OpenSoundControl as OSC
+-- 
 -- kPortMidiInfo = unsafePerformIO $ do
 --     Midi.initialize
 --     num  <- Midi.countDevices
 --     infos <- Prelude.mapM Midi.getDeviceInfo [0..num - 1]
 --     return infos     
 
-
--- Factor out Chan and Var
-
-newtype Chan a = Chan { getChan :: TChan a }
-
-newChan     :: IO (Chan a)
-newChan               = do
-    c' <- atomically $ newTChan
-    return (Chan c')
-
-dupChan     :: Chan a -> IO (Chan a)
-dupChan (Chan c)      = do
-    c' <- atomically . dupTChan $ c
-    return (Chan c')    
-
-writeChan   :: Chan a -> a -> IO ()
-writeChan (Chan c) x  = atomically $ writeTChan c x
-
-readChan    :: Chan a -> IO a
-readChan  (Chan c)    = atomically $ readTChan c
-
-tryReadChan :: Chan a -> IO (Maybe a)
-tryReadChan (Chan c)  = atomically $ tryReadTChan c
-
-newtype Var a = Var { getVar :: TMVar a }
-
-newVar :: a -> Var a
-newVar = Var . unsafePerformIO . newTMVarIO
-
-dupVar :: Var a -> IO (Var a)
-dupVar v = atomically $ readTMVar (getVar v) >>= newTMVar >>= return . Var
-
-readVar :: Var a -> IO a
-readVar = atomically . readTMVar . getVar
-
-swapVar :: Var a -> a -> IO a
-swapVar v = atomically . swapTMVar (getVar v)
 
 
 -------------------------------------------------------------------------------------

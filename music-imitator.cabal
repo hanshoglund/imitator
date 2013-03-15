@@ -30,6 +30,8 @@ library
     exposed-modules:
         Music.Imitator
         Music.Imitator.Reactive
+        Music.Imitator.Reactive.Chan
+        Music.Imitator.Reactive.Var
         Music.Imitator.Sound    
         Music.Imitator.Util
 
