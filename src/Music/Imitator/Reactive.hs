@@ -9,6 +9,11 @@ module Music.Imitator.Reactive (
         tryReadChan,
         writeChan,
         
+        Var(..),
+        newVar,
+        readVar,
+        swapVar,
+        
         -- * Events
         Event,
 
@@ -47,13 +52,7 @@ module Music.Imitator.Reactive (
         pollE,
         putE,
         -- modifyE,                 
-        
-        -- ** Run events
-        run,
-        runLoop,
-        runLoopUntil,
-        
-        
+                
         -- * Reactive values
         Reactive,
         stepper,
@@ -61,6 +60,11 @@ module Music.Imitator.Reactive (
         sample,
         accumR,
 
+
+        -- * Run events
+        run,
+        runLoop,
+        runLoopUntil,        
   ) where
 
 import Prelude hiding (mapM)
@@ -91,26 +95,39 @@ import qualified Sound.OpenSoundControl as OSC
 --     return infos     
 
 
--- Factor out channels
-newtype Chan a = Chan { getChan :: TChan a }
-newChan     :: IO (Chan a)
-dupChan     :: Chan a -> IO (Chan a)
-writeChan   :: Chan a -> a -> IO ()
-readChan    :: Chan a -> IO a
-tryReadChan :: Chan a -> IO (Maybe a)
+-- Factor out Chan and Var
 
+newtype Chan a = Chan { getChan :: TChan a }
+
+newChan     :: IO (Chan a)
 newChan               = do
     c' <- atomically $ newTChan
     return (Chan c')
 
+dupChan     :: Chan a -> IO (Chan a)
 dupChan (Chan c)      = do
     c' <- atomically . dupTChan $ c
     return (Chan c')    
 
+writeChan   :: Chan a -> a -> IO ()
 writeChan (Chan c) x  = atomically $ writeTChan c x
+
+readChan    :: Chan a -> IO a
 readChan  (Chan c)    = atomically $ readTChan c
+
+tryReadChan :: Chan a -> IO (Maybe a)
 tryReadChan (Chan c)  = atomically $ tryReadTChan c
 
+newtype Var a = Var { getVar :: TMVar a }
+
+newVar :: a -> Var a
+newVar = Var . unsafePerformIO . newTMVarIO
+
+readVar :: Var a -> IO a
+readVar = atomically . readTMVar . getVar
+
+swapVar :: Var a -> a -> IO a
+swapVar v = atomically . swapTMVar (getVar v)
 
 
 data Event a where
@@ -125,13 +142,13 @@ data Event a where
     ESource :: IO [a]                   -> Event a
     ESink   :: (a -> IO b)  -> Event a  -> Event b
 
-    ESamp  :: Reactive a   -> Event b   -> Event a
+    ESamp  :: Reactive a -> Event b     -> Event a
 
 data Reactive a where
-    RConst  :: a                        -> Reactive a
-    RStep   :: TMVar a      -> Event a  -> Reactive a
-    RApply  :: Reactive (a -> b) -> Reactive a -> Reactive b
-    RJoin   :: Reactive (Reactive a)    -> Reactive a
+    RConst  :: a                                -> Reactive a
+    RStep   :: Var a -> Event a                 -> Reactive a
+    RApply  :: Reactive (a -> b) -> Reactive a  -> Reactive b
+    RJoin   :: Reactive (Reactive a)            -> Reactive a
 
 
 -- Reactive (Reactive a) -> Reactive a
@@ -205,10 +222,10 @@ runE (ESamp r x)    = do
 runR :: Reactive a -> IO a
 runR (RConst v)      = return v
 runR (RStep v x)     = do
-    v' <- atomically $ readTMVar v
+    v' <- readVar v
     x' <- runE x
     let y = last (v':x')
-    atomically $ swapTMVar v y
+    swapVar v y
     return y
 runR (RApply f x)   = do
     f' <- runR f
@@ -218,74 +235,6 @@ runR (RJoin r)   = do
     r' <- runR r
     runR r'
 
-
--- newR  :: Reactive a -> IO [a]
--- newR (RStep v e) = do
---     -- old value <> new occs if any
---     x  <- atomically $ readTMVar v
---     xs <- runE' e
---     return (x:xs)
--- 
--- runR  :: Reactive a -> IO a
--- runR r@(RStep v e) = do
---     x  <- atomically $ readTMVar v
---     -- FIXME we can not runE' here... needs to assure replace is called
---     xs <- runE' e             
---     let y = last (x:xs)
---     atomically $ swapTMVar v y
---     return y
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
--- | 
--- Run the given event once.
---
-run :: Event a -> IO ()
-run e = do
-    e' <- prepE e
-    runE e' >> return ()
-
--- | 
--- Run the given event for ever.
---
-runLoop :: Event a -> IO ()
-runLoop e = do 
-    e' <- prepE e
-    runLoop' e'  
-    where   
-        runLoop' e = runE e >> threadDelay loopInterval >> runLoop' e
-        loopInterval = 1000 * 5
-
--- | 
--- Run the given event until the first @Just x@  occurence, then return @x@.
---
-runLoopUntil :: Event (Maybe a) -> IO a
-runLoopUntil e = do 
-    e' <- prepE e
-    runLoop' e'  
-    where   
-        runLoop' e = do
-            r <- runE e
-            case (catMaybes r) of 
-                []    -> threadDelay loopInterval >> runLoop' e
-                (a:_) -> return a
-        loopInterval = 1000 * 5
 
 instance Functor (Event) where
     fmap    = EMap
@@ -400,9 +349,8 @@ putLineE = putE putStrLn
 --     -- or (>>= runR) . runR
 
 
-
 stepper  :: a -> Event a -> Reactive a
-stepper x e = RStep (unsafePerformIO $ newTMVarIO x) e
+stepper x e = RStep (newVar x) e
 
 sample :: Reactive b -> Event a -> Event b
 sample = ESamp
@@ -457,7 +405,39 @@ set      :: Event a        -> Reactive a -> Reactive a
 
 
 
+-- | 
+-- Run the given event once.
+--
+run :: Event a -> IO ()
+run e = do
+    e' <- prepE e
+    runE e' >> return ()
 
+-- | 
+-- Run the given event for ever.
+--
+runLoop :: Event a -> IO ()
+runLoop e = do 
+    e' <- prepE e
+    runLoop' e'  
+    where   
+        runLoop' e = runE e >> threadDelay loopInterval >> runLoop' e
+        loopInterval = 1000 * 5
+
+-- | 
+-- Run the given event until the first @Just x@  occurence, then return @x@.
+--
+runLoopUntil :: Event (Maybe a) -> IO a
+runLoopUntil e = do 
+    e' <- prepE e
+    runLoop' e'  
+    where   
+        runLoop' e = do
+            r <- runE e
+            case (catMaybes r) of 
+                []    -> threadDelay loopInterval >> runLoop' e
+                (a:_) -> return a
+        loopInterval = 1000 * 5
 
 
 
