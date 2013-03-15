@@ -19,6 +19,18 @@ import Music.Imitator.Sound
 import Music.Imitator.Util
 
 
+
+
+rotateMouse :: UGen -> UGen
+rotateMouse gen =
+    decode kNumSpeakers 
+        $ foaRotate ((fst mouse + 1) * tau + (tau/8)) 
+        $ foaPanB 0 0 
+        $ gen
+
+
+
+
 {-
 
 type Time     = Double

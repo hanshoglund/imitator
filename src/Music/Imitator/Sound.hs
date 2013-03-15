@@ -16,6 +16,10 @@
 module Music.Imitator.Sound (
         
         -- * Generators
+        
+        UGen(..),
+        Warp(..),
+        Rate(..),
 
         -- ** Oscillators
         sine,
@@ -139,8 +143,16 @@ import Music.Imitator.Util
 
 
 
+{-
 impulseTest :: UGen
-impulseTest = decode kNumSpeakers $ foaRotate ((fst mouse + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impulse 12 * 0.5)
+
+
+impulseTest = 
+    decode kNumSpeakers 
+        $ foaRotate ((fst mouse + 1) * tau + (tau/8)) 
+        $ foaPanB 0 0 
+        $ (impulse 12 * 0.5)
+-}
 
 
 
@@ -154,7 +166,7 @@ impulseTest = decode kNumSpeakers $ foaRotate ((fst mouse + 1) * tau + (tau/8)) 
 -- > sine freq                 
 --
 sine :: UGen -> UGen
-sine freq  = U.sinOsc AR freq 0 * 0.05
+sine freq  = U.sinOsc AR freq 0
 
 -- |
 -- Impulse generator.

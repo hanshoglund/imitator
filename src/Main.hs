@@ -3,13 +3,17 @@
 
 module Main where
 
-import Music.Imitator.Reactive
-import Control.Concurrent (forkIO, forkOS, threadDelay)
-
-import System.Exit
 import Data.Monoid
 import Control.Applicative
+
+import Control.Concurrent (forkIO, forkOS, threadDelay)
+import System.Exit
+
 import Graphics.UI.WX hiding (Event)
+
+import Music.Imitator.Reactive
+import Music.Imitator.Reactive.Chan
+
 
 addMenus :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addMenus frame = do
