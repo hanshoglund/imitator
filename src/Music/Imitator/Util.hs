@@ -22,8 +22,8 @@ module Music.Imitator.Util (
         toCapitalString,
         
         -- ** Lists
-        withPrefix,
-        withSuffix,
+        prefix,
+        suffix,
         sep,
         pre,
         post,
@@ -32,6 +32,7 @@ module Music.Imitator.Util (
         concatPre,
         concatPost,
         concatWrap,
+        concatLines,
         divideList,
         breakList, 
         
@@ -103,14 +104,14 @@ toCapitalString (x:xs) = toUpperChar x : toLowerString xs
 -- |
 -- Synonym for '(++)'
 --
-withPrefix :: [a] -> [a] -> [a]
-withPrefix x = (x ++)
+prefix :: [a] -> [a] -> [a]
+prefix x = (x ++)
 
 -- |
 -- Synonym for 'flip (++)'
 --
-withSuffix :: [a] -> [a] -> [a]
-withSuffix x = (++ x)
+suffix :: [a] -> [a] -> [a]
+suffix x = (++ x)
 
 -- |
 -- Separate a list by the given element.
@@ -130,13 +131,13 @@ pre x = (x :) . sep x
 -- Separate and terminate a list by the given element.
 --
 post :: a -> [a] -> [a]
-post x = withSuffix [x] . sep x
+post x = suffix [x] . sep x
 
 -- |
 -- Separate and terminate a list by the given element.
 --
 wrap :: a -> a -> [a] -> [a]
-wrap x y = (x :) . withSuffix [y] . sep x
+wrap x y = (x :) . suffix [y] . sep x
 
 -- |
 -- Combination of 'concat' and 'sep'.
@@ -161,6 +162,10 @@ concatPost x = concat . post x
 --
 concatWrap :: [a] -> [a] -> [[a]] -> [a]
 concatWrap x y = concat . wrap x y
+
+
+concatLines :: [String] -> String
+concatLines = concatPost "\n"
 
 -- |
 -- Divide a list into parts of maximum length n.

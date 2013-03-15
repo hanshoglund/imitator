@@ -18,15 +18,18 @@ module Music.Imitator.Sound (
         -- TODO remove these
         impulseTest,
 
-        -- ** Generators
-        sineG,
-        impG,
+        -- * Generators
+        sinG,
+        impulseG,
         mouseG,
 
-        -- ** Ambisonics
-        foaOmniB,
+        -- ** Spacialization
+        -- *** Encoders
         foaPanB,
-        decodeG,
+        foaOmniG,
+        -- *** Decoders
+        decodeG,       
+        -- *** Transformations
         foaRotate,
 
         -- ** Utilities
@@ -56,24 +59,58 @@ import Data.Monoid
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 
-import Sound.SC3.Server
-import Sound.SC3.Server.FD hiding (play)
 import Sound.SC3.UGen
+import qualified Sound.SC3.Server.FD as S
+
 import Sound.OSC.Transport.FD.UDP (openUDP)
-import Sound.OpenSoundControl.Type
+import Sound.OpenSoundControl.Type (Message)
 import Sound.OSC.Transport.FD.UDP (UDP)
 
 import Music.Imitator.Util
 
-sineG :: UGen -> UGen
-sineG fq  = sinOsc AR fq 0 * 0.05
 
-impG :: UGen -> UGen
-impG fq = impulse AR fq 0
 
+
+impulseTest :: UGen
+impulseTest = decodeG kNumSpeakers $ foaRotate ((fst mouseG + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impulseG 12 * 0.5)
+
+
+
+
+
+
+
+-- |
+-- Sinusoid generator.
+--
+-- > sinG freq                 
+--
+sinG :: UGen -> UGen
+sinG freq  = sinOsc AR freq 0 * 0.05
+
+-- |
+-- Impulse generator.
+--
+-- > sinG freq                 
+--
+impulseG :: UGen -> UGen
+impulseG freq = impulse AR freq 0
+
+-- |
+-- Mouse position generator.
+--
+-- > let (x, y) = mouseG                 
+--
 mouseG :: (UGen, UGen)
 mouseG    = (mouseX KR 0 1 Linear 0, mouseY KR 0 1 Linear 0)
 
+
+
+foaOmniG :: UGen -> UGen
+foaOmniG input = mce $ replicate 4 input
+
+foaPanB :: UGen -> UGen -> UGen -> UGen
+foaPanB azimuth elev input = mkFilter "FoaPanB" [input, azimuth, elev] 4
 
 decodeG :: Int -> UGen -> UGen
 decodeG numSpeakers input = decodeB2 numSpeakers w x y 0
@@ -81,25 +118,17 @@ decodeG numSpeakers input = decodeB2 numSpeakers w x y 0
         [w,x,y,_] = mceChannels input
 
 
-foaOmniB :: UGen -> UGen
-foaOmniB input = mce $ replicate 4 input
-
-foaPanB :: UGen -> UGen -> UGen -> UGen
-foaPanB azimuth elev input = mkFilter "FoaPanB" [input, azimuth, elev] 4
-
 foaRotate :: UGen -> UGen -> UGen
 foaRotate angle input = mkFilter "FoaRotate" [w,x,y,z,angle] 4
     where
         [w,x,y,z] = mceChannels input
 
 
--- omniTest :: 
-
-impulseTest :: UGen
-impulseTest = decodeG kNumSpeakers $ foaRotate ((fst mouseG + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impG 12 * 0.5)
-
 numChannels :: UGen -> Int
 numChannels = length . mceChannels
+
+
+
 
 
 
@@ -150,21 +179,21 @@ numChannels = length . mceChannels
 --
 play :: UGen -> IO ()
 play gen = do
-    sendStd $ d_recv synthDef
+    sendStd $ S.d_recv synthDef
 
     threadDelay $ 1000000 `div` 2
     -- TODO proper async wait here
 
     sendStd $ addToTailMsg
         where
-            addToTailMsg    = s_new "playGen" 111 AddToTail 0 []
-            synthDef        = synthdef "playGen" (out 0 $ gen * kMaster)
+            addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
+            synthDef        = S.synthdef "playGen" (out 0 $ gen * kMaster)
 
 -- |
 -- Abort all current synthesis (remove generators from the synthesis graph).
 --
 abort :: IO ()
-abort = sendStd $ g_deepFree [0]
+abort = sendStd $ S.g_deepFree [0]
 
 -- |
 -- Send a message to the server over the standard connection.
@@ -172,7 +201,7 @@ abort = sendStd $ g_deepFree [0]
 sendStd :: Message -> IO ()
 sendStd msg = do
     t <- kStdServerConnection
-    send t msg
+    S.send t msg
 
 -- |
 -- Start the server.
@@ -190,10 +219,13 @@ stopServer = execute "killall" ["scsynth"]
 -- Print information about the server.
 --
 printServerStatus :: IO ()
-printServerStatus = withSC3 serverStatus <$$> (concatSep "\n" . (++["\n"])) >>= putStr
-    where
-        x <$$> f = f <$> x
-
+printServerStatus = do
+    status <- queryServerStatus
+    msg <- return $ concatLines status
+    putStrLn msg
+        where                                 
+            queryServerStatus :: IO [String]
+            queryServerStatus = S.withSC3 S.serverStatus
 
 
 

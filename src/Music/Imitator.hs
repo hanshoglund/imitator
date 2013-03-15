@@ -14,6 +14,13 @@ module Music.Imitator where
 
 -}
 
+import Music.Imitator.Reactive
+import Music.Imitator.Sound
+import Music.Imitator.Util
+
+
+{-
+
 type Time     = Double
 type Duration = Time
 type Envelope = Double -> Double
@@ -49,3 +56,4 @@ runImitator ((t,x):xs) = do
     runCommand x
     runImitator xs
 
+                                -}
