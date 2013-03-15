@@ -145,6 +145,9 @@ numChannels = length . mceChannels
 
 
 
+-- |
+-- Add a generator to the synthesis graph.
+--
 play :: UGen -> IO ()
 play gen = do
     sendStd $ d_recv synthDef
@@ -157,24 +160,40 @@ play gen = do
             addToTailMsg    = s_new "playGen" 111 AddToTail 0 []
             synthDef        = synthdef "playGen" (out 0 $ gen * kMaster)
 
+-- |
+-- Abort all current synthesis (remove generators from the synthesis graph).
+--
+abort :: IO ()
+abort = sendStd $ g_deepFree [0]
+
+-- |
+-- Send a message to the server over the standard connection.
+--
+sendStd :: Message -> IO ()
+sendStd msg = do
+    t <- kStdServerConnection
+    send t msg
+
+-- |
+-- Start the server.
+--
 startServer :: IO ()
 startServer = execute "scsynth" ["-v", "1", "-u", show kStdPort]
 
+-- |
+-- Stop the server.
+--
 stopServer :: IO ()
 stopServer = execute "killall" ["scsynth"]
 
+-- |
+-- Print information about the server.
+--
 printServerStatus :: IO ()
 printServerStatus = withSC3 serverStatus <$$> (concatSep "\n" . (++["\n"])) >>= putStr
     where
         x <$$> f = f <$> x
 
-abort :: IO ()
-abort = sendStd $ g_deepFree [0]
-
-sendStd :: Message -> IO ()
-sendStd msg = do
-    t <- kStdServerConnection
-    send t msg
 
 
 
