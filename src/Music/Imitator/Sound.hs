@@ -15,10 +15,9 @@
 
 module Music.Imitator.Sound (
         
-        -- TODO remove these
-        impulseTest,
-
         -- * Generators
+
+        -- ** Oscillators
         sine,
         phasor,
         pulse,
@@ -45,8 +44,8 @@ module Music.Imitator.Sound (
         mouse,
         mouseButton,
 
-        -- -- ** Filters,
-        -- 
+        -- ** Filters
+
         -- bpf,
         -- combN,
         -- combL,
@@ -54,16 +53,16 @@ module Music.Imitator.Sound (
         -- decay,
         -- gate,
         -- timer,
-        -- 
-        -- -- ** Delay
+
+        -- ** Delay
         -- decay2,
         -- delay1,
         -- delay2,
         -- delayN,
         -- delayC,
         -- delayL,
-        -- 
-        -- -- ** Reverb
+
+        -- ** Reverb
         -- freeVerb,
 
         -- ** Spacialization
