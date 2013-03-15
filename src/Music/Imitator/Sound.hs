@@ -19,20 +19,60 @@ module Music.Imitator.Sound (
         impulseTest,
 
         -- * Generators
-        sinG,
-        impulseG,
-        mouseG,
+        sine,
+        phasor,
+        pulse,
+        saw,
+        vibrato,
+        impulse,
+        const,
 
+        noise,     
+        grayNoise,
+        pinkNoise,
+        brownNoise,
+        clipNoise,
+        dust,
+        dust2,
 
+        -- lfCub,
+        -- lcGauss,
+        -- lfPar,
+        -- lfPulse,
+        -- lfSaw,
+        -- lfTri,
+        
+        mouse,
+        mouseButton,
 
+        -- -- ** Filters,
+        -- 
+        -- bpf,
+        -- combN,
+        -- combL,
+        -- combC,
+        -- decay,
+        -- gate,
+        -- timer,
+        -- 
+        -- -- ** Delay
+        -- decay2,
+        -- delay1,
+        -- delay2,
+        -- delayN,
+        -- delayC,
+        -- delayL,
+        -- 
+        -- -- ** Reverb
+        -- freeVerb,
 
         -- ** Spacialization
         -- *** Encoders
         foaPanB,
-        foaOmniG,
+        foaOmni,
 
         -- *** Decoders
-        decodeG,       
+        decode,       
 
         -- *** Transformations
         foaRotate,
@@ -84,7 +124,11 @@ import Control.Exception (try, SomeException)
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 
-import Sound.SC3.UGen
+import System.IO.Unsafe (unsafePerformIO)
+
+import Sound.SC3.UGen (UGen(..), Rate(..), Warp(..), mce, mceChannels)
+import qualified Sound.SC3.UGen      as U
+import qualified Sound.SC3.UGen.Noise.Monad as N
 import qualified Sound.SC3.Server.FD as S
 
 import Sound.OSC.Transport.FD.UDP (openUDP)
@@ -97,7 +141,7 @@ import Music.Imitator.Util
 
 
 impulseTest :: UGen
-impulseTest = decodeG kNumSpeakers $ foaRotate ((fst mouseG + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impulseG 12 * 0.5)
+impulseTest = decode kNumSpeakers $ foaRotate ((fst mouse + 1) * tau + (tau/8)) $ foaPanB 0 0 $ (impulse 12 * 0.5)
 
 
 
@@ -108,53 +152,153 @@ impulseTest = decodeG kNumSpeakers $ foaRotate ((fst mouseG + 1) * tau + (tau/8)
 -- |
 -- Sinusoid generator.
 --
--- > sinG freq                 
+-- > sine freq                 
 --
-sinG :: UGen -> UGen
-sinG freq  = sinOsc AR freq 0 * 0.05
+sine :: UGen -> UGen
+sine freq  = U.sinOsc AR freq 0 * 0.05
 
 -- |
 -- Impulse generator.
 --
--- > sinG freq                 
+-- > impulse freq                 
 --
-impulseG :: UGen -> UGen
-impulseG freq = impulse AR freq 0
+impulse :: UGen -> UGen
+impulse freq = U.impulse AR freq 0
+
+-- |
+-- Phase generator.
+--
+-- > phasor trig rate start end resetPos                 
+--
+phasor :: UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+phasor trig rate start end resetPos = U.phasor AR trig rate start end resetPos
+
+-- |
+-- Pulse generator.
+--
+-- > pulse freq width                 
+--
+pulse :: UGen -> UGen -> UGen
+pulse freq width = U.pulse AR freq width
+
+-- |
+-- Sawtooth wave generator.
+--
+-- > saw freq                 
+--
+saw :: UGen -> UGen
+saw freq = U.saw AR freq
+
+-- |
+-- Vibrato generator.
+--
+-- > vibrato freq rate depth delay onset rateVar depthVar initPhase                 
+--
+vibrato :: UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+vibrato freq rate depth delay onset rateVar depthVar initPhase = 
+    U.vibrato AR freq rate depth delay onset rateVar depthVar initPhase
+    
+-- |
+-- Noise generator.
+--
+-- > noise                 
+--
+noise :: UGen
+noise = unsafePerformIO $ N.whiteNoise AR
+
+-- |
+-- Noise generator.
+--
+-- > grayNoise                 
+--
+grayNoise :: UGen
+grayNoise = unsafePerformIO $ N.grayNoise AR
+
+-- |
+-- Noise generator.
+--
+-- > pinkNoise                 
+--
+pinkNoise :: UGen
+pinkNoise = unsafePerformIO $ N.pinkNoise AR
+
+-- |
+-- Noise generator.
+--
+-- > brownNoise                 
+--
+brownNoise :: UGen
+brownNoise = unsafePerformIO $ N.brownNoise AR
+
+-- |
+-- Noise generator.
+--
+-- > clipNoise                 
+--
+clipNoise :: UGen
+clipNoise = unsafePerformIO $ N.clipNoise AR
+
+-- |
+-- Random impulses in (0,1).
+--
+-- > dust density                 
+--
+dust :: UGen -> UGen
+dust density = unsafePerformIO $ N.dust AR density
+
+-- |
+-- Random impulses in (-1,1).
+--
+-- > dust2 density
+--
+dust2 :: UGen -> UGen
+dust2 density = unsafePerformIO $ N.dust2 AR density
+
 
 -- |
 -- Mouse position generator.
 --
--- > let (x, y) = mouseG                 
+-- > let (x, y) = mouse
 --
-mouseG :: (UGen, UGen)
-mouseG    = (mouseX KR 0 1 Linear 0, mouseY KR 0 1 Linear 0)
+mouse :: (UGen, UGen)
+mouse    = (U.mouseX KR 0 1 Linear 0, U.mouseY KR 0 1 Linear 0)
+
+
+-- |
+-- Mouse position generator.
+--
+-- > mouseButton min max lag
+--
+mouseButton :: UGen
+mouseButton = U.mouseX KR 0 1 Linear 0
 
 
 
-foaOmniG :: UGen -> UGen
-foaOmniG input = mce $ replicate 4 input
+
+foaOmni :: UGen -> UGen
+foaOmni input = mce $ replicate 4 input
 
 foaPanB :: UGen -> UGen -> UGen -> UGen
-foaPanB azimuth elev input = mkFilter "FoaPanB" [input, azimuth, elev] 4
+foaPanB azimuth elev input = U.mkFilter "FoaPanB" [input, azimuth, elev] 4
 
-decodeG :: Int -> UGen -> UGen
-decodeG numSpeakers input = decodeB2 numSpeakers w x y 0
+decode :: Int -> UGen -> UGen
+decode numSpeakers input = U.decodeB2 numSpeakers w x y 0
     where
         [w,x,y,_] = mceChannels input
 
 
 foaRotate :: UGen -> UGen -> UGen
-foaRotate angle input = mkFilter "FoaRotate" [w,x,y,z,angle] 4
+foaRotate angle input = U.mkFilter "FoaRotate" [w,x,y,z,angle] 4
     where
         [w,x,y,z] = mceChannels input
 
 foaTilt :: UGen -> UGen -> UGen
-foaTilt angle input = mkFilter "FoaTilt" [w,x,y,z,angle] 4
+foaTilt angle input = U.mkFilter "FoaTilt" [w,x,y,z,angle] 4
     where
         [w,x,y,z] = mceChannels input
 
 foaTumble :: UGen -> UGen -> UGen
-foaTumble angle input = mkFilter "FoaTumble" [w,x,y,z,angle] 4
+foaTumble angle input = U.mkFilter "FoaTumble" [w,x,y,z,angle] 4
     where
         [w,x,y,z] = mceChannels input
 
@@ -226,7 +370,7 @@ play gen = do
         where           
             second          = 1000000
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
-            synthDef        = S.synthdef "playGen" (out kOutputOffset $ gen * kMaster)
+            synthDef        = S.synthdef "playGen" (U.out kOutputOffset $ gen * kMaster)
 
 -- |
 -- Abort all current synthesis (remove generators from the synthesis graph).
