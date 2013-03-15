@@ -23,20 +23,31 @@ module Music.Imitator.Sound (
         impulseG,
         mouseG,
 
+
+
+
         -- ** Spacialization
         -- *** Encoders
         foaPanB,
         foaOmniG,
+
         -- *** Decoders
         decodeG,       
+
         -- *** Transformations
         foaRotate,
+        foaTilt,
+        foaTumble,
 
         -- ** Utilities
         numChannels,
 
+
+
         -- ** Control
         -- TODO
+
+
 
         -- ** Play and stop
         play,
@@ -44,18 +55,32 @@ module Music.Imitator.Sound (
         sendStd,
 
         -- *** Server status
-        printServerStatus,
         startServer,
         stopServer,
+        serverActive,
+        serverStatus,
+        serverStatusData,
+        serverUgens,
+        serverSynths,
+        serverGroups,
+        serverInstruments,
+        serverCPUAverage,
+        serverCPUPeak,
+        serverSampleRateNominal,
+        serverSampleRateActual,
+
+        printServerStatus,
         
         -- ** Constants
-        kStdServerConnection,
+        kStdServer,
         kStdPort,
         kMaster,
+        kOutputOffset,
         kNumSpeakers,        
   ) where
 
-import Data.Monoid
+import Data.Monoid        
+import Control.Exception (try, SomeException)
 import Control.Applicative
 import Control.Concurrent (threadDelay)
 
@@ -63,7 +88,7 @@ import Sound.SC3.UGen
 import qualified Sound.SC3.Server.FD as S
 
 import Sound.OSC.Transport.FD.UDP (openUDP)
-import Sound.OpenSoundControl.Type (Message)
+import Sound.OpenSoundControl.Type (Message, Datum(..))
 import Sound.OSC.Transport.FD.UDP (UDP)
 
 import Music.Imitator.Util
@@ -123,6 +148,16 @@ foaRotate angle input = mkFilter "FoaRotate" [w,x,y,z,angle] 4
     where
         [w,x,y,z] = mceChannels input
 
+foaTilt :: UGen -> UGen -> UGen
+foaTilt angle input = mkFilter "FoaTilt" [w,x,y,z,angle] 4
+    where
+        [w,x,y,z] = mceChannels input
+
+foaTumble :: UGen -> UGen -> UGen
+foaTumble angle input = mkFilter "FoaTumble" [w,x,y,z,angle] 4
+    where
+        [w,x,y,z] = mceChannels input
+
 
 numChannels :: UGen -> Int
 numChannels = length . mceChannels
@@ -179,15 +214,19 @@ numChannels = length . mceChannels
 --
 play :: UGen -> IO ()
 play gen = do
+    active <- serverActive
+    case (active) of
+        False -> fail "Server not running"
+        True  -> return ()
+
     sendStd $ S.d_recv synthDef
-
-    threadDelay $ 1000000 `div` 2
-    -- TODO proper async wait here
-
+    threadDelay $ second `div` 2   -- TODO proper async wait here
     sendStd $ addToTailMsg
-        where
+
+        where           
+            second          = 1000000
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
-            synthDef        = S.synthdef "playGen" (out 0 $ gen * kMaster)
+            synthDef        = S.synthdef "playGen" (out kOutputOffset $ gen * kMaster)
 
 -- |
 -- Abort all current synthesis (remove generators from the synthesis graph).
@@ -200,8 +239,8 @@ abort = sendStd $ S.g_deepFree [0]
 --
 sendStd :: Message -> IO ()
 sendStd msg = do
-    t <- kStdServerConnection
-    S.send t msg
+    fd <- kStdServer
+    S.send fd msg
 
 -- |
 -- Start the server.
@@ -215,17 +254,60 @@ startServer = execute "scsynth" ["-v", "1", "-u", show kStdPort]
 stopServer :: IO ()
 stopServer = execute "killall" ["scsynth"]
 
+
+-- |
+-- Return whether the server is active.
+--
+serverActive :: IO Bool
+serverActive = do
+    status <- try serverStatus :: IO (Either SomeException [String])
+    case status of
+        Left _  -> return False
+        Right _ -> return True
+
+-- |
+-- Get server status.
+--
+serverStatus :: IO [String]
+serverStatus = S.withSC3 S.serverStatus
+
+-- |
+-- Get server status as a raw message.
+--
+serverStatusData :: IO [Datum]
+serverStatusData = S.withSC3 S.serverStatusData
+
+serverUgens                 :: IO Int
+serverSynths                :: IO Int
+serverGroups                :: IO Int
+serverInstruments           :: IO Int
+serverCPUAverage            :: IO Double
+serverCPUPeak               :: IO Double
+serverSampleRateNominal     :: IO Double
+serverSampleRateActual      :: IO Double
+serverUgens                 = serverStatusData >>= return . getDatumInt . (!! 1)
+serverSynths                = serverStatusData >>= return . getDatumInt . (!! 2)
+serverGroups                = serverStatusData >>= return . getDatumInt . (!! 3)
+serverInstruments           = serverStatusData >>= return . getDatumInt . (!! 4)
+serverCPUAverage            = serverStatusData >>= return . getDatumFloat . (!! 5)
+serverCPUPeak               = serverStatusData >>= return . getDatumFloat . (!! 6)
+serverSampleRateNominal     = serverStatusData >>= return . getDatumDouble . (!! 7)
+serverSampleRateActual      = serverStatusData >>= return . getDatumDouble . (!! 8)
+
+getDatumInt (Int x) = x
+getDatumFloat (Float x) = x
+getDatumDouble (Double x) = x
+
+
+
 -- |
 -- Print information about the server.
 --
 printServerStatus :: IO ()
 printServerStatus = do
-    status <- queryServerStatus
+    status <- serverStatus
     msg <- return $ concatLines status
     putStrLn msg
-        where                                 
-            queryServerStatus :: IO [String]
-            queryServerStatus = S.withSC3 S.serverStatus
 
 
 
@@ -237,13 +319,14 @@ printServerStatus = do
 
 
 
--- Note: withSC3 using kStdPort by default
 
 -- |
--- Standard server connection..
+-- Standard server connection.
+--
+-- This is the same as 'withSC3' uses.
 -- 
-kStdServerConnection :: IO UDP
-kStdServerConnection = openUDP "127.0.0.1" kStdPort
+kStdServer :: IO UDP
+kStdServer = openUDP "127.0.0.1" kStdPort
 
 -- |
 -- Standard server port.
@@ -252,13 +335,19 @@ kStdPort :: Int
 kStdPort = 57110
 
 -- |
--- Global master volume (low while developing)
+-- Global master volume (low while developing).
 -- 
 kMaster :: UGen
 kMaster = 0.3
 
 -- |
--- Number of speakers used by Ambisonic decoders
+-- Global speaker offset (for skipping hardware channels etc).
+-- 
+kOutputOffset :: UGen
+kOutputOffset = 0
+
+-- |
+-- Number of speakers used by decoders.
 -- 
 kNumSpeakers :: Int
 kNumSpeakers = 8
