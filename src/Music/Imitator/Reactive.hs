@@ -60,18 +60,19 @@ module Music.Imitator.Reactive (
         putE,
         -- modifyE,
         
-        -- * Utility
-        Source,
-        Sink,
-        notify,
-        showing,
-        newSource,
-        newSink,        
-
         -- * Run events
         run,
         runLoop,
         runLoopUntil,        
+
+        -- * Utility
+        Source,
+        Sink,
+        newSource,
+        newSink,        
+        notify,
+        showing,
+
   ) where
 
 import Prelude hiding (mapM)
