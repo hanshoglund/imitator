@@ -12,6 +12,7 @@ module Music.Imitator.Reactive (
         seqE,
         eitherE,
         apply,
+        select,
         sample,
         snapshot,
         snapshotWith,
@@ -548,6 +549,9 @@ r `switcher` e = join (r `stepper` e)
 apply :: Reactive (a -> b) -> Event a -> Event b
 r `apply` e = r `o` e where o = snapshotWith ($)
 
+select :: Reactive (a -> Bool) -> Event a -> Event a
+r `select` e = justE $ (partial <$> r) `apply` e
+
 -- |
 -- Sample a time-varying value.
 --
@@ -565,7 +569,8 @@ snapshot :: Reactive a -> Event b -> Event (a, b)
 snapshot = snapshotWith (,)
 
 -- |
--- Sample a time-varying value with the value of the trigger.
+-- Sample a time-varying value with the value of the trigger, using the given 
+-- function to combine.
 --
 -- > r `snapshotWith f` e = (f <$> r) `apply` e
 --
@@ -848,8 +853,8 @@ newSink = do
 -- oscOutE = undefined
 
 
-guard :: (a -> Bool) -> (a -> Maybe a)
-guard p x
+partial :: (a -> Bool) -> (a -> Maybe a)
+partial p x
     | p x       = Just x
     | otherwise = Nothing
 
