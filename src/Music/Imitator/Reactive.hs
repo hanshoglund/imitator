@@ -397,8 +397,8 @@ anyE = liftMonoidE Any getAny
 -- |
 -- Count values.
 --
-countE :: (Num b, Enum b) => Event a -> Event b
-countE = accumE 0 . fmap (const succ)
+countE :: Enum b => Event a -> Event b
+countE = accumE (toEnum 0) . fmap (const succ)
 
 -- |
 -- Delay by a single value.
@@ -539,8 +539,8 @@ mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
 -- |
 -- Count values.
 --
-countR :: (Num b, Enum b) => Event a -> Reactive b
-countR = accumR 0 . fmap (const succ)
+countR :: Enum b => Event a -> Reactive b
+countR = accumR (toEnum 0) . fmap (const succ)
 
 -- diffE :: Event a -> Event a
 
