@@ -12,10 +12,10 @@ module Music.Imitator.Reactive (
         seqE,
         eitherE,
         apply,
-        select,
         sample,
         snapshot,
         snapshotWith,
+        select,
         gate,
 
         -- ** Change value of events
@@ -549,9 +549,6 @@ r `switcher` e = join (r `stepper` e)
 apply :: Reactive (a -> b) -> Event a -> Event b
 r `apply` e = r `o` e where o = snapshotWith ($)
 
-select :: Reactive (a -> Bool) -> Event a -> Event a
-r `select` e = justE $ (partial <$> r) `apply` e
-
 -- |
 -- Sample a time-varying value.
 --
@@ -578,6 +575,18 @@ snapshotWith :: (a -> b -> c) -> Reactive a -> Event b -> Event c
 snapshotWith f r e = sample (liftA2 f r (eventToReactive e)) e
     where
         eventToReactive = stepper (error "Partial reactive")
+
+-- | 
+-- Filter an event based on a time-varying predicate.
+-- 
+select :: Reactive (a -> Bool) -> Event a -> Event a
+r `select` e = justE $ (partial <$> r) `apply` e
+
+-- | 
+-- Filter an event based on a time-varying toggle.
+-- 
+gate :: Reactive Bool -> Event a -> Event a
+r `gate` e = (const <$> r) `select` e
 
 
 -- |
@@ -640,9 +649,6 @@ countR :: Enum b => Event a -> Reactive b
 countR = accumR (toEnum 0) . fmap (const succ)
 
 -- diffE :: Event a -> Event a
-
-gate :: Reactive Bool -> Event a -> Event a
-gate r e = justE $ apply (fmap (\b x -> if b then Just x else Nothing) r) e
 
 onR :: Event a -> Reactive Bool
 onR = fmap isJust . activate
