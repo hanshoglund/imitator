@@ -24,8 +24,9 @@ module Music.Imitator.Reactive (
         -- ** Accumulated events
         delayE,
         delayOneE,
-        accumE,
         withPrevE,
+        accumE,
+        scanlE,
 
         -- -- MidiSource,
         -- -- MidiDestination,
@@ -41,6 +42,7 @@ module Music.Imitator.Reactive (
         -- ** Basic combinators
         stepper,
         switcher,
+        activate,
         sample,
         bothR,
 
@@ -50,6 +52,8 @@ module Music.Imitator.Reactive (
 
         -- * Creating events and reactives
         -- ** From standard library
+        getCharE,
+        putCharE,
         getLineE,
         putLineE, 
 
@@ -299,20 +303,20 @@ justE = fmap fromJust . filterE isJust
 -- |
 -- Replace values, semantically @fmap (const x) xs@.
 --
-replaceE :: a -> Event a -> Event a
+replaceE :: b -> Event a -> Event b
 replaceE x = fmap (const x)
 
 -- |
 -- Discard values of the event.
 --
 tickE :: Event a -> Event ()
-tickE = tickME
+tickE = replaceE ()
 
 -- |
 -- Discard values, using an arbitrary empty element.
 --
 tickME :: Monoid b => Event a -> Event b
-tickME = fmap (const mempty)
+tickME = replaceE mempty
 
 -- |
 -- Event accumulator.
@@ -322,6 +326,16 @@ tickME = fmap (const mempty)
 --        
 accumE :: a -> Event (a -> a) -> Event a
 a `accumE` e = (a `accumR` e) `sample` e
+        
+-- |
+-- Create a past-dependent event (sometimes known as @foldp@)
+--        
+scanlE :: (b -> a -> b) -> b -> Event a -> Event b
+scanlE f a e = a `accumE` (flip f <$> e)
+
+monoidE :: Monoid a => Event a -> Event a
+monoidE = scanlE mappend mempty
+
 
 -- |
 -- Delay by @n@ values.
@@ -380,11 +394,20 @@ instance Monad Reactive where
     return  = pure
     x >>= k = (RJoin . fmap k) x
 
+constR :: a -> Reactive a
+constR = pure
+
 -- |
 -- Step between values.
 --
 stepper  :: a -> Event a -> Reactive a
 stepper x e = RStep (newVar x) e
+
+-- |
+-- Step between values without initial.
+--
+activate :: Event a -> Reactive (Maybe a)
+activate e = Nothing `stepper` fmap Just e
 
 -- |
 -- Switch between reactives.
@@ -412,6 +435,7 @@ bothR = liftA2 (,)
 --        
 accumR :: a -> Event (a -> a) -> Reactive a
 accumR x = RAccum (newVar x)
+
 
 -- |
 -- Count values.
@@ -483,15 +507,39 @@ putE k = ESink $ \x -> do
     k x
     return x
 
+-- |
+-- Event reading from a channel.
+--
 readChanE :: Chan a -> Event a
 readChanE = EChan
 
+-- |
+-- Event writing to a channel.
+--
 writeChanE :: Chan a -> Event a -> Event a
 writeChanE ch e = ESink (writeChan ch) e `sequenceE` e
 
+-- |
+-- Event version of 'getChar'.
+--
+getCharE :: Event Char
+getCharE = getE getChar 
+
+-- |
+-- Event version of 'putChar'.
+--
+putCharE :: Event Char -> Event Char
+putCharE = putE putChar
+
+-- |
+-- Event version of 'getLine'.
+--
 getLineE :: Event String
 getLineE = getE getLine 
 
+-- |
+-- Event version of 'putStrLn'.
+--
 putLineE :: Event String -> Event String
 putLineE = putE putStrLn
 
@@ -546,17 +594,31 @@ kLoopInterval = 1000 * 1
 type Source a = Event a
 type Sink a   = Event a -> Event a
 
+-- |
+-- Behaves like the original event but writes a given message to the standard
+-- output for each value.
+-- 
 notify :: String -> Event a -> Event a
 notify m x = putLineE (fmap (const m) x) `sequenceE` x
 
+-- |
+-- Behaves like the original event but writes its value, prepended by the given
+-- message, for each value.
+-- 
 showing :: Show a => String -> Event a -> Event a
 showing m x = putLineE (fmap (\x -> m ++ show x) x) `sequenceE` x
 
+-- |
+-- Creates a new source and a computation that writes  it.
+-- 
 newSource :: IO (a -> IO (), Source a)
 newSource = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
 
+-- |
+-- Creates a new sink and a computation that reads from it.
+-- 
 newSink :: IO (IO (Maybe a), Sink a)
 newSink = do
     ch <- newChan
