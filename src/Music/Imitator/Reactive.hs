@@ -10,7 +10,6 @@ module Music.Imitator.Reactive (
         neverE,
         mergeE,
         eitherE,
-        splitE,
         sequenceE,
 
         -- ** Change value of events
@@ -18,6 +17,7 @@ module Music.Imitator.Reactive (
         filterE,
         retainE,
         partitionE,
+        splitE,
         replaceE,
         tickE,
         justE,
@@ -25,11 +25,17 @@ module Music.Imitator.Reactive (
         -- ** Accumulated events
         delayE,
         delaynE,
+        bufferE,
         withPrevE,
         accumE,
         foldpE,
         scanlE,
         monoidE,
+        liftMonoidE,
+        sumE,
+        productE,
+        allE,
+        anyE,
         countE,
 
         -- -- MidiSource,
@@ -53,9 +59,9 @@ module Music.Imitator.Reactive (
         bothR,
         countR,
         gate,
-        on,
-        off,
-        toggle,
+        onR,
+        offR,
+        toggleR,
 
         -- ** Accumulated reactives
         accumR,
@@ -277,12 +283,6 @@ mergeE = mappend
 eitherE :: Event a -> Event b -> Event (Either a b)
 a `eitherE` b = fmap Left a `mergeE` fmap Right b
 
--- | 
--- Split events of different types. See also 'eitherE'.
--- 
-splitE :: Event (Either a b) -> (Event a, Event b)
-splitE e = (justE $ fromLeft <$> e, justE $ fromRight <$> e)
-
 -- |
 -- Run both and behave as the second event, sematically @a `seq` b@.
 --
@@ -290,9 +290,9 @@ sequenceE :: Event a -> Event b -> Event b
 sequenceE = ESeq
 
 -- |
--- Map over values, semantically @map p xs@.
+-- Map over values, semantically @f \<$> xs@.
 mapE :: (a -> b) -> Event a -> Event b
-mapE = fmap
+mapE = (<$>)
 
 -- |
 -- Filter values, semantically @filter p xs@.
@@ -301,16 +301,26 @@ filterE :: (a -> Bool) -> Event a -> Event a
 filterE p = EPred p
 
 -- |
--- Filter values, semantically @retain p xs@.
+-- Retain values, semantically @retain p xs@.
 --
 retainE :: (a -> Bool) -> Event a -> Event a
 retainE p = EPred (not . p)
 
 -- |
--- Filter values, semantically @retain p xs@.
+-- Partition values, semantically @partition p xs@.
+-- 
+-- > mergeE x y  where (x, y) = partitionE p e  ===  e      for all p
 --
 partitionE :: (a -> Bool) -> Event a -> (Event a, Event a)
 partitionE p e = (filterE p e, retainE p e)
+
+-- | 
+-- Partition values of different types. See also 'partitionE'.
+--
+-- > eitherE x y where (x, y) = splitE e        ===  e
+-- 
+splitE :: Event (Either a b) -> (Event a, Event b)
+splitE e = (justE $ fromLeft <$> e, justE $ fromRight <$> e)
 
 -- |
 -- Discard empty values.
@@ -319,10 +329,10 @@ justE :: Event (Maybe a) -> Event a
 justE = fmap fromJust . filterE isJust
 
 -- |
--- Replace values, semantically @fmap (const x) xs@.
+-- Replace values, semantically @x <$ e@.
 --
 replaceE :: b -> Event a -> Event b
-replaceE x = fmap (const x)
+replaceE x = (x <$)
 
 -- |
 -- Discard values of the event.
@@ -363,10 +373,26 @@ scanlE f = foldpE (flip f)
 
         
 -- |
--- Count values.
+-- Create a past-dependent event using a 'Monoid' instance.
 --
 monoidE :: Monoid a => Event a -> Event a
-monoidE = scanlE mappend mempty
+monoidE = foldpE mappend mempty
+
+liftMonoidE :: Monoid m => (a -> m) -> (m -> a) -> Event a -> Event a
+liftMonoidE i o = fmap o . monoidE . fmap i
+
+sumE :: Num a => Event a -> Event a
+sumE = liftMonoidE Sum getSum
+
+productE :: Num a => Event a -> Event a
+productE = liftMonoidE Product getProduct
+
+allE :: Event Bool -> Event Bool
+allE = liftMonoidE All getAll
+
+anyE :: Event Bool -> Event Bool
+anyE = liftMonoidE Any getAny
+
 
 -- |
 -- Count values.
@@ -375,29 +401,38 @@ countE :: (Num b, Enum b) => Event a -> Event b
 countE = accumE 0 . fmap (const succ)
 
 -- |
--- Delay by @n@ values.
---
-delaynE :: Int -> Event a -> Event a
-delaynE n = foldr (.) id (replicate n delayE)
-
--- |
 -- Delay by a single value.
 --
 delayE :: Event a -> Event a
 delayE = fmap snd . withPrevE
 
 -- |
+-- Delay by @n@ values.
+--
+delaynE :: Int -> Event a -> Event a
+delaynE n = foldr (.) id (replicate n delayE)
+
+bufferE :: Int -> Event a -> Event [a]
+bufferE n = foldpE (\x xs -> take n $ x:xs) []
+
+-- |
 -- Pack with previous value.
 --
 withPrevE :: Event a -> Event (a, a)
-withPrevE e 
-    = (joinMaybes' . fmap combineMaybes) 
-    $ dup Nothing `accumE` fmap (shift . Just) e
-    where      
-        shift b (a,_) = (b,a)
-        dup x         = (x,x)
-        joinMaybes'   = justE
-        combineMaybes = uncurry (liftA2 (,))
+withPrevE = justE . fmap k . bufferE 2
+    where
+        k []      = Nothing
+        k [x]     = Nothing
+        k (a:b:_) = Just (a,b)
+
+-- withPrevE e 
+--     = (joinMaybes' . fmap combineMaybes) 
+--     $ dup Nothing `accumE` fmap (shift . Just) e
+--     where      
+--         shift b (a,_) = (b,a)
+--         dup x         = (x,x)
+--         joinMaybes'   = justE
+--         combineMaybes = uncurry (liftA2 (,))
 
 {-
 
@@ -450,19 +485,20 @@ activate e = Nothing `stepper` fmap Just e
 -- Switch between reactives.
 --
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
-switcher r e = join (stepper r e)
-
+r `switcher` e = join (r `stepper` e)
 
 -- | 
 -- Apply the values of an event to a time-varying function.
 --
--- > apply r e = fmap (uncurry ($)) $ sampleWith r e
+-- > r `apply` e = uncurry ($) <$> (r `sampleWith` e)
 -- 
 apply :: Reactive (a -> b) -> Event a -> Event b
-apply r e = fmap (uncurry ($)) $ sampleWith r e
+apply r e = (uncurry ($)) <$> sampleWith r e
 
 -- |
 -- Sample value of reactive.
+--
+-- > r `sample` e = (const <$> r) `apply` e
 --
 sample :: Reactive a -> Event b -> Event a
 sample = ESamp
@@ -470,7 +506,7 @@ sample = ESamp
 -- |
 -- Sample value of reactive with the value of the trigger.
 --
--- > sampleWith r e = fmap (,) r `apply` e
+-- > r `sampleWith` e = ((,) <$> r) `apply` e
 --
 sampleWith :: Reactive a -> Event b -> Event (a, b)
 sampleWith r e = sample (liftA2 (,) r (eventToReactive e)) e
@@ -511,14 +547,14 @@ countR = accumR 0 . fmap (const succ)
 gate :: Reactive Bool -> Event a -> Event a
 gate r e = justE $ apply (fmap (\b x -> if b then Just x else Nothing) r) e
 
-on :: Event a -> Reactive Bool
-on = fmap isJust . activate
+onR :: Event a -> Reactive Bool
+onR = fmap isJust . activate
 
-off :: Event a -> Reactive Bool
-off = fmap not . on
+offR :: Event a -> Reactive Bool
+offR = fmap not . onR
 
-toggle :: Event a -> Reactive Bool
-toggle = fmap odd . countR
+toggleR :: Event a -> Reactive Bool
+toggleR = fmap odd . countR
 
 
 {-
