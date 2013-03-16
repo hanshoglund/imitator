@@ -19,13 +19,33 @@ module Music.Imitator.Reactive (
         tickE,
         justE,
 
-        -- ** Stateful events
+        -- ** Accumulated events
         accumE,
         delayE,
         delayE',
         withPrevE,
 
-        -- ** Create events
+        -- -- MidiSource,
+        -- -- MidiDestination,
+        -- -- midiInE,
+        -- -- midiOutE,
+        -- -- OscMessage,
+        -- -- oscInE,
+        -- -- oscOutE,
+                
+        -- * Reactive
+        Reactive,
+
+        -- ** Basic combinators
+        stepper,
+        switcher,
+        sample,
+
+        -- ** Accumulated reactives
+        accumR,
+
+
+        -- * Creating events and reactives
         -- *** From standard library
         getLineE,
         putLineE, 
@@ -40,35 +60,13 @@ module Music.Imitator.Reactive (
         putE,
         -- modifyE,
         
-        -- ** Utility
+        -- * Sources and sinks
         Source,
         Sink,
         notify,
         showing,
         newSource,
         newSink,        
-
-        -- -- MidiSource,
-        -- -- MidiDestination,
-        -- -- midiInE,
-        -- -- midiOutE,
-        -- -- OscMessage,
-        -- -- oscInE,
-        -- -- oscOutE,
-
-
-                
-        -- * Reactive
-        Reactive,
-
-        -- ** Basic combinators
-        stepper,
-        switcher,
-        sample,
-
-        -- ** Stateful reactives
-        accumR,
-
 
         -- * Run events
         run,
