@@ -10,6 +10,7 @@ module Music.Imitator.Reactive (
         neverE,
         mergeE,
         eitherE,
+        splitE,
         sequenceE,
 
         -- ** Change value of events
@@ -23,10 +24,13 @@ module Music.Imitator.Reactive (
 
         -- ** Accumulated events
         delayE,
-        delayOneE,
+        delaynE,
         withPrevE,
         accumE,
+        foldpE,
         scanlE,
+        monoidE,
+        countE,
 
         -- -- MidiSource,
         -- -- MidiDestination,
@@ -43,12 +47,19 @@ module Music.Imitator.Reactive (
         stepper,
         switcher,
         activate,
+        apply,
         sample,
+        sampleWith,
         bothR,
+        countR,
+        gate,
+        on,
+        off,
+        toggle,
 
         -- ** Accumulated reactives
         accumR,
-
+        mapAccum,
 
         -- * Creating events and reactives
         -- ** From standard library
@@ -86,6 +97,7 @@ import Prelude hiding (mapM)
 
 import Data.Monoid  
 import Data.Maybe
+import Data.Either
 import Control.Monad
 import Control.Applicative
 import Control.Newtype
@@ -265,6 +277,12 @@ mergeE = mappend
 eitherE :: Event a -> Event b -> Event (Either a b)
 a `eitherE` b = fmap Left a `mergeE` fmap Right b
 
+-- | 
+-- Split events of different types. See also 'eitherE'.
+-- 
+splitE :: Event (Either a b) -> (Event a, Event b)
+splitE e = (justE $ fromLeft <$> e, justE $ fromRight <$> e)
+
 -- |
 -- Run both and behave as the second event, sematically @a `seq` b@.
 --
@@ -326,28 +344,47 @@ tickME = replaceE mempty
 --        
 accumE :: a -> Event (a -> a) -> Event a
 a `accumE` e = (a `accumR` e) `sample` e
+
+-- |
+-- Create a past-dependent event.
+--
+-- > scanlE f z x = foldpE (flip f) f z x
+--        
+foldpE :: (a -> b -> b) -> b -> Event a -> Event b
+foldpE f a e = a `accumE` (f <$> e)
+
+-- |
+-- Create a past-dependent event. This combinator corresponds to 'scanl' on streams.
+--
+-- > scanlE f z x = foldpE (flip f) f z x
+--        
+scanlE :: (a -> b -> a) -> a -> Event b -> Event a
+scanlE f = foldpE (flip f)
+
         
 -- |
--- Create a past-dependent event (sometimes known as @foldp@)
---        
-scanlE :: (b -> a -> b) -> b -> Event a -> Event b
-scanlE f a e = a `accumE` (flip f <$> e)
-
+-- Count values.
+--
 monoidE :: Monoid a => Event a -> Event a
 monoidE = scanlE mappend mempty
 
+-- |
+-- Count values.
+--
+countE :: (Num b, Enum b) => Event a -> Event b
+countE = accumE 0 . fmap (const succ)
 
 -- |
 -- Delay by @n@ values.
 --
-delayE :: Int -> Event a -> Event a
-delayE n = foldr (.) id (replicate n delayOneE)
+delaynE :: Int -> Event a -> Event a
+delaynE n = foldr (.) id (replicate n delayE)
 
 -- |
 -- Delay by a single value.
 --
-delayOneE :: Event a -> Event a
-delayOneE = fmap snd . withPrevE
+delayE :: Event a -> Event a
+delayE = fmap snd . withPrevE
 
 -- |
 -- Pack with previous value.
@@ -415,11 +452,30 @@ activate e = Nothing `stepper` fmap Just e
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
 switcher r e = join (stepper r e)
 
+
+-- | 
+-- Apply the values of an event to a time-varying function.
+--
+-- > apply r e = fmap (uncurry ($)) $ sampleWith r e
+-- 
+apply :: Reactive (a -> b) -> Event a -> Event b
+apply r e = fmap (uncurry ($)) $ sampleWith r e
+
 -- |
 -- Sample value of reactive.
 --
-sample :: Reactive b -> Event a -> Event b
+sample :: Reactive a -> Event b -> Event a
 sample = ESamp
+
+-- |
+-- Sample value of reactive with the value of the trigger.
+--
+-- > sampleWith r e = fmap (,) r `apply` e
+--
+sampleWith :: Reactive a -> Event b -> Event (a, b)
+sampleWith r e = sample (liftA2 (,) r (eventToReactive e)) e
+    where
+        eventToReactive = stepper (error "Partial reactive")
 
 -- |
 -- Combine reactives. See also 'eitherE'.
@@ -436,29 +492,39 @@ bothR = liftA2 (,)
 accumR :: a -> Event (a -> a) -> Reactive a
 accumR x = RAccum (newVar x)
 
+-- | 
+-- Efficient combination of 'accumE' and 'accumR'.
+-- 
+mapAccum :: a -> Event (a -> (b,a)) -> (Event b, Reactive a)
+mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
+    where 
+        e = accumE (undefined,acc) ((. snd) <$> ef)
 
 -- |
 -- Count values.
 --
-count :: Event a -> Reactive Int
-count = accumR 0 . fmap (const succ)
+countR :: (Num b, Enum b) => Event a -> Reactive b
+countR = accumR 0 . fmap (const succ)
 
 -- diffE :: Event a -> Event a
 
+gate :: Reactive Bool -> Event a -> Event a
+gate r e = justE $ apply (fmap (\b x -> if b then Just x else Nothing) r) e
 
+on :: Event a -> Reactive Bool
+on = fmap isJust . activate
 
--- turnOn  :: Event a -> Reactive Bool
--- turnOff :: Event a -> Reactive Bool
--- toggle  :: Event a -> Reactive Bool
+off :: Event a -> Reactive Bool
+off = fmap not . on
 
+toggle :: Event a -> Reactive Bool
+toggle = fmap odd . countR
 
 
 {-
 
-sample   :: Event a -> Reactive b -> Event b
-joinR    :: Reactive (Reactive a) -> Reactive a
 modify   :: Event (a -> a) -> Reactive a -> Reactive a
-set      :: Event a        -> Reactive a -> Reactive a
+set      :: Event a        -> Reactive b -> Reactive a
 -}
 
        
@@ -583,7 +649,7 @@ runLoopUntil e = do
                 []    -> threadDelay kLoopInterval >> runLoopUntil' g
                 (a:_) -> return a
 
-kLoopInterval = 1000 * 1
+kLoopInterval = 1000 * 5
 
 
 
@@ -669,3 +735,10 @@ filterMP p m = joinMaybes (liftM f m)
  where
    f a | p a        = Just a
        | otherwise  = Nothing
+
+fromLeft  (Left  a) = Just a
+fromLeft  (Right b) = Nothing
+fromRight (Left  a) = Nothing
+fromRight (Right b) = Just b                         
+
+
