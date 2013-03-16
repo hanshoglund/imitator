@@ -9,20 +9,22 @@ module Music.Imitator.Reactive (
         -- ** Basic combinators
         neverE,
         mergeE,
+        eitherE,
         sequenceE,
-        -- mergeWithE,
 
         -- ** Change value of events
         mapE,
         filterE,
+        retainE,
+        partitionE,
         replaceE,
         tickE,
         justE,
 
         -- ** Accumulated events
-        accumE,
         delayE,
-        delayE',
+        delayOneE,
+        accumE,
         withPrevE,
 
         -- -- MidiSource,
@@ -40,6 +42,7 @@ module Music.Imitator.Reactive (
         stepper,
         switcher,
         sample,
+        bothR,
 
         -- ** Accumulated reactives
         accumR,
@@ -244,46 +247,75 @@ instance Monoid (Event a) where
     mempty  = ENever
     mappend = EMerge
 
--- |
--- Map over occurances, semantically @map p xs@.
-mapE :: (a -> b) -> Event a -> Event b
-mapE = fmap
-
--- |
--- Filter occurances, semantically @filter p xs@.
-filterE :: (a -> Bool) -> Event a -> Event a
-filterE p = EPred p
-
--- |
--- Replace occurances, semantically @fmap (const x) xs@.
-replaceE :: a -> Event a -> Event a
-replaceE x = fmap (const x)
-
-justE :: Event (Maybe a) -> Event a
-justE = fmap fromJust . filterE isJust
-
--- |
--- Run both and behave as the second event, sematically @a `seq` b@.
-sequenceE :: Event a -> Event b -> Event b
-sequenceE = ESeq
 
 -- |
 -- The empty event, semantically @[]@.
+--
 neverE :: Event a
 neverE = mempty
 
 -- |
--- Interleave occurences, semantically @merge xs ys@.
+-- Interleave values, semantically @merge xs ys@.
+--
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
 -- |
+-- Interleave values of different types. See also 'bothR'.
+--
+eitherE :: Event a -> Event b -> Event (Either a b)
+a `eitherE` b = fmap Left a `mergeE` fmap Right b
+
+-- |
+-- Run both and behave as the second event, sematically @a `seq` b@.
+--
+sequenceE :: Event a -> Event b -> Event b
+sequenceE = ESeq
+
+-- |
+-- Map over values, semantically @map p xs@.
+mapE :: (a -> b) -> Event a -> Event b
+mapE = fmap
+
+-- |
+-- Filter values, semantically @filter p xs@.
+--
+filterE :: (a -> Bool) -> Event a -> Event a
+filterE p = EPred p
+
+-- |
+-- Filter values, semantically @retain p xs@.
+--
+retainE :: (a -> Bool) -> Event a -> Event a
+retainE p = EPred (not . p)
+
+-- |
+-- Filter values, semantically @retain p xs@.
+--
+partitionE :: (a -> Bool) -> Event a -> (Event a, Event a)
+partitionE p e = (filterE p e, retainE p e)
+
+-- |
+-- Discard empty values.
+--
+justE :: Event (Maybe a) -> Event a
+justE = fmap fromJust . filterE isJust
+
+-- |
+-- Replace values, semantically @fmap (const x) xs@.
+--
+replaceE :: a -> Event a -> Event a
+replaceE x = fmap (const x)
+
+-- |
 -- Discard values of the event.
+--
 tickE :: Event a -> Event ()
 tickE = tickME
 
 -- |
 -- Discard values, using an arbitrary empty element.
+--
 tickME :: Monoid b => Event a -> Event b
 tickME = fmap (const mempty)
 
@@ -296,13 +328,21 @@ tickME = fmap (const mempty)
 accumE :: a -> Event (a -> a) -> Event a
 a `accumE` e = (a `accumR` e) `sample` e
 
-
+-- |
+-- Delay by @n@ values.
+--
 delayE :: Int -> Event a -> Event a
-delayE n = foldr (.) id (replicate n delayE')
+delayE n = foldr (.) id (replicate n delayOneE)
 
-delayE' :: Event a -> Event a
-delayE' = fmap snd . withPrevE
+-- |
+-- Delay by a single value.
+--
+delayOneE :: Event a -> Event a
+delayOneE = fmap snd . withPrevE
 
+-- |
+-- Pack with previous value.
+--
 withPrevE :: Event a -> Event (a, a)
 withPrevE e 
     = (joinMaybes' . fmap combineMaybes) 
@@ -357,8 +397,17 @@ stepper x e = RStep (newVar x) e
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
 switcher r e = join (stepper r e)
 
+-- |
+-- Sample value of reactive.
+--
 sample :: Reactive b -> Event a -> Event b
 sample = ESamp
+
+-- |
+-- Combine reactives. See also 'eitherE'.
+--
+bothR :: Reactive a -> Reactive b -> Reactive (a, b)
+bothR = liftA2 (,)
 
 -- |
 -- Reactive accumulator.
@@ -370,7 +419,7 @@ accumR :: a -> Event (a -> a) -> Reactive a
 accumR x = RAccum (newVar x)
 
 -- |
--- Count occurances.
+-- Count values.
 --
 count :: Event a -> Reactive Int
 count = accumR 0 . fmap (const succ)
@@ -400,7 +449,7 @@ set      :: Event a        -> Reactive a -> Reactive a
 
 -- |
 -- Event reading from external world.
--- The computation should be blocking and is polled exactly once per occurence.
+-- The computation should be blocking and is polled exactly once per value.
 --
 -- This function can be used with standard I/O functions.
 --
@@ -413,7 +462,7 @@ getE k = unsafePerformIO $ do
 
 -- |
 -- Event reading from external world.
--- The computation should be non-blocking and may be polled repeatedly for each occurence.
+-- The computation should be non-blocking and may be polled repeatedly for each value.
 --
 -- This function should be used with /non-effectful/ functions, typically functions that
 -- observe the current value of some external property.
@@ -478,7 +527,7 @@ runLoop e = do
             threadDelay kLoopInterval >> runLoop' g
 
 -- | 
--- Run the given event until the first @Just x@  occurence, then return @x@.
+-- Run the given event until the first @Just x@  value, then return @x@.
 --
 runLoopUntil :: Event (Maybe a) -> IO a
 runLoopUntil e = do 
