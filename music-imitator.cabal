@@ -11,28 +11,30 @@ category:           Music
 tested-with:        GHC
 build-type:         Simple
 
-description: 
+description:
     Spacial loop playback based on hsc3.
 
-library                    
-    build-depends: 
+library
+    build-depends:
         base        >= 4 && < 5,
         wx          == 0.90.0.1,
-        unix,     
+        unix,
+        random,
         stm,
         newtype,
         hamid,
         hosc,
         hsc3,
-        semigroups
-                
+        semigroups,
+        semigroupoids
+
     hs-source-dirs: src
     exposed-modules:
         Music.Imitator
         Music.Imitator.Reactive
         Music.Imitator.Reactive.Chan
         Music.Imitator.Reactive.Var
-        Music.Imitator.Sound    
+        Music.Imitator.Sound
         Music.Imitator.Util
 
 executable "Imitator"
