@@ -99,24 +99,23 @@ module Music.Imitator.Sound (
         numChannels,
 
 
-
-        -- ** Control
-        -- TODO
-
-
-
+        -- * Server
         -- ** Play and stop
         play,
         abort,
         sendStd,      
         
+        -- ** Control
+
         -- ** Buffer allocation
         newBuffer,
         readBuffer,
         closeBuffer,
 
+        -- ** Non real-time
+        runServer,
 
-        -- *** Server status
+        -- ** Real-time
         startServer,
         stopServer,
         serverActive,
