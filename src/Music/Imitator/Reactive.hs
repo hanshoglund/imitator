@@ -23,7 +23,7 @@ module Music.Imitator.Reactive (
         filterE,
         retainE,
         partitionE,
-        concatE,
+        scatterE,
         justE,
         -- tickE,
 
@@ -326,8 +326,8 @@ retainE p = EPred (not . p)
 -- |
 -- Separate simultaneous values.
 --
-concatE :: Event [a] -> Event a
-concatE = EConcat
+scatterE :: Event [a] -> Event a
+scatterE = EConcat
 
 -- |
 -- Discard empty values.
@@ -440,7 +440,7 @@ delayE n = foldr (.) id (replicate n prevE)
 -- > bufferE n e = [[e1],[e1,e2]..[e1..en],[e2..en+1]..]
 --
 bufferE :: Int -> Event a -> Event [a]
-bufferE n = foldpE g []
+bufferE n = (reverse <$>) . foldpE g []
     where
         g x xs = x : take (n-1) xs
 
@@ -450,7 +450,7 @@ bufferE n = foldpE g []
 -- > gatherE n e = [[e1..en],[en+1..e2n]..]
 --
 gatherE :: Int -> Event a -> Event [a]
-gatherE n = filterE (\xs -> length xs == n) . foldpE g []
+gatherE n = (reverse <$>) . filterE (\xs -> length xs == n) . foldpE g []
     where
         g x xs | length xs <  n  =  x : xs
                | length xs == n  =  x : []
