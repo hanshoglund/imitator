@@ -18,6 +18,7 @@ module Music.Imitator.Reactive (
         retainE,
         partitionE,
         splitE,
+        concatE,
         replaceE,
         tickE,
         justE,
@@ -31,7 +32,7 @@ module Music.Imitator.Reactive (
         foldpE,
         scanlE,
         monoidE,
-        liftMonoidE,
+        -- liftMonoidE,
         sumE,
         productE,
         allE,
@@ -137,6 +138,7 @@ data Event a where
     ESeq    :: Event a     -> Event b   -> Event b
     EMap    :: (a -> b)    -> Event a   -> Event b
     EPred   :: (a -> Bool) -> Event a   -> Event a
+    EConcat ::                Event [a] -> Event a
 
     EChan   :: Chan a                   -> Event a
     ESource :: IO [a]                   -> Event a
@@ -169,6 +171,9 @@ prepE (EMap f x)    = do
 prepE (EPred p x)    = do
     x' <- prepE x
     return $ EPred p x'
+prepE (EConcat x)    = do
+    x' <- prepE x
+    return $ EConcat x'
 prepE (ESink k a)     = do
     a' <- prepE a
     return $ ESink k a'
@@ -211,6 +216,7 @@ runE :: Event a -> IO [a]
 runE ENever          = return []
 runE (EMap f x)      = fmap (fmap f) (runE x)
 runE (EPred p x)     = fmap (filter p) (runE x)
+runE (EConcat x)     = fmap concat (runE x)
 runE (EMerge a b)    = liftM2 (++) (runE a) (runE b)
 runE (ESource i)     = i
 runE (ESink o x)     = runE x >>= mapM o
@@ -235,7 +241,6 @@ runR (RStep v x)     = do
     let ys = (v':x')
     swapVar v (last ys)
     return ys
-
 runR (RAccum v x)   = do
     v' <- readVar v
     x' <- runE x
@@ -305,6 +310,12 @@ filterE p = EPred p
 --
 retainE :: (a -> Bool) -> Event a -> Event a
 retainE p = EPred (not . p)
+
+-- |
+-- 
+--
+concatE :: Event [a] -> Event a
+concatE = EConcat
 
 -- |
 -- Partition values, semantically @partition p xs@.
