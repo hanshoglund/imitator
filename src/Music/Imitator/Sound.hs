@@ -136,30 +136,34 @@ module Music.Imitator.Sound (
         -- ** Constants
         kStdServer,
         kStdPort,
-        kMaster,
+        kMasterVolume,
         kOutputOffset,
         kNumSpeakers,        
   ) where
 
 import Data.Monoid
 import Data.Functor.Apply
-import Control.Exception (try, SomeException)
+import Control.Exception ( try, SomeException )
 import Control.Applicative
-import Control.Concurrent (threadDelay)
+import Control.Concurrent ( threadDelay )
 
 import Data.Bits
 import System.Random
-import System.IO.Unsafe (unsafePerformIO)
+import System.IO.Unsafe ( unsafePerformIO )
 
 
-import Sound.SC3.UGen (UGen(..), Rate(..), Warp(..), Loop(..), DoneAction(..), mce, mceChannels)
+import Sound.SC3.UGen ( UGen(..), Rate(..), 
+                        Warp(..), Loop(..), DoneAction(..),
+                        mce, mceChannels
+                      )
 import qualified Sound.SC3.UGen      as U
 import qualified Sound.SC3.UGen.Noise.Monad as N
 import qualified Sound.SC3.Server.FD as S
 
-import Sound.OSC.Transport.FD.UDP (openUDP)
-import Sound.OpenSoundControl.Type (Message, Datum(..))
-import Sound.OSC.Transport.FD.UDP (UDP)
+import Sound.OSC.Transport.FD.UDP ( openUDP)
+import Sound.OpenSoundControl.Type ( Message(..), Datum(..), Bundle(..) )
+import Sound.SC3.Server.NRT ( NRT(..), writeNRT )
+import Sound.OSC.Transport.FD.UDP ( UDP )
 
 import Music.Imitator.Util
 
@@ -437,7 +441,7 @@ play gen = do
     asyncStd $ recvMsg
     sendStd  $ addToTailMsg
         where           
-            recvMsg         = S.d_recv $ S.synthdef "playGen" (U.out kOutputOffset $ gen * kMaster)
+            recvMsg         = S.d_recv $ S.synthdef "playGen" (U.out kOutputOffset $ gen * kMasterVolume)
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
 
 -- |
@@ -472,11 +476,39 @@ closeBuffer :: Int -> IO ()
 closeBuffer = undefined
 
 
+-- ./scsynth -N Cmds.osc _ NRTout.aiff 44100 AIFF int16
+-- |
+-- Run a non-realtime server.
+--
+runServer :: NRT -> FilePath -> FilePath -> IO ()
+runServer cmds input output = do
+    writeNRT scorePath cmds
+    execute "scsynth" [
+        "-v",   "1",
+        "-N",   scorePath, 
+                input, 
+                output, 
+                show kStdOutputSampleRate, 
+                kStdOutputType, 
+                kStdOutputFormat
+        ]
+    where
+        scorePath = "score.osc"
+
+
+
+
 -- |
 -- Start the server.
 --
 startServer :: IO ()
-startServer = execute "scsynth" ["-v", "1", "-u", show kStdPort]
+startServer = execute "scsynth" [
+    "-v", "1", 
+    "-u", show kStdPort,
+    "-S", show kStdSampleRate,
+    "-m", show kRealTimeMemorySize
+    ]
+
 
 -- |
 -- Stop the server.
@@ -550,30 +582,21 @@ printServerStatus = do
 --
 -- This is the same as 'withSC3' uses.
 -- 
-kStdServer :: IO UDP
-kStdServer = openUDP "127.0.0.1" kStdPort
+kStdServer              = openUDP kStdAddress kStdPort
 
--- |
--- Standard server port.
--- 
-kStdPort :: Int
-kStdPort = 57110
+kStdAddress             = "127.0.0.1"
+kStdPort                = 57110
 
--- |
--- Global master volume (low while developing).
--- 
-kMaster :: UGen
-kMaster = 0.3
+kStdSampleRate, kRealTimeMemorySize :: Num a => a
+kStdSampleRate          = 44100
+kRealTimeMemorySize     = 8192
+kMasterVolume           = 0.3
 
--- |
--- Global speaker offset (for skipping hardware channels etc).
--- 
-kOutputOffset :: UGen
-kOutputOffset = 0
+kStdOutputSampleRate    = 44100
+kStdOutputType          = "WAV"
+kStdOutputFormat        = "int16"
 
--- |
--- Number of speakers used by decoders.
--- 
-kNumSpeakers :: Int
-kNumSpeakers = 8
+kNumSpeakers, kOutputOffset :: Num a => a
+kOutputOffset           = 0
+kNumSpeakers            = 8
 
