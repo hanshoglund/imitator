@@ -87,18 +87,18 @@ addWidgets frame = do
                   positioning]
 
     -- Create sources/sinks
-    (startA, startE)            <- newSourceE
-    (stopA, stopE)              <- newSourceE
-    (pauseA, pauseE)            <- newSourceE
-    (resumeA, resumeE)          <- newSourceE
-    (tempoA, tempoE)            <- newSourceE
-    (gainA, gainE)              <- newSourceE
-    (volumeA, volumeE)          <- newSourceE
+    (startA, startE)            <- newSource
+    (stopA, stopE)              <- newSource
+    (pauseA, pauseE)            <- newSource
+    (resumeA, resumeE)          <- newSource
+    (tempoA, tempoE)            <- newSource
+    (gainA, gainE)              <- newSource
+    (volumeA, volumeE)          <- newSource
 
-    (tempoB, tempoS)            <- newSinkE
-    (gainB, gainS)              <- newSinkE
-    (volumeB, volumeS)          <- newSinkE
-    (transportB, transportS)    <- newSinkE
+    (tempoB, tempoS)            <- newSink
+    (gainB, gainS)              <- newSink
+    (volumeB, volumeS)          <- newSink
+    (transportB, transportS)    <- newSink
 
     set start   [on command := startA 0]
     set stop    [on command := stopA 0]
@@ -140,7 +140,7 @@ addWidgets frame = do
 
 addTimers :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addTimers frame = do
-    (timerFired, timerFiredE) <- newSourceE
+    (timerFired, timerFiredE) <- newSource
 
     timer frame [interval := 2000,
                 on command := timerFired 0]

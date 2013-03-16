@@ -45,8 +45,8 @@ module Music.Imitator.Reactive (
         Sink,
         notify,
         showing,
-        newSourceE,
-        newSinkE,        
+        newSource,
+        newSink,        
 
         -- -- MidiSource,
         -- -- MidiDestination,
@@ -377,19 +377,19 @@ putLineE = putE putStrLn
 type Source a = Event a
 type Sink a   = Event a -> Event a
 
-notify :: String -> Event a -> Event String
-notify m = putLineE . fmap (const m)
+notify :: String -> Event a -> Event a
+notify m x = putLineE (fmap (const m) x) `sequenceE` x
 
-showing :: Show a => String -> Event a -> Event String
-showing m = putLineE . fmap (\x -> m ++ show x)
+showing :: Show a => String -> Event a -> Event a
+showing m x = putLineE (fmap (\x -> m ++ show x) x) `sequenceE` x
 
-newSourceE :: IO (a -> IO (), Source a)
-newSourceE = do
+newSource :: IO (a -> IO (), Source a)
+newSource = do
     ch <- newChan
     return (writeChan ch, readChanE ch)
 
-newSinkE :: IO (IO (Maybe a), Sink a)
-newSinkE = do
+newSink :: IO (IO (Maybe a), Sink a)
+newSink = do
     ch <- newChan
     return (tryReadChan ch, writeChanE ch)  
 

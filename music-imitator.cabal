@@ -35,6 +35,7 @@ library
         Music.Imitator.Reactive.Chan
         Music.Imitator.Reactive.Var
         Music.Imitator.Sound
+        Music.Imitator.Sound.Event
         Music.Imitator.Util
 
 executable "Imitator"
