@@ -10,7 +10,7 @@ module Music.Imitator.Reactive (
         neverE,
         mergeE,
         eitherE,
-        sequenceE,
+        seqE,
 
         -- ** Change value of events
         mapE,
@@ -19,20 +19,20 @@ module Music.Imitator.Reactive (
         partitionE,
         splitE,
         concatE,
-        replaceE,
-        tickE,
         justE,
+        -- tickE,
 
         -- ** Accumulated events
         prevE,
         delayE,
         bufferE,
-        withPrevE,
+        -- withPrevE,
+        -- withPrevEWith,
+
         accumE,
         foldpE,
         scanlE,
         monoidE,
-        -- liftMonoidE,
         sumE,
         productE,
         allE,
@@ -56,7 +56,7 @@ module Music.Imitator.Reactive (
         activate,
         apply,
         sample,
-        sampleWith,
+        snapshot,
         bothR,
         countR,
         gate,
@@ -66,6 +66,17 @@ module Music.Imitator.Reactive (
 
         -- ** Accumulated reactives
         accumR,
+        foldpR,
+        scanlR,
+        monoidR,
+        -- liftMonoidR,
+        sumR,
+        productR,
+        allR,
+        anyR,
+        countR,
+
+        -- ** Special accumulators
         mapAccum,
 
         -- * Creating events and reactives
@@ -291,8 +302,8 @@ a `eitherE` b = fmap Left a `mergeE` fmap Right b
 -- |
 -- Run both and behave as the second event, sematically @a `seq` b@.
 --
-sequenceE :: Event a -> Event b -> Event b
-sequenceE = ESeq
+seqE :: Event a -> Event b -> Event b
+seqE = ESeq
 
 -- |
 -- Map over values, semantically @f \<$> xs@.
@@ -312,15 +323,21 @@ retainE :: (a -> Bool) -> Event a -> Event a
 retainE p = EPred (not . p)
 
 -- |
--- 
+-- Separate simultaneous values.
 --
 concatE :: Event [a] -> Event a
 concatE = EConcat
 
 -- |
+-- Discard empty values.
+--
+justE :: Event (Maybe a) -> Event a
+justE = EConcat . fmap maybeToList
+
+-- |
 -- Partition values, semantically @partition p xs@.
 -- 
--- > mergeE x y  where (x, y) = partitionE p e  ===  e      for all p
+-- > let (x, y) = partitionE p e in mergeE x y  ≡  e
 --
 partitionE :: (a -> Bool) -> Event a -> (Event a, Event a)
 partitionE p e = (filterE p e, retainE p e)
@@ -328,16 +345,10 @@ partitionE p e = (filterE p e, retainE p e)
 -- | 
 -- Partition values of different types. See also 'partitionE'.
 --
--- > eitherE x y where (x, y) = splitE e        ===  e
+-- > let (x, y) in eitherE x y = splitE e  ≡  e
 -- 
 splitE :: Event (Either a b) -> (Event a, Event b)
 splitE e = (justE $ fromLeft <$> e, justE $ fromRight <$> e)
-
--- |
--- Discard empty values.
---
-justE :: Event (Maybe a) -> Event a
-justE = fmap fromJust . filterE isJust
 
 -- |
 -- Replace values, semantically @x <$ e@.
@@ -346,7 +357,7 @@ replaceE :: b -> Event a -> Event b
 replaceE x = (x <$)
 
 -- |
--- Discard values of the event.
+-- Throw away values of the event.
 --
 tickE :: Event a -> Event ()
 tickE = replaceE ()
@@ -381,13 +392,12 @@ foldpE f a e = a `accumE` (f <$> e)
 --        
 scanlE :: (a -> b -> a) -> a -> Event b -> Event a
 scanlE f = foldpE (flip f)
-
         
 -- |
 -- Create a past-dependent event using a 'Monoid' instance.
 --
 monoidE :: Monoid a => Event a -> Event a
-monoidE = foldpE mappend mempty
+monoidE = scanlE mappend mempty
 
 liftMonoidE :: Monoid m => (a -> m) -> (m -> a) -> Event a -> Event a
 liftMonoidE i o = fmap o . monoidE . fmap i
@@ -412,7 +422,7 @@ countE :: Enum b => Event a -> Event b
 countE = accumE (toEnum 0) . fmap (const succ)
 
 -- |
--- Delay by a single value.
+-- Delay by one value.
 --
 prevE :: Event a -> Event a
 prevE = fmap snd . withPrevE
@@ -423,20 +433,32 @@ prevE = fmap snd . withPrevE
 delayE :: Int -> Event a -> Event a
 delayE n = foldr (.) id (replicate n prevE)
 
+-- |
+-- Buffer up to /n/ values. When the buffer is full, old elements will be rotated out.
+--
+-- > gather n e = [[e1],[e1,e2]..[e1..en],[e2..en+1]..]
+--
 bufferE :: Int -> Event a -> Event [a]
 bufferE n = foldpE (\x xs -> x : take (n-1) xs) []
-
---Ord t => (t, a) -> Event t -> Event [a]
 
 -- |
 -- Pack with previous value.
 --
 withPrevE :: Event a -> Event (a, a)
-withPrevE = justE . fmap k . bufferE 2
+withPrevE = withPrevEWith (,)
+-- |
+-- Pack with previous value.
+--
+withPrevEWith :: (a -> a -> b) -> Event a -> Event b
+withPrevEWith f = justE . fmap k . bufferE 2
     where
         k []      = Nothing
         k [x]     = Nothing
-        k (a:b:_) = Just (a,b)
+        k (a:b:_) = Just $ f a b
+
+
+--Ord t => (t, a) -> Event t -> Event [a]
+
 
 -- withPrevE e 
 --     = (joinMaybes' . fmap combineMaybes) 
@@ -503,26 +525,26 @@ r `switcher` e = join (r `stepper` e)
 -- | 
 -- Apply the values of an event to a time-varying function.
 --
--- > r `apply` e = uncurry ($) <$> (r `sampleWith` e)
+-- > r `apply` e = uncurry ($) <$> (r `snapshot` e)
 -- 
 apply :: Reactive (a -> b) -> Event a -> Event b
-apply r e = (uncurry ($)) <$> sampleWith r e
+apply r e = (uncurry ($)) <$> snapshot r e
 
 -- |
 -- Sample value of reactive.
 --
 -- > r `sample` e = (const <$> r) `apply` e
 --
-sample :: Reactive a -> Event b -> Event a
+sample :: Reactive b -> Event a -> Event b
 sample = ESamp
 
 -- |
 -- Sample value of reactive with the value of the trigger.
 --
--- > r `sampleWith` e = ((,) <$> r) `apply` e
+-- > r `snapshot` e = ((,) <$> r) `apply` e
 --
-sampleWith :: Reactive a -> Event b -> Event (a, b)
-sampleWith r e = sample (liftA2 (,) r (eventToReactive e)) e
+snapshot :: Reactive b -> Event a -> Event (b, a)
+snapshot r e = sample (liftA2 (,) r (eventToReactive e)) e
     where
         eventToReactive = stepper (error "Partial reactive")
 
@@ -541,13 +563,43 @@ bothR = liftA2 (,)
 accumR :: a -> Event (a -> a) -> Reactive a
 accumR x = RAccum (newVar x)
 
--- | 
--- Efficient combination of 'accumE' and 'accumR'.
--- 
-mapAccum :: a -> Event (a -> (b,a)) -> (Event b, Reactive a)
-mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
-    where 
-        e = accumE (undefined,acc) ((. snd) <$> ef)
+-- |
+-- Create a past-dependent reactive. This combinator corresponds to 'scanl' on streams.
+--
+-- > scanlR f z x = foldpR (flip f) f z x
+--        
+foldpR :: (a -> b -> b) -> b -> Event a -> Reactive b
+foldpR f = scanlR (flip f)
+
+-- |
+-- Create a past-dependent reactive. This combinator corresponds to 'scanl' on streams.
+--
+-- > scanlR f z x = foldpR (flip f) f z x
+--        
+scanlR :: (a -> b -> a) -> a -> Event b -> Reactive a
+scanlR f a e = a `stepper` scanlE f a e
+
+-- |
+-- Create a past-dependent event using a 'Monoid' instance.
+--
+monoidR :: Monoid a => Event a -> Reactive a
+monoidR = scanlR mappend mempty
+
+liftMonoidR :: Monoid m => (a -> m) -> (m -> a) -> Event a -> Reactive a
+liftMonoidR i o = fmap o . monoidR . fmap i
+
+sumR :: Num a => Event a -> Reactive a
+sumR = liftMonoidR Sum getSum
+
+productR :: Num a => Event a -> Reactive a
+productR = liftMonoidR Product getProduct
+
+allR :: Event Bool -> Reactive Bool
+allR = liftMonoidR All getAll
+
+anyR :: Event Bool -> Reactive Bool
+anyR = liftMonoidR Any getAny
+
 
 -- |
 -- Count values.
@@ -568,6 +620,15 @@ offR = fmap not . onR
 
 toggleR :: Event a -> Reactive Bool
 toggleR = fmap odd . countR
+
+-- | 
+-- Efficient combination of 'accumE' and 'accumR'.
+-- 
+mapAccum :: a -> Event (a -> (b,a)) -> (Event b, Reactive a)
+mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
+    where 
+        e = accumE (undefined,acc) ((. snd) <$> ef)
+
 
 
 {-
@@ -632,7 +693,7 @@ readChanE = EChan
 -- Event writing to a channel.
 --
 writeChanE :: Chan a -> Event a -> Event a
-writeChanE ch e = ESink (writeChan ch) e `sequenceE` e
+writeChanE ch e = ESink (writeChan ch) e `seqE` e
 
 -- |
 -- Event version of 'getChar'.
@@ -714,14 +775,14 @@ type Sink a   = Event a -> Event a
 -- output for each value.
 -- 
 notify :: String -> Event a -> Event a
-notify m x = putLineE (fmap (const m) x) `sequenceE` x
+notify m x = putLineE (fmap (const m) x) `seqE` x
 
 -- |
 -- Behaves like the original event but writes its value, prepended by the given
 -- message, for each value.
 -- 
 showing :: Show a => String -> Event a -> Event a
-showing m x = putLineE (fmap (\x -> m ++ show x) x) `sequenceE` x
+showing m x = putLineE (fmap (\x -> m ++ show x) x) `seqE` x
 
 -- |
 -- Creates a new source and a computation that writes  it.
