@@ -46,21 +46,21 @@ module Music.Imitator.Reactive (
 
 
         -- * Creating events and reactives
-        -- *** From standard library
+        -- ** From standard library
         getLineE,
         putLineE, 
 
-        -- *** From channels
+        -- ** From channels
         readChanE,
         writeChanE,
 
-        -- *** From I/O computations
+        -- ** From I/O computations
         getE,
         pollE,
         putE,
         -- modifyE,
         
-        -- * Sources and sinks
+        -- * Utility
         Source,
         Sink,
         notify,
@@ -312,86 +312,6 @@ withPrevE e
         joinMaybes'   = justE
         combineMaybes = uncurry (liftA2 (,))
 
-
--------------------------------------------------------------------------------------
-
--- |
--- Event reading from external world.
--- The computation should be blocking and is polled exactly once per occurence.
---
--- This function can be used with standard I/O functions.
---
-getE :: IO a -> Event a
-getE k = unsafePerformIO $ do
-    ch <- newChan
-    forkIO $ cycleM $ 
-        k >>= writeChan ch
-    return (EChan ch)
-
--- |
--- Event reading from external world.
--- The computation should be non-blocking and may be polled repeatedly for each occurence.
---
--- This function should be used with /non-effectful/ functions, typically functions that
--- observe the current value of some external property.
--- You should /not/ use this function with standard I/O functions as this
--- may lead to non-deterministic reads (i.e. loss of data).
---
-pollE :: IO (Maybe a) -> Event a
-pollE = ESource . fmap maybeToList
-
--- Event interacting with the external world.
--- The computation should be non-blocking and its values will be contested.
---
--- modifyE :: (a -> IO b) -> Event a -> Event b
--- modifyE = ESink
-
--- |
--- Event writing to the external world.
---
--- This function can be used with standard I/O functions.
---
-putE :: (a -> IO ()) -> Event a -> Event a
-putE k = ESink $ \x -> do
-    k x
-    return x
-
--------------------------------------------------------------------------------------
-
-readChanE :: Chan a -> Event a
-readChanE = EChan
-
-writeChanE :: Chan a -> Event a -> Event a
-writeChanE ch e = ESink (writeChan ch) e `sequenceE` e
-
-getLineE :: Event String
-getLineE = getE getLine 
-
-putLineE :: Event String -> Event String
-putLineE = putE putStrLn
-
--------------------------------------------------------------------------------------
-
-type Source a = Event a
-type Sink a   = Event a -> Event a
-
-notify :: String -> Event a -> Event a
-notify m x = putLineE (fmap (const m) x) `sequenceE` x
-
-showing :: Show a => String -> Event a -> Event a
-showing m x = putLineE (fmap (\x -> m ++ show x) x) `sequenceE` x
-
-newSource :: IO (a -> IO (), Source a)
-newSource = do
-    ch <- newChan
-    return (writeChan ch, readChanE ch)
-
-newSink :: IO (IO (Maybe a), Sink a)
-newSink = do
-    ch <- newChan
-    return (tryReadChan ch, writeChanE ch)  
-
-
 {-
 
 TODO not sure about these
@@ -473,6 +393,67 @@ set      :: Event a        -> Reactive a -> Reactive a
 -}
 
 
+-------------------------------------------------------------------------------------
+-- Lifting IO etc
+-------------------------------------------------------------------------------------
+
+-- |
+-- Event reading from external world.
+-- The computation should be blocking and is polled exactly once per occurence.
+--
+-- This function can be used with standard I/O functions.
+--
+getE :: IO a -> Event a
+getE k = unsafePerformIO $ do
+    ch <- newChan
+    forkIO $ cycleM $ 
+        k >>= writeChan ch
+    return (EChan ch)
+
+-- |
+-- Event reading from external world.
+-- The computation should be non-blocking and may be polled repeatedly for each occurence.
+--
+-- This function should be used with /non-effectful/ functions, typically functions that
+-- observe the current value of some external property.
+-- You should /not/ use this function with standard I/O functions as this
+-- may lead to non-deterministic reads (i.e. loss of data).
+--
+pollE :: IO (Maybe a) -> Event a
+pollE = ESource . fmap maybeToList
+
+-- Event interacting with the external world.
+-- The computation should be non-blocking and its values will be contested.
+--
+-- modifyE :: (a -> IO b) -> Event a -> Event b
+-- modifyE = ESink
+
+-- |
+-- Event writing to the external world.
+--
+-- This function can be used with standard I/O functions.
+--
+putE :: (a -> IO ()) -> Event a -> Event a
+putE k = ESink $ \x -> do
+    k x
+    return x
+
+readChanE :: Chan a -> Event a
+readChanE = EChan
+
+writeChanE :: Chan a -> Event a -> Event a
+writeChanE ch e = ESink (writeChan ch) e `sequenceE` e
+
+getLineE :: Event String
+getLineE = getE getLine 
+
+putLineE :: Event String -> Event String
+putLineE = putE putStrLn
+
+
+-------------------------------------------------------------------------------------
+-- Running
+-------------------------------------------------------------------------------------
 
 -- | 
 -- Run the given event once.
@@ -514,31 +495,47 @@ kLoopInterval = 1000 * 1
 
 
 -------------------------------------------------------------------------------------
+-- Utility
+-------------------------------------------------------------------------------------
 
+type Source a = Event a
+type Sink a   = Event a -> Event a
+
+notify :: String -> Event a -> Event a
+notify m x = putLineE (fmap (const m) x) `sequenceE` x
+
+showing :: Show a => String -> Event a -> Event a
+showing m x = putLineE (fmap (\x -> m ++ show x) x) `sequenceE` x
+
+newSource :: IO (a -> IO (), Source a)
+newSource = do
+    ch <- newChan
+    return (writeChan ch, readChanE ch)
+
+newSink :: IO (IO (Maybe a), Sink a)
+newSink = do
+    ch <- newChan
+    return (tryReadChan ch, writeChanE ch)  
+
+
+-------------------------------------------------------------------------------------
+
+-- type MidiSource      = Midi.Source
+-- type MidiDestination = Midi.Destination
 -- 
+-- midiInE :: MidiSource -> Event MidiMessage
+-- midiInE = undefined
 -- 
+-- midiOutE :: MidiDestination -> Event MidiMessage -> Event MidiMessage
+-- midiOutE = undefined
 -- 
+-- type OscMessage = OSC.Message
 -- 
+-- oscInE :: Int -> Event OscMessage
+-- oscInE = undefined
 -- 
--- 
--- -- 
--- -- type MidiSource      = Midi.Source
--- -- type MidiDestination = Midi.Destination
--- -- 
--- -- midiInE :: MidiSource -> Event MidiMessage
--- -- midiInE = undefined
--- -- 
--- -- midiOutE :: MidiDestination -> Event MidiMessage -> Event MidiMessage
--- -- midiOutE = undefined
--- -- 
--- -- type OscMessage = OSC.Message
--- -- 
--- -- oscInE :: Int -> Event OscMessage
--- -- oscInE = undefined
--- -- 
--- -- oscOutE :: String -> Int -> Event OscMessage
--- -- oscOutE = undefined
--- 
+-- oscOutE :: String -> Int -> Event OscMessage
+-- oscOutE = undefined
 
 
 guard :: (a -> Bool) -> (a -> Maybe a)
