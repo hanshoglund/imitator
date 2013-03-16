@@ -467,18 +467,7 @@ count = accumR 0 . fmap (const succ)
 {-
 
 sample   :: Event a -> Reactive b -> Event b
-
-
-
-
-
-
-
 joinR    :: Reactive (Reactive a) -> Reactive a
-
-
-
-
 modify   :: Event (a -> a) -> Reactive a -> Reactive a
 set      :: Event a        -> Reactive a -> Reactive a
 -}
@@ -490,42 +479,37 @@ set      :: Event a        -> Reactive a -> Reactive a
 --
 run :: Event a -> IO ()
 run e = do
-    e' <- prepE e
-    runE e' >> return ()
+    f <- prepE e
+    runE f
+    return ()
 
 -- | 
 -- Run the given event for ever.
 --
 runLoop :: Event a -> IO ()
 runLoop e = do 
-    e' <- prepE e
-    runLoop' e'  
+    f <- prepE e
+    runLoop' f  
     where   
-        runLoop' ee = runE ee >> threadDelay loopInterval >> runLoop' ee
+        runLoop' g = do
+            runE g
+            threadDelay kLoopInterval >> runLoop' g
 
 -- | 
 -- Run the given event until the first @Just x@  occurence, then return @x@.
 --
 runLoopUntil :: Event (Maybe a) -> IO a
 runLoopUntil e = do 
-    e' <- prepE e
-    runLoop' e'  
+    f <- prepE e
+    runLoopUntil' f  
     where   
-        runLoop' ee = do
-            r <- runE ee
+        runLoopUntil' g = do
+            r <- runE g
             case (catMaybes r) of 
-                []    -> threadDelay loopInterval >> runLoop' ee
+                []    -> threadDelay kLoopInterval >> runLoopUntil' g
                 (a:_) -> return a
 
-loopInterval = 1000 * 1
-
-
-
-
-
-
-
-
+kLoopInterval = 1000 * 1
 
 
 
