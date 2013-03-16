@@ -212,63 +212,11 @@ gui = do
 main :: IO ()
 main = start gui
 
-
-type Source a = Event a
-type Sink a   = Event a -> Event a
-
-notify :: String -> Event a -> Event String
-notify m = putLineE . fmap (const m)
-
-showing :: Show a => String -> Event a -> Event String
-showing m = putLineE . fmap (\x -> m ++ show x)
-
-newSourceE :: IO (a -> IO (), Source a)
-newSourceE = do
-    ch <- newChan
-    return (writeChan ch, readChanE ch)
-
-newSinkE :: IO (IO (Maybe a), Sink a)
-newSinkE = do
-    ch <- newChan
-    return (tryReadChan ch, writeChanE ch)
-
 -- wxhaskell extra
 set' :: w -> Attr w a -> Maybe a -> IO ()
 set' widget prop x = case x of
     Just x  -> set widget [prop := x]
     Nothing -> return ()
-
-
-
-
-
-
--- mainE :: Event (Maybe Bool)
--- mainE = output `sequenceE` result
---     where
---         result       = fmap (\x -> if (x == "exit") then Just True else Nothing) getLineE
---         output       = putLineE $ twice
---         twice        = yourText "(original)" getLineE <> yourText "(reversed)" (fmap reverse getLineE)
---
---         yourText t = mergeWithE (++) (alwaysE $ "Your text " ++ t ++ ": ")
---
---
---
---
---
--- eventMain :: Event (Maybe Bool) -> IO ()
--- eventMain = eventMain' . (fmap . fmap) (\r -> if r then ExitSuccess else ExitFailure (-1))
---
--- eventMain' :: Event (Maybe ExitCode) -> IO ()
--- eventMain' e = do
---     code <- runLoopUntil e
---     exitWith code
-
--- midiIn :: Chan Midi
--- midiOut :: Chan Midi
--- guiIn :: Chan GuiActions
--- guiOut :: Chan GuiUpdates
--- engineOut :: Chan Command
 
 
 

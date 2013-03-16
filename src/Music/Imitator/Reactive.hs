@@ -38,7 +38,15 @@ module Music.Imitator.Reactive (
         getE,
         pollE,
         putE,
-        -- modifyE,                 
+        -- modifyE,
+        
+        -- ** Utility
+        Source,
+        Sink,
+        notify,
+        showing,
+        newSourceE,
+        newSinkE,        
 
         -- -- MidiSource,
         -- -- MidiDestination,
@@ -307,6 +315,7 @@ withPrevE e
         combineMaybes = uncurry (liftA2 (,))
 
 
+-------------------------------------------------------------------------------------
 
 -- |
 -- Event reading from external world.
@@ -349,6 +358,8 @@ putE k = ESink $ \x -> do
     k x
     return x
 
+-------------------------------------------------------------------------------------
+
 readChanE :: Chan a -> Event a
 readChanE = EChan
 
@@ -361,6 +372,40 @@ getLineE = getE getLine
 putLineE :: Event String -> Event String
 putLineE = putE putStrLn
 
+-------------------------------------------------------------------------------------
+
+type Source a = Event a
+type Sink a   = Event a -> Event a
+
+notify :: String -> Event a -> Event String
+notify m = putLineE . fmap (const m)
+
+showing :: Show a => String -> Event a -> Event String
+showing m = putLineE . fmap (\x -> m ++ show x)
+
+newSourceE :: IO (a -> IO (), Source a)
+newSourceE = do
+    ch <- newChan
+    return (writeChan ch, readChanE ch)
+
+newSinkE :: IO (IO (Maybe a), Sink a)
+newSinkE = do
+    ch <- newChan
+    return (tryReadChan ch, writeChanE ch)  
+
+
+{-
+
+TODO not sure about these
+
+eventMain :: Event (Maybe Bool) -> IO ()
+eventMain = eventMain' . (fmap . fmap) (\r -> if r then ExitSuccess else ExitFailure (-1))
+
+eventMain' :: Event (Maybe ExitCode) -> IO ()
+eventMain' e = do
+    code <- runLoopUntil e
+    exitWith code        
+-}
 
 -------------------------------------------------------------------------------------
 -- Reactive API
