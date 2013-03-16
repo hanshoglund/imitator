@@ -190,23 +190,20 @@ runE ENever          = return []
 runE (EMap f x)      = fmap (fmap f) (runE x)
 runE (EPred p x)     = fmap (filter p) (runE x)
 runE (EMerge a b)    = liftM2 (++) (runE a) (runE b)
--- runE (EMerge a b)    = do
-    -- a' <- runE a
-    -- b' <- runE b
-    -- return (a' ++ b')
-runE (ESource i)     = {-putStrLn "Read from source" >>-} i
+runE (ESource i)     = i
 runE (ESink o x)     = runE x >>= mapM o
 runE (ESeq a b)      = runE a >> runE b
 runE (ESamp r x)    = do
     r' <- runRS r
     x' <- runE x
-    -- return $ fmap (const r') x'
-    case x' of
-        [] -> return []
-        _  -> return [r']
+    return $ fmap (const r') x'
+    -- case x' of
+        -- [] -> return []
+        -- _  -> return [r']
 
 runRS :: Reactive a -> IO a
 runRS = fmap last . runR
+-- Note: last is safe as reactives (per definition) always have at least one value
 
 runR :: Reactive a -> IO [a]
 runR (RConst v)      = return [v]
@@ -217,8 +214,6 @@ runR (RStep v x)     = do
     swapVar v (last ys)
     return ys
 
--- FIXME problem if accumulator is run multiple times
--- Solution: variables must be duplicated just like queues
 runR (RAccum v x)   = do
     v' <- readVar v
     x' <- runE x
