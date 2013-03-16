@@ -139,17 +139,17 @@ prepE (ESeq a b)     = do
     return $ ESeq a' b'
 prepE (EMap f x)    = do
     x' <- prepE x
-    return $ EMap f x'
+    return $ EMap f x'
 prepE (EPred p x)    = do
     x' <- prepE x
-    return $ EPred p x'
+    return $ EPred p x'
 prepE (ESink k a)     = do
     a' <- prepE a
-    return $ ESink k a'
+    return $ ESink k a'
 prepE (ESamp r x)    = do
     r' <- prepR r
     x' <- prepE x
-    return $ ESamp r' x'
+    return $ ESamp r' x'
 prepE (EChan ch)      = do
     ch' <- prepC ch
     return $ ESource ch' 
@@ -392,7 +392,7 @@ modify   :: Event (a -> a) -> Reactive a -> Reactive a
 set      :: Event a        -> Reactive a -> Reactive a
 -}
 
-
+       
 -------------------------------------------------------------------------------------
 -- Lifting IO etc
 -------------------------------------------------------------------------------------
