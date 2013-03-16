@@ -188,7 +188,7 @@ gui = do
         -- <> (continueE $ showing "gain:          "    $ sample gainR  stopE)
         -- <> (continueE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
         <> (continueE $ showing "Start clicks: "     $ startClicksE)
-        <> (continueE $ showing "Prev start clicks: " $ delaynE 3 startClicksE)
+        <> (continueE $ showing "Prev start clicks: " $ delayE 3 startClicksE)
 
         -- <> (continueE $ showing "Start + stop clicks: " $ apply (fmap (+) startClicksR) stopClicksE)
 

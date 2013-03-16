@@ -23,8 +23,8 @@ module Music.Imitator.Reactive (
         justE,
 
         -- ** Accumulated events
+        prevE,
         delayE,
-        delaynE,
         bufferE,
         withPrevE,
         accumE,
@@ -403,17 +403,17 @@ countE = accumE 0 . fmap (const succ)
 -- |
 -- Delay by a single value.
 --
-delayE :: Event a -> Event a
-delayE = fmap snd . withPrevE
+prevE :: Event a -> Event a
+prevE = fmap snd . withPrevE
 
 -- |
 -- Delay by @n@ values.
 --
-delaynE :: Int -> Event a -> Event a
-delaynE n = foldr (.) id (replicate n delayE)
+delayE :: Int -> Event a -> Event a
+delayE n = foldr (.) id (replicate n prevE)
 
 bufferE :: Int -> Event a -> Event [a]
-bufferE n = foldpE (\x xs -> take n $ x:xs) []
+bufferE n = foldpE (\x xs -> x : take (n-1) xs) []
 
 -- |
 -- Pack with previous value.
