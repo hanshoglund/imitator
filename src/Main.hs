@@ -179,7 +179,7 @@ gui = do
         continueE = fmap (const Nothing)
 
     -- TODO split into something run by a timer
-    eventLoop <- return $ runLoopUntil $ neverE
+    eventLoop <- return $ runLoopUntil $ mempty
         -- <> (continueE $ notify "Foo" $ mempty)
         -- <> (continueE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
         -- <> (continueE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
@@ -187,8 +187,10 @@ gui = do
         -- <> (continueE $ showing "tempo:         "    $ sample tempoR startE)
         -- <> (continueE $ showing "gain:          "    $ sample gainR  stopE)
         -- <> (continueE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
-        <> (continueE $ showing "Start clicks: "     $ startClicksE)
+        <> (continueE $ showing "Start clicks: "      $ startClicksE)
         <> (continueE $ showing "Prev start clicks: " $ delayE 3 startClicksE)
+        <> (continueE $ showing "Buffered clicks: "   $ bufferE 10 startClicksE)
+        <> (continueE $ showing "Gathered clicks: "   $ gatherE 10 startClicksE)
 
         -- <> (continueE $ showing "Start + stop clicks: " $ apply (fmap (+) startClicksR) stopClicksE)
 

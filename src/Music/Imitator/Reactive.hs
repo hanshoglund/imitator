@@ -7,17 +7,22 @@ module Music.Imitator.Reactive (
         Event,
 
         -- ** Basic combinators
-        neverE,
-        mergeE,
-        eitherE,
+        -- never,
+        -- mergeE,
         seqE,
+        eitherE,
+        apply,
+        sample,
+        snapshot,
+        snapshotWith,
+        gate,
 
         -- ** Change value of events
-        mapE,
+        -- mapE,
+        splitE,
         filterE,
         retainE,
         partitionE,
-        splitE,
         concatE,
         justE,
         -- tickE,
@@ -26,18 +31,19 @@ module Music.Imitator.Reactive (
         prevE,
         delayE,
         bufferE,
+        gatherE,
         -- withPrevE,
         -- withPrevEWith,
 
         accumE,
         foldpE,
         scanlE,
-        monoidE,
-        sumE,
-        productE,
-        allE,
-        anyE,
         countE,
+        monoidE,
+        -- sumE,
+        -- productE,
+        -- allE,
+        -- anyE,
 
         -- -- MidiSource,
         -- -- MidiDestination,
@@ -54,12 +60,7 @@ module Music.Imitator.Reactive (
         stepper,
         switcher,
         activate,
-        apply,
-        sample,
-        snapshot,
         bothR,
-        countR,
-        gate,
         onR,
         offR,
         toggleR,
@@ -69,12 +70,12 @@ module Music.Imitator.Reactive (
         foldpR,
         scanlR,
         monoidR,
-        -- liftMonoidR,
-        sumR,
-        productR,
-        allR,
-        anyR,
         countR,
+        -- liftMonoidR,
+        -- sumR,
+        -- productR,
+        -- allR,
+        -- anyR,
 
         -- ** Special accumulators
         mapAccum,
@@ -282,31 +283,31 @@ instance Monoid (Event a) where
 
 
 -- |
--- The empty event, semantically @[]@.
+-- The empty event.
 --
-neverE :: Event a
-neverE = mempty
+never :: Event a
+never = mempty
 
 -- |
--- Interleave values, semantically @merge xs ys@.
+-- Interleave values.
 --
 mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
 -- |
--- Interleave values of different types. See also 'bothR'.
+-- Interleave values of different types. See also 'bothR'
 --
 eitherE :: Event a -> Event b -> Event (Either a b)
 a `eitherE` b = fmap Left a `mergeE` fmap Right b
 
 -- |
--- Run both and behave as the second event, sematically @a `seq` b@.
+-- Run both and behave as the second event.
 --
 seqE :: Event a -> Event b -> Event b
 seqE = ESeq
 
 -- |
--- Map over values, semantically @f \<$> xs@.
+-- Map over values (synonym for @f \<$> xs@).
 mapE :: (a -> b) -> Event a -> Event b
 mapE = (<$>)
 
@@ -436,10 +437,24 @@ delayE n = foldr (.) id (replicate n prevE)
 -- |
 -- Buffer up to /n/ values. When the buffer is full, old elements will be rotated out.
 --
--- > gather n e = [[e1],[e1,e2]..[e1..en],[e2..en+1]..]
+-- > bufferE n e = [[e1],[e1,e2]..[e1..en],[e2..en+1]..]
 --
 bufferE :: Int -> Event a -> Event [a]
-bufferE n = foldpE (\x xs -> x : take (n-1) xs) []
+bufferE n = foldpE g []
+    where
+        g x xs = x : take (n-1) xs
+
+-- |
+-- Gather event values into chunks of regular size.
+--
+-- > gatherE n e = [[e1..en],[en+1..e2n]..]
+--
+gatherE :: Int -> Event a -> Event [a]
+gatherE n = filterE (\xs -> length xs == n) . foldpE g []
+    where
+        g x xs | length xs <  n  =  x : xs
+               | length xs == n  =  x : []
+               | otherwise       = error "gatherE: Wrong length"
 
 -- |
 -- Pack with previous value.
@@ -494,15 +509,18 @@ instance Functor Reactive where
     fmap f = (pure f <*>)
 
 instance Applicative Reactive where
-    pure x = stepper x neverE 
+    pure x = x `stepper` never 
     (<*>) = RApply
 
 instance Monad Reactive where
     return  = pure
     x >>= k = (RJoin . fmap k) x
 
-constR :: a -> Reactive a
-constR = pure
+-- |
+-- A non-reactive reactive.
+--
+alwaysR :: a -> Reactive a
+alwaysR = pure
 
 -- |
 -- Step between values.
@@ -525,28 +543,37 @@ r `switcher` e = join (r `stepper` e)
 -- | 
 -- Apply the values of an event to a time-varying function.
 --
--- > r `apply` e = uncurry ($) <$> (r `snapshot` e)
+-- > r `apply` e = r `snapshotWith ($)` e
 -- 
 apply :: Reactive (a -> b) -> Event a -> Event b
-apply r e = (uncurry ($)) <$> snapshot r e
+r `apply` e = r `o` e where o = snapshotWith ($)
 
 -- |
--- Sample value of reactive.
+-- Sample a time-varying value.
 --
--- > r `sample` e = (const <$> r) `apply` e
+-- > r `sample` e = (const <$> r) `apply` e 
 --
 sample :: Reactive b -> Event a -> Event b
 sample = ESamp
 
 -- |
--- Sample value of reactive with the value of the trigger.
+-- Sample a time-varying value with the value of the trigger.
 --
 -- > r `snapshot` e = ((,) <$> r) `apply` e
 --
-snapshot :: Reactive b -> Event a -> Event (b, a)
-snapshot r e = sample (liftA2 (,) r (eventToReactive e)) e
+snapshot :: Reactive a -> Event b -> Event (a, b)
+snapshot = snapshotWith (,)
+
+-- |
+-- Sample a time-varying value with the value of the trigger.
+--
+-- > r `snapshotWith f` e = (f <$> r) `apply` e
+--
+snapshotWith :: (a -> b -> c) -> Reactive a -> Event b -> Event c
+snapshotWith f r e = sample (liftA2 f r (eventToReactive e)) e
     where
         eventToReactive = stepper (error "Partial reactive")
+
 
 -- |
 -- Combine reactives. See also 'eitherE'.
