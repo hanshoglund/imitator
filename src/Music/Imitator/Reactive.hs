@@ -415,6 +415,8 @@ delayE n = foldr (.) id (replicate n prevE)
 bufferE :: Int -> Event a -> Event [a]
 bufferE n = foldpE (\x xs -> x : take (n-1) xs) []
 
+--Ord t => (t, a) -> Event t -> Event [a]
+
 -- |
 -- Pack with previous value.
 --

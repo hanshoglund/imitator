@@ -465,13 +465,13 @@ asyncStd msg = do
     fd <- kStdServer
     S.async fd msg
 
-newBuffer :: Int -> Int -> Int -> IO ()
+newBuffer :: Int -> Int -> Int -> Message
 newBuffer = undefined
 
-readBuffer :: Int -> String -> Int -> Int -> IO ()
+readBuffer :: Int -> String -> Int -> Int -> Message
 readBuffer = undefined
 
-closeBuffer :: Int -> IO ()
+closeBuffer :: Int -> Message
 closeBuffer = undefined
 
 
