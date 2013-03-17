@@ -190,8 +190,8 @@ gui = do
 
         -- --------------------------------------------------------
         
-        duration   = (5*60)                               
-        tempo      = 1 {-tempoR-} -- TODO need transport to accumulate...
+        duration   = (1*60)                               
+        tempo      = {-1-} tempoR -- TODO need transport to accumulate...
         
         -- from 0 to 1 througout the piece
         position   = (controlE `transport` (timeR * tempo)) / duration

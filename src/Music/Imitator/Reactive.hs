@@ -57,10 +57,19 @@ module Music.Imitator.Reactive (
         countR,
         monoidE,
         monoidR,
-        -- sumE,
-        -- productE,
-        -- allE,
-        -- anyE,
+        sumE,
+        productE,
+        allE,
+        anyE,
+        sumR,
+        productR,
+        allR,
+        anyR,    
+        
+        -- *** Integral
+        time,
+        diffE,
+        integral,
                    
         -- * Toggles and switches
         tickE,
@@ -813,6 +822,16 @@ offR = fmap not . onR
 toggleR :: Event a -> Reactive Bool
 toggleR = fmap odd . countR
 
+time :: Fractional a => Reactive a
+time = accumR 0 ((+ kPulseInterval) <$ pulseE kPulseInterval)
+
+diffE :: Num a => Event a -> Event a
+diffE = recallEWith $ flip (-)
+
+integral :: Fractional b => Event a -> Reactive b -> Reactive b
+integral t b = sumR (snapshotWith (*) b (diffE (time `sample` t)))
+
+
 -- | 
 -- Efficient combination of 'accumE' and 'accumR'.
 -- 
@@ -851,6 +870,9 @@ transport ctrl time = position
         position = startPos + speed * (time - startTime)
 
 
+-- integral :: Num a => Reactive a -> a -> Reactive a
+
+
 (<$$>) = flip fmap
 
 -- |
@@ -871,7 +893,7 @@ record t x = foldpR append [] (t `snapshot` x)
 playback :: Ord t => Reactive t -> Reactive [(t,a)] -> Event a
 playback t s = scatterE $ fmap snd <$> (t `sample` p) `playback'` s
     where
-        p = pulseE (1/100)
+        p = pulseE kPulseInterval
 
 -- |
 -- Play back a list of values.
@@ -1080,7 +1102,7 @@ runEvent :: Show a => Event a -> IO ()
 runEvent = runLoop . showing ""
 
 runReactive :: Show a => Reactive a -> IO ()
-runReactive r = runEvent (r `sample` pulseE 1)
+runReactive r = runEvent (r `sample` pulseE (1/20))
 
 
 -------------------------------------------------------------------------------------
@@ -1136,3 +1158,6 @@ fromRight (Right b) = Just b
 noFun = noOverloading "Reactive"
 noOverloading ty meth = error $ meth ++ ": No overloading for " ++ ty
 
+
+kPulseInterval :: Fractional a => a
+kPulseInterval = (1/100)
