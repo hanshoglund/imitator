@@ -839,6 +839,7 @@ data Transport t
 transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t -> Reactive t
 transport ctrl time = position
     where
+        -- FIXME does not retain start position at the moment
         -- startPos  = sampleAndHold position ctrl        
         startPos  = 0
         startTime = sampleAndHold time ctrl        
@@ -848,14 +849,6 @@ transport ctrl time = position
             Reverse  -> (-1)
             Pause    -> 0
         position = startPos + speed * (time - startTime)
-        -- position  = startPos + speed * (time - startTime)
-
-    
-    -- where
-    --     g Play      (speed,pos) = (1,     pos + speed)
-    --     g Reverse   (speed,pos) = (-1,    pos + speed)
-    --     g Pause     (speed,pos) = (0,     pos + speed)
-    --     g (Seek sk) (speed,pos) = (speed, sk)
 
 
 (<$$>) = flip fmap

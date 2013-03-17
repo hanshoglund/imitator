@@ -169,9 +169,9 @@ gui = do
         tempoE  = widgetSources "tempo"
         gainE   = widgetSources "gain"
         volumeE = widgetSources "volume"        
-        tempoR      = stepper 0 tempoE
-        gainR       = stepper 0 gainE
-        volumeR     = stepper 0 volumeE
+        tempoR      = 0 `stepper` tempoE
+        gainR       = 0 `stepper` gainE
+        volumeR     = 0 `stepper` volumeE
 
         transportS  = widgetSinks "transport"
 
@@ -182,16 +182,19 @@ gui = do
 
         clickRecR = record timeR startClicksE
 
-
-        transportR = transport (Play <$ startE)
-
+        controlE   = (Play <$ startE) <> (Pause <$ stopE) <> (Reverse <$ resumeE)
+        transportR = transport controlE timeR
+        
 
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         -- <> (continue $ showing "Recorded clicks: " $ clickRecR `sample` pulseE 1)
 
-        <> (continue $ showing "Transport" $ transportR `sample` pulseE 1)
-
+        -- <> (continue $ showing "Control:   " $ controlE)
+        <> (continue $ showing "Transport: " $ transportR `sample` pulseE 1)
+        -- <> (continue $ showing "Sampled system time: " $ (timeR `sampleAndHold` stopE) `sample` pulseE 1)
+        
+        <> (continue $ transportS $ round <$> (transportR * (100.1)) `sample` pulseE 0.1)
 
 
 
