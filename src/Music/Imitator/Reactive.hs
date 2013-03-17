@@ -1,5 +1,5 @@
 
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GADTs, TypeFamilies #-}
 
 module Music.Imitator.Reactive (
 
@@ -130,6 +130,7 @@ import Data.Time
 import Data.Monoid  
 import Data.Maybe
 import Data.Either
+import Data.VectorSpace hiding (Sum, getSum)
 import Control.Monad
 import Control.Applicative
 import Control.Newtype
@@ -581,6 +582,77 @@ instance Monad Reactive where
     return  = pure
     x >>= k = (RJoin . fmap k) x
 
+instance Eq (Reactive b) where
+    (==) = noFun "(==)"
+    (/=) = noFun "(/=)"
+
+instance Ord b => Ord (Reactive b) where
+    min = liftA2 min
+    max = liftA2 max
+
+instance Enum a => Enum (Reactive a) where
+    succ           = fmap succ
+    pred           = fmap pred
+    toEnum         = pure . toEnum
+    fromEnum       = noFun "fromEnum"
+    enumFrom       = noFun "enumFrom"
+    enumFromThen   = noFun "enumFromThen"
+    enumFromTo     = noFun "enumFromTo"
+    enumFromThenTo = noFun "enumFromThenTo"
+
+instance Num a => Num (Reactive a) where
+    (+)         = liftA2 (+)
+    (*)         = liftA2 (*)
+    (-)         = liftA2 (-)
+    abs         = fmap abs
+    signum      = fmap signum
+    fromInteger = pure . fromInteger
+
+instance (Num a, Ord a) => Real (Reactive a) where
+  toRational = noFun "toRational"
+
+instance Integral a => Integral (Reactive a) where
+    quot      = liftA2 quot
+    rem       = liftA2 rem
+    div       = liftA2 div
+    mod       = liftA2 mod
+    -- quotRem   = (fmap.fmap) unzip (liftA2 quotRem)
+    -- divMod    = (fmap.fmap) unzip (liftA2 divMod)
+    quotRem   = noFun "quotRem"
+    divMod    = noFun "divMod"
+    toInteger = noFun "toInteger"
+
+instance Fractional b => Fractional (Reactive b) where
+  recip        = fmap recip
+  fromRational = pure . fromRational
+
+instance Floating b => Floating (Reactive b) where
+  pi    = pure pi
+  sqrt  = fmap sqrt
+  exp   = fmap exp
+  log   = fmap log
+  sin   = fmap sin
+  cos   = fmap cos
+  asin  = fmap asin
+  atan  = fmap atan
+  acos  = fmap acos
+  sinh  = fmap sinh
+  cosh  = fmap cosh
+  asinh = fmap asinh
+  atanh = fmap atanh
+  acosh = fmap acosh
+
+
+instance AdditiveGroup v => AdditiveGroup (Reactive v) where
+    zeroV   = pure   zeroV
+    (^+^)   = liftA2 (^+^)
+    negateV = liftA   negateV
+
+instance VectorSpace v => VectorSpace (Reactive v) where
+    type Scalar (Reactive v) = Scalar v
+    (*^) s = fmap (s *^)
+    
+
 -- |
 -- A non-reactive reactive.
 --
@@ -751,13 +823,23 @@ data Transport t
 --
 -- > transport controller clock
 --
-transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t
-transport ctrl = fmap snd . foldpR g (0,0) $ ctrl
+transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t -> Reactive t
+transport ctrl time = undefined
     where
-        g Play      (speed,pos) = (1,     pos + speed)
-        g Reverse   (speed,pos) = (-1,    pos + speed)
-        g Pause     (speed,pos) = (0,     pos + speed)
-        g (Seek sk) (speed,pos) = (speed, sk)
+        startPos  = pure 0 :: Reactive Double
+        startTime = pure 0 :: Reactive Double
+        speed     = pure 0 :: Reactive Double
+        time      = pure 0 :: Reactive Double
+        
+        -- pos = startPos + speed * (time - startTime)
+
+    
+    -- where
+    --     g Play      (speed,pos) = (1,     pos + speed)
+    --     g Reverse   (speed,pos) = (-1,    pos + speed)
+    --     g Pause     (speed,pos) = (0,     pos + speed)
+    --     g (Seek sk) (speed,pos) = (speed, sk)
+
 
 
 -- |
@@ -776,9 +858,9 @@ record t x = foldpR append [] (t `snapshot` x)
 -- use 'playback'' instead.
 -- 
 playback :: Ord t => Reactive t -> Reactive [(t,a)] -> Event a
-playback t s = scatterE $ fmap snd <$> t' `playback'` s
+playback t s = scatterE $ fmap snd <$> (t `sample` p) `playback'` s
     where
-        t' = t `sample` pulseE (1/100)
+        p = pulseE (1/100)
 
 -- |
 -- Play back a list of values.
@@ -1038,4 +1120,6 @@ fromLeft  (Right b) = Nothing
 fromRight (Left  a) = Nothing
 fromRight (Right b) = Just b                         
 
+noFun = noOverloading "Reactive"
+noOverloading ty meth = error $ meth ++ ": No overloading for " ++ ty
 
