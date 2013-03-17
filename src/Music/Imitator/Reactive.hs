@@ -699,20 +699,17 @@ mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
 
 
 
-
-withTime :: Ord t => Reactive t -> Event a -> Event (t, a)
-withTime = snapshot
-
-
-
 record :: Ord t => Reactive t -> Event a -> Reactive [(t, a)]
 record t x = foldpR (\(t,x) xs -> xs++[(t,x)]) [] (snapshot t x)
 
-playback :: Ord t => [(t,a)] -> Event t -> Event a
-playback s t = scatterE $ fmap snd <$> (flip filterDue $ s) <$> withPrevE t
-    where
-        filterDue :: Ord t => (t,t) -> [(t,a)] -> [(t,a)]
-        filterDue (x,y) = filter (\(t,_) -> x < t && t <= y)
+playback :: Ord t => Reactive [(t,a)] -> Event t -> Event a
+playback s t = scatterE $ fmap snd <$> cursor s t
+    where                             
+        -- cursor :: Ord t => Reactive [(t,a)] -> Event t -> Event [(a,t)]
+        cursor s = snapshotWith (flip occs) s . withPrevE
+
+        -- occs :: Ord t => (t,t) -> [(a,t)] -> [(a,t)]
+        occs (x,y) = filter (\(t,_) -> x < t && t <= y)
 
 
 -- \
