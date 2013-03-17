@@ -160,44 +160,47 @@ gui = do
 
     let 
         timeR :: Reactive Double
-        timeR        = accumR 0 ((+ 0.05) <$ pulseE 0.05)
+        timeR = accumR 0 ((+ 0.05) <$ pulseE 0.05)
 
         startE, stopE, pauseE, resumeE :: Event ()
-        startE      = tickE $ widgetSources "start"
-        stopE       = tickE $ widgetSources "stop"
-        pauseE      = tickE $ widgetSources "pause"
-        resumeE     = tickE $ widgetSources "resume"
+        startE  = tickE $ widgetSources "start"
+        stopE   = tickE $ widgetSources "stop"
+        pauseE  = tickE $ widgetSources "pause"
+        resumeE = tickE $ widgetSources "resume"
 
         tempoR, gainR, volumeR :: Reactive Double
-        tempoR      = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
-        gainR       = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
-        volumeR     = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
-
-        controlE :: Event (Transport Double)
-        controlE   = (Play <$ startE) <> (Pause <$ stopE)
+        tempoR  = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
+        gainR   = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
+        volumeR = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
 
         transportS :: Sink Int
         transportS = widgetSinks "transport"
+        
         gainS :: Sink Int
         gainS = widgetSinks "gain"
 
-        writeGain x      = gainS $ (round <$> x * 1000.0) `sample` pulseE 0.1
-        writeTransport x = transportS $ (round <$> x * 1000.0) `sample` pulseE 0.1
+        
+
+        controlE :: Event (Transport Double)
+        controlE = (Play <$ startE) <> (Pause <$ stopE)
+
+        writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulseE 0.1
+        writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulseE 0.1
+        -- TODO write server status etc
 
         -- --------------------------------------------------------
         
-        tempo = 1/(5*60)
-        transportR = controlE `transport` timeR * tempo
+        duration   = (5*60)                               
+        tempo      = 1 {-tempoR-} -- TODO need transport to accumulate...
         
+        -- from 0 to 1 througout the piece
+        position   = (controlE `transport` (timeR * tempo)) / duration
+
         
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        -- <> (continue $ showing "Tempo:   " $ tempoR `sample` pulseE 1)
-        -- <> (continue $ showing "Control:   " $ controlE)
-        -- <> (continue $ showing "Transport: " $ transportR `sample` pulseE 1)        
-        <> (continue $ writeTransport transportR)
+        <> (continue $ writeTransport position)
         <> (continue $ writeGain 0.5)
-
 
 
     -- --------------------------------------------------------
