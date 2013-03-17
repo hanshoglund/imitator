@@ -67,8 +67,11 @@ module Music.Imitator.Reactive (
         toggleR, 
 
         -- * Recording and playback
+        Transport(..),
+        transport,
         record,
         playback,
+        playback',
 
         -- * Special functions
         seqE,
@@ -376,6 +379,8 @@ replaceE x = (x <$)
 
 -- |
 -- Throw away values of the event.
+--
+-- This is of course just @() <$ x@ but it is useful to fix the type in some cases.
 --
 tickE :: Event a -> Event ()
 tickE = replaceE ()
@@ -698,12 +703,44 @@ mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
         e = accumE (undefined,acc) ((. snd) <$> ef)
 
 
+data Transport t 
+    = Play      -- ^ Play from the current position.
+    | Reverse   -- ^ Play in reverse from the current position.
+    | Pause     -- ^ Stop playing, and retain current position.
+    | Seek t    -- ^ Set current position.
 
+
+-- |
+-- Generates a cursor that moves forward or backward continously, with a speed of one per second.
+--
+-- The cursor may be started, stopped, moved by sending a 'Transport' event.
+--
+transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t
+transport = undefined
+-- transport t = foldp g (0,0)
+--     where
+--         g Start (speed,pos) = (1,pos)
+
+
+-- |
+-- Record a list of values.
+--
 record :: Ord t => Reactive t -> Event a -> Reactive [(t, a)]
 record t x = foldpR (\(t,x) xs -> xs++[(t,x)]) [] (snapshot t x)
 
-playback :: Ord t => Reactive [(t,a)] -> Event t -> Event a
-playback s t = scatterE $ fmap snd <$> cursor s t
+-- |
+-- Play back a list of values.
+-- 
+playback :: Ord t => Reactive t -> Reactive [(t,a)] -> Event a
+playback t s = t' `playback'` s
+    where
+        t' = t `sample` pulseE (1/100)
+
+-- |
+-- Play back a list of values.
+-- 
+playback' :: Ord t => Event t -> Reactive [(t,a)] -> Event a
+playback' t s = scatterE $ fmap snd <$> cursor s t
     where                             
         -- cursor :: Ord t => Reactive [(t,a)] -> Event t -> Event [(a,t)]
         cursor s = snapshotWith (flip occs) s . withPrevE
