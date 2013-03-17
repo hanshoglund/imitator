@@ -716,10 +716,12 @@ data Transport t
 -- The cursor may be started, stopped, moved by sending a 'Transport' event.
 --
 transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t
-transport = undefined
--- transport t = foldp g (0,0)
---     where
---         g Start (speed,pos) = (1,pos)
+transport = fmap snd . foldpR g (0,0)
+    where
+        g Play      (speed,pos) = (1,     pos + speed)
+        g Reverse   (speed,pos) = (-1,    pos + speed)
+        g Pause     (speed,pos) = (0,     pos + speed)
+        g (Seek sk) (speed,pos) = (speed, sk)
 
 
 -- |
