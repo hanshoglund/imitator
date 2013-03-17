@@ -27,7 +27,8 @@ library
         hosc,
         hsc3,
         semigroups,
-        semigroupoids
+        semigroupoids,
+        vector-space
 
     hs-source-dirs: src
     exposed-modules:
