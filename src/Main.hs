@@ -158,68 +158,51 @@ gui = do
     (widgetSources, widgetSinks) <- addWidgets frame
     (timerSources,  timerSinks)  <- addTimers frame
 
-
     let 
+        timeR        = accumR 0 ((+ 0.05) <$ pulseE 0.05)
+        
         startE  = widgetSources "start"
         stopE   = widgetSources "stop"
         pauseE  = widgetSources "pause"
+        resumeE = widgetSources "resume"
+        
         tempoE  = widgetSources "tempo"
         gainE   = widgetSources "gain"
-        
-        transportS  = widgetSinks "transport"
+        volumeE = widgetSources "volume"        
         tempoR      = stepper 0 tempoE
         gainR       = stepper 0 gainE
+        volumeR     = stepper 0 volumeE
+
+        transportS  = widgetSinks "transport"
 
         startClicksR = accumR 0 (fmap (const (+ 1)) startE)
         startClicksE = accumE 0 (fmap (const (+ 1)) startE)
         stopClicksR  = accumR 0 (fmap (const (+ 1)) stopE)
         stopClicksE  = accumE 0 (fmap (const (+ 1)) stopE)
 
-        timeR        = accumR 0 ((+ 0.05) <$ pulseE 0.05)
-        
-        continueE = fmap (const Nothing)
+        clickRecR = record timeR startClicksE
 
-    -- TODO split into something run by a timer
+
+        transportR = transport (Play <$ startE)
+
+
+    -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        -- <> (continueE $ notify "Foo" $ mempty)
-        -- <> (continueE $ notify "Bar" $ mempty <> mempty <> startE <> mempty <> mempty)
-        -- <> (continueE $ notify "Baz" $ (startE <> mempty) <> (mempty <> pauseE))
+        -- <> (continue $ showing "Recorded clicks: " $ clickRecR `sample` pulseE 1)
 
-        -- <> (continueE $ showing "tempo:         "    $ sample tempoR startE)
-        -- <> (continueE $ showing "gain:          "    $ sample gainR  stopE)
-        -- <> (continueE $ showing "tempo + gain:  "    $ sample (liftA2 (+) tempoR gainR) pauseE)
-        -- <> (continueE $ showing "Start clicks: "      $ startClicksE)
-        -- <> (continueE $ showing "Prev start clicks: " $ delayE 3 startClicksE)
-        -- <> (continueE $ showing "Buffered clicks: "   $ bufferE 10 startClicksE)
-        -- <> (continueE $ showing "Gathered clicks: "   $ gatherE 10 startClicksE)
-        <> (continueE $ showing "Recorded clicks: "    $ record timeR startClicksE `sample` startClicksE)
+        <> (continue $ showing "Transport" $ transportR `sample` pulseE 1)
 
 
-        -- <> (continueE $ showing "Start + stop clicks: " $ apply (fmap (+) startClicksR) stopClicksE)
-
-        -- <> (continueE $ showing "(tempo+gain, startClicks): " $ sampleWith (liftA2 (+) tempoR gainR) startClicksE)
 
 
-        -- <> (continueE $ transportS $ fmap (* 10) $ startClicksE)
-        -- <> (continueE $ filterE (> 20) startClicksE)
 
-        -- <> (continueE $ notify "Start was pressed"   $ widgetSources "start")
-        -- <> (continueE $ notify "Stop was pressed"    $ widgetSources "stop")
-        -- <> (continueE $ notify "Pause was pressed"   $ widgetSources "pause")
-        -- <> (continueE $ notify "Resume was pressed"  $ widgetSources "resume")
-        -- <> (continueE $ showing "Tempo is now: "     $ widgetSources "tempo")
-        -- <> (continueE $ showing "Gain is now: "     $ widgetSources "gain")
-        -- <> (continueE $ showing "Volume is now: "     $ widgetSources "volume")
-
-        -- <> (continueE $ showing "Tempo + Gain: "     $ liftA2 (+) (widgetSources "tempo") (widgetSources "gain"))
-
-
-        -- <> (continueE $ showing "Entered text reversed: " $ fmap reverse $ getLineE)
-        -- <> (continueE $ widgetSinks "tempo" $ fmap (const 500)     $ widgetSources "stop")
-        -- <> (continueE $ widgetSinks "transport" $ widgetSources "volume")
-
+    -- --------------------------------------------------------
     forkIO eventLoop
     return ()
+
+
+
+
 
 main :: IO ()
 main = start gui
@@ -230,12 +213,5 @@ set' widget prop x = case x of
     Just x  -> set widget [prop := x]
     Nothing -> return ()
 
-
-
-
-
-
-
-
-
-
+continue :: Event a -> Event (Maybe b)
+continue     = (Nothing <$)
