@@ -1,5 +1,5 @@
 
-{-# LANGUAGE GADTs, TypeFamilies #-}
+{-# LANGUAGE GADTs, TypeFamilies, ScopedTypeVariables #-}
 
 module Music.Imitator.Reactive (
 
@@ -20,6 +20,7 @@ module Music.Imitator.Reactive (
         sample,
         snapshot,
         snapshotWith,
+        sampleAndHold,
 
         -- * Merging and splitting values
         splitE,
@@ -121,7 +122,8 @@ module Music.Imitator.Reactive (
         newSink,        
         notify,
         showing,
-        runEvent
+        runEvent,
+        runReactive
   ) where
 
 import Prelude hiding (mapM)
@@ -240,7 +242,11 @@ prepR (RApply f x) = do
 prepR (RJoin r) = do
     r' <- prepR r
     return $ RJoin r'
+    -- r'' <- prepR r'
+    -- return $ RJoin r''
+
 -- prepR x = return x
+
 
 prepC :: Chan a -> IO (IO [a])
 prepC ch = do
@@ -292,8 +298,10 @@ runR (RApply f x)   = do
     -- putStrLn $ "Number of f <*> x in apply: " ++ show (length (f' <*> x'))
     return (f' <*> x')
 runR (RJoin r)   = do
-    r' <- runRS r       -- correct ?
-    runR r'
+    -- Note we need an extra prepare here is the subnetwork is switched in
+    r' <- runRS r
+    r_ <- prepR r'
+    runR r_
 
 
 -------------------------------------------------------------------------------------
@@ -675,7 +683,8 @@ activate e = Nothing `stepper` fmap Just e
 -- Switch between time-varying values.
 --
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
-r `switcher` e = join (r `stepper` e)
+-- r `switcher` e = join (r `stepper` e)
+r `switcher` e = RJoin (r `stepper` e)
 
 -- | 
 -- Apply the values of an event to a time-varying function.
@@ -712,6 +721,10 @@ snapshotWith f r e = sample (liftA2 f r (eventToReactive e)) e
 
 -- Internal unsafe thing...
 eventToReactive = stepper (error "Partial reactive")
+
+sampleAndHold :: Reactive b -> Event a -> Reactive b
+sampleAndHold r e = r `switcher` (pure <$> r `sample` e) 
+
 
 -- | 
 -- Filter an event based on a time-varying predicate.
@@ -813,8 +826,8 @@ data Transport t
     = Play      -- ^ Play from the current position.
     | Reverse   -- ^ Play in reverse from the current position.
     | Pause     -- ^ Stop playing, and retain current position.
-    | Seek t    -- ^ Set current position.
-
+--    | Seek t    -- ^ Set current position.
+    deriving (Eq, Ord, Show)
 
 -- |
 -- Generates a cursor that moves forward or backward continously, with a speed of one per second.
@@ -824,14 +837,18 @@ data Transport t
 -- > transport controller clock
 --
 transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t -> Reactive t
-transport ctrl time = undefined
+transport ctrl time = position
     where
-        startPos  = pure 0 :: Reactive Double
-        startTime = pure 0 :: Reactive Double
-        speed     = pure 0 :: Reactive Double
-        time      = pure 0 :: Reactive Double
-        
-        -- pos = startPos + speed * (time - startTime)
+        -- startPos  = sampleAndHold position ctrl        
+        startPos  = 0
+        startTime = sampleAndHold time ctrl        
+        action    = Pause `stepper` ctrl
+        speed     = action <$$> \a -> case a of
+            Play     -> 1
+            Reverse  -> (-1)
+            Pause    -> 0
+        position = startPos + speed * (time - startTime)
+        -- position  = startPos + speed * (time - startTime)
 
     
     -- where
@@ -841,6 +858,7 @@ transport ctrl time = undefined
     --     g (Seek sk) (speed,pos) = (speed, sk)
 
 
+(<$$>) = flip fmap
 
 -- |
 -- Record a list of values.
@@ -1068,6 +1086,8 @@ newSink = do
 runEvent :: Show a => Event a -> IO ()
 runEvent = runLoop . showing ""
 
+runReactive :: Show a => Reactive a -> IO ()
+runReactive r = runEvent (r `sample` pulseE 1)
 
 
 -------------------------------------------------------------------------------------
