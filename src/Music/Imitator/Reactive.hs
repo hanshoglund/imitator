@@ -15,29 +15,30 @@ module Music.Imitator.Reactive (
         
         -- ** Reactive to event
         apply,
+        filter',
+        gate,
         sample,
         snapshot,
         snapshotWith,
-        select,
-        gate,
 
         -- * Merging and splitting values
-        combineE,
         splitE,
-        zipR,
-        unzipR,
+        eitherE,
         filterE,
         retainE,
         partitionE,
+        -- zipR,
+        -- unzipR,
 
         -- * Buffering events
-        justE,
+        lastE,
+        delayE,
         bufferE,
         gatherE,
         scatterE,
-        prevE,
-        delayE,
-        withPrevE,
+        justE,
+        recallE,
+        recallEWith,
 
         -- ** Accumulators
         accumE,
@@ -66,7 +67,7 @@ module Music.Imitator.Reactive (
         offR,
         toggleR, 
 
-        -- * Recording and playback
+        -- * Record and playback
         Transport(..),
         transport,
         record,
@@ -155,6 +156,11 @@ import Music.Imitator.Reactive.Var
 -- Primitives
 -------------------------------------------------------------------------------------
 
+-- | 
+-- A stream of values.
+--
+-- > type Event a = Time -> Duration -> [a]
+-- 
 data Event a where
     ENever  ::                             Event a
     
@@ -170,6 +176,11 @@ data Event a where
 
     ESamp  :: Reactive a   -> Event b   -> Event a
 
+-- | 
+-- A time-varying value.
+--
+-- > type Reactive a = Time -> a
+-- 
 data Reactive a where
     RConst  :: a                                -> Reactive a
 
@@ -311,8 +322,8 @@ mergeE = mappend
 -- |
 -- Interleave values of different types. See also 'zipR'
 --
-combineE :: Event a -> Event b -> Event (Either a b)
-a `combineE` b = fmap Left a `mergeE` fmap Right b
+eitherE :: Event a -> Event b -> Event (Either a b)
+a `eitherE` b = fmap Left a `mergeE` fmap Right b
 
 -- |
 -- Run both and behave as the second event.
@@ -340,6 +351,8 @@ retainE p = EPred (not . p)
 -- |
 -- Separate chunks of values.
 --
+-- > scatterE [e1,e2..] = [e1] <> [e2] ..
+--
 scatterE :: Event [a] -> Event a
 scatterE = EConcat
 
@@ -360,7 +373,7 @@ partitionE p e = (filterE p e, retainE p e)
 -- | 
 -- Partition values of different types. See also 'partitionE'.
 --
--- > let (x, y) in combineE x y = splitE e  ≡  e
+-- > let (x, y) in eitherE x y = splitE e  ≡  e
 -- 
 splitE :: Event (Either a b) -> (Event a, Event b)
 splitE e = (justE $ fromLeft <$> e, justE $ fromRight <$> e)
@@ -459,14 +472,14 @@ countE = accumE (toEnum 0) . fmap (const succ)
 -- |
 -- Delay by one value.
 --
-prevE :: Event a -> Event a
-prevE = fmap snd . withPrevE
+lastE :: Event a -> Event a
+lastE = fmap snd . recallE
 
 -- |
 -- Delay by @n@ values.
 --
 delayE :: Int -> Event a -> Event a
-delayE n = foldr (.) id (replicate n prevE)
+delayE n = foldr (.) id (replicate n lastE)
 
 -- |
 -- Buffer up to /n/ values. When the buffer is full, old elements will be rotated out.
@@ -491,15 +504,15 @@ gatherE n = (reverse <$>) . filterE (\xs -> length xs == n) . foldpE g []
                | otherwise       = error "gatherE: Wrong length"
 
 -- |
--- Pack with previous value.
+-- Pack with last value.
 --
-withPrevE :: Event a -> Event (a, a)
-withPrevE = withPrevEWith (,)
+recallE :: Event a -> Event (a, a)
+recallE = recallEWith (,)
 -- |
--- Pack with previous value.
+-- Pack with last value.
 --
-withPrevEWith :: (a -> a -> b) -> Event a -> Event b
-withPrevEWith f = justE . fmap k . bufferE 2
+recallEWith :: (a -> a -> b) -> Event a -> Event b
+recallEWith f = justE . fmap k . bufferE 2
     where
         k []      = Nothing
         k [x]     = Nothing
@@ -509,7 +522,7 @@ withPrevEWith f = justE . fmap k . bufferE 2
 --Ord t => (t, a) -> Event t -> Event [a]
 
 
--- withPrevE e 
+-- recallE e 
 --     = (joinMaybes' . fmap combineMaybes) 
 --     $ dup Nothing `accumE` fmap (shift . Just) e
 --     where      
@@ -614,18 +627,22 @@ eventToReactive = stepper (error "Partial reactive")
 -- | 
 -- Filter an event based on a time-varying predicate.
 -- 
-select :: Reactive (a -> Bool) -> Event a -> Event a
-r `select` e = justE $ (partial <$> r) `apply` e
+-- > r `filter'` e = justE $ (partial <$> r) `apply` e
+--
+filter' :: Reactive (a -> Bool) -> Event a -> Event a
+r `filter'` e = justE $ (partial <$> r) `apply` e
 
 -- | 
 -- Filter an event based on a time-varying toggle.
 -- 
+-- > r `gate` e = (const <$> r) `filter'` e
+-- 
 gate :: Reactive Bool -> Event a -> Event a
-r `gate` e = (const <$> r) `select` e
+r `gate` e = (const <$> r) `filter'` e
 
 
 -- |
--- Combine reactives. See also 'combineE'.
+-- Combine reactives. See also 'eitherE'.
 --
 zipR :: Reactive a -> Reactive b -> Reactive (a, b)
 zipR = liftA2 (,)
@@ -715,8 +732,10 @@ data Transport t
 --
 -- The cursor may be started, stopped, moved by sending a 'Transport' event.
 --
+-- > transport controller clock
+--
 transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t
-transport = fmap snd . foldpR g (0,0)
+transport ctrl = fmap snd . foldpR g (0,0) $ ctrl
     where
         g Play      (speed,pos) = (1,     pos + speed)
         g Reverse   (speed,pos) = (-1,    pos + speed)
@@ -728,24 +747,30 @@ transport = fmap snd . foldpR g (0,0)
 -- Record a list of values.
 --
 record :: Ord t => Reactive t -> Event a -> Reactive [(t, a)]
-record t x = foldpR (\(t,x) xs -> xs++[(t,x)]) [] (snapshot t x)
+record t x = foldpR append [] (t `snapshot` x)
+    where
+        append x xs = xs ++ [x]
 
 -- |
 -- Play back a list of values.
+--
+-- This function will sample the time behaviour at an arbitrary
+-- small interval. To get precise control of how time is sampled,
+-- use 'playback'' instead.
 -- 
 playback :: Ord t => Reactive t -> Reactive [(t,a)] -> Event a
-playback t s = t' `playback'` s
+playback t s = scatterE $ fmap snd <$> t' `playback'` s
     where
         t' = t `sample` pulseE (1/100)
 
 -- |
 -- Play back a list of values.
 -- 
-playback' :: Ord t => Event t -> Reactive [(t,a)] -> Event a
-playback' t s = scatterE $ fmap snd <$> cursor s t
+playback' :: Ord t => Event t -> Reactive [(t,a)] -> Event [(t, a)]
+playback' t s = cursor s t
     where                             
         -- cursor :: Ord t => Reactive [(t,a)] -> Event t -> Event [(a,t)]
-        cursor s = snapshotWith (flip occs) s . withPrevE
+        cursor s = snapshotWith (flip occs) s . recallE
 
         -- occs :: Ord t => (t,t) -> [(a,t)] -> [(a,t)]
         occs (x,y) = filter (\(t,_) -> x < t && t <= y)
