@@ -115,7 +115,7 @@ module Music.Imitator.Reactive (
         newSink,        
         notify,
         showing,
-
+        runEvent
   ) where
 
 import Prelude hiding (mapM)
@@ -206,6 +206,8 @@ prepE (EChan ch)      = do
 prepE x               = return x
 
 prepR :: Reactive a -> IO (Reactive a)
+prepR (RConst v)  = do
+    return $ RConst v
 prepR (RStep v x) = do
     x' <- prepE x
     v' <- prepV v
@@ -221,7 +223,7 @@ prepR (RApply f x) = do
 prepR (RJoin r) = do
     r' <- prepR r
     return $ RJoin r'
-prepR x = return x
+-- prepR x = return x
 
 prepC :: Chan a -> IO (IO [a])
 prepC ch = do
@@ -522,7 +524,8 @@ instance Functor Reactive where
     fmap f = (pure f <*>)
 
 instance Applicative Reactive where
-    pure x = x `stepper` never 
+    pure = RConst
+    -- pure x = x `stepper` never 
     (<*>) = RApply
 
 instance Monad Reactive where
@@ -892,6 +895,10 @@ newSink :: IO (IO (Maybe a), Sink a)
 newSink = do
     ch <- newChan
     return (tryReadChan ch, writeChanE ch)  
+
+runEvent :: Show a => Event a -> IO ()
+runEvent = runLoop . showing ""
+
 
 
 -------------------------------------------------------------------------------------
