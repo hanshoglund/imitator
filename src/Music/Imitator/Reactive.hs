@@ -84,8 +84,8 @@ module Music.Imitator.Reactive (
         pulseE,
         -- systemTimeE,
         systemTimeR,
-        secondsR, 
-        dayR, 
+        systemTimeSecondsR, 
+        systemTimeDayR, 
 
         -- MidiSource,
         -- MidiDestination,
@@ -434,16 +434,16 @@ anyE = liftMonoidE Any getAny
 
 
 firstE :: Event a -> Event a
-firstE = justE . foldpE g Nothing
+firstE = justE . fmap snd . foldpE g (True,Nothing)
     where
-        g c Nothing  = Just c    -- first time output
-        g c (Just _) = Nothing   -- then no output
+        g c (True, _)  = (False,Just c)    -- first time output
+        g c (False, _) = (False,Nothing)   -- then no output
             
 restE :: Event a -> Event a
 restE = justE . fmap snd . foldpE g (True,Nothing)
     where        
-        g c (True, Nothing)  = (False,Nothing) -- first time no output
-        g c (False, Nothing) = (False,Just c)  -- then output
+        g c (True, _)  = (False,Nothing) -- first time no output
+        g c (False, _) = (False,Just c)  -- then output
 
 -- |
 -- Count values.
@@ -712,11 +712,6 @@ playback s t = scatterE $ fmap snd <$> cursor s t
         occs (x,y) = filter (\(t,_) -> x < t && t <= y)
 
 
--- \
-
--- playback s t = mapAccum s ((\t s -> (undefined,undefined)) <$> t)
-
-
 {-
 
 modify   :: Event (a -> a) -> Reactive a -> Reactive a
@@ -811,11 +806,11 @@ systemTimeE = pollE (Just <$> getCurrentTime)
 systemTimeR :: Reactive UTCTime 
 systemTimeR = eventToReactive systemTimeE
 
-secondsR :: Reactive Seconds
-secondsR = fmap utctDayTime systemTimeR
+systemTimeSecondsR :: Reactive Seconds
+systemTimeSecondsR = fmap utctDayTime systemTimeR
 
-dayR :: Reactive Day
-dayR = fmap utctDay systemTimeR
+systemTimeDayR :: Reactive Day
+systemTimeDayR = fmap utctDay systemTimeR
 
 type Seconds = DiffTime
 
