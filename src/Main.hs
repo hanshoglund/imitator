@@ -9,7 +9,7 @@ import Control.Applicative
 import Control.Concurrent (forkIO, forkOS, threadDelay)
 import System.Exit
 
-import Graphics.UI.WX hiding (Event)
+import Graphics.UI.WX hiding (Event, Reactive)
 
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Chan
@@ -159,43 +159,44 @@ gui = do
     (timerSources,  timerSinks)  <- addTimers frame
 
     let 
+        timeR :: Reactive Double
         timeR        = accumR 0 ((+ 0.05) <$ pulseE 0.05)
+
+        startE, stopE, pauseE, resumeE :: Event ()
+        startE      = tickE $ widgetSources "start"
+        stopE       = tickE $ widgetSources "stop"
+        pauseE      = tickE $ widgetSources "pause"
+        resumeE     = tickE $ widgetSources "resume"
+
+        tempoR, gainR, volumeR :: Reactive Double
+        tempoR      = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
+        gainR       = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
+        volumeR     = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
+
+        controlE :: Event (Transport Double)
+        controlE   = (Play <$ startE) <> (Pause <$ stopE)
+
+        transportS :: Sink Int
+        transportS = widgetSinks "transport"
+        gainS :: Sink Int
+        gainS = widgetSinks "gain"
+
+        writeGain x      = gainS $ (round <$> x * 1000.0) `sample` pulseE 0.1
+        writeTransport x = transportS $ (round <$> x * 1000.0) `sample` pulseE 0.1
+
+        -- --------------------------------------------------------
         
-        startE  = widgetSources "start"
-        stopE   = widgetSources "stop"
-        pauseE  = widgetSources "pause"
-        resumeE = widgetSources "resume"
+        tempo = 1/(5*60)
+        transportR = controlE `transport` timeR * tempo
         
-        tempoE  = widgetSources "tempo"
-        gainE   = widgetSources "gain"
-        volumeE = widgetSources "volume"        
-        tempoR      = 0 `stepper` tempoE
-        gainR       = 0 `stepper` gainE
-        volumeR     = 0 `stepper` volumeE
-
-        transportS  = widgetSinks "transport"
-
-        startClicksR = accumR 0 (fmap (const (+ 1)) startE)
-        startClicksE = accumE 0 (fmap (const (+ 1)) startE)
-        stopClicksR  = accumR 0 (fmap (const (+ 1)) stopE)
-        stopClicksE  = accumE 0 (fmap (const (+ 1)) stopE)
-
-        clickRecR = record timeR startClicksE
-
-        controlE   = (Play <$ startE) <> (Pause <$ stopE) <> (Reverse <$ resumeE)
-        transportR = transport controlE timeR
         
-
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        -- <> (continue $ showing "Recorded clicks: " $ clickRecR `sample` pulseE 1)
-
+        -- <> (continue $ showing "Tempo:   " $ tempoR `sample` pulseE 1)
         -- <> (continue $ showing "Control:   " $ controlE)
-        <> (continue $ showing "Transport: " $ transportR `sample` pulseE 1)
-        -- <> (continue $ showing "Sampled system time: " $ (timeR `sampleAndHold` stopE) `sample` pulseE 1)
-        
-        <> (continue $ transportS $ round <$> (transportR * (100.1)) `sample` pulseE 0.1)
-
+        -- <> (continue $ showing "Transport: " $ transportR `sample` pulseE 1)        
+        <> (continue $ writeTransport transportR)
+        <> (continue $ writeGain 0.5)
 
 
 
