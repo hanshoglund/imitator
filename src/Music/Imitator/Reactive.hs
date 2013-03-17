@@ -29,16 +29,16 @@ module Music.Imitator.Reactive (
         partitionE,
         -- zipR,
         -- unzipR,
+        justE,
 
         -- * Buffering events
         lastE,
         delayE,
+        recallE,
+        recallEWith,
         bufferE,
         gatherE,
         scatterE,
-        justE,
-        recallE,
-        recallEWith,
 
         -- ** Accumulators
         accumE,
@@ -299,9 +299,15 @@ runR (RJoin r)   = do
 -- Event API
 -------------------------------------------------------------------------------------
 
+-- |
+-- Event is a functor: 'fmap' transforms each value.
+--
 instance Functor (Event) where
     fmap    = EMap
 
+-- |
+-- Event is a monoid: 'mempty' is the event that never occurs, 'mappend' interleaves values.
+--
 instance Monoid (Event a) where
     mempty  = ENever
     mappend = EMerge
@@ -548,13 +554,24 @@ eventMain' e = do
 -- Reactive API
 -------------------------------------------------------------------------------------
 
+-- |
+-- Reactive has a lifted is a monoid: 'mempty' is the constant empty value and
+-- mappend combines values according to 'mappend' on values.
+--
 instance Monoid a => Monoid (Reactive a) where
     mempty  = pure mempty
     mappend = liftA2 mappend
 
+-- |
+-- Reactive is a functor: 'fmap' transforms the value at each point in time.
+--
 instance Functor Reactive where
     fmap f = (pure f <*>)
 
+-- |
+-- Reactive is an applicative functor: 'pure' is a constant value and @fr \<*> xr@ applies the
+-- function @fr t@ to the value @xr t@.
+--
 instance Applicative Reactive where
     pure = RConst
     -- pure x = x `stepper` never 
