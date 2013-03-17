@@ -49,6 +49,8 @@ module Music.Imitator.Reactive (
         mapAccum,
 
         -- *** Special accumulators
+        firstE,
+        restE,
         countE,
         countR,
         monoidE,
@@ -430,6 +432,18 @@ allE = liftMonoidE All getAll
 anyE :: Event Bool -> Event Bool
 anyE = liftMonoidE Any getAny
 
+
+firstE :: Event a -> Event a
+firstE = justE . foldpE g Nothing
+    where
+        g c Nothing  = Just c    -- first time output
+        g c (Just _) = Nothing   -- then no output
+            
+restE :: Event a -> Event a
+restE = justE . fmap snd . foldpE g (True,Nothing)
+    where        
+        g c (True, Nothing)  = (False,Nothing) -- first time no output
+        g c (False, Nothing) = (False,Just c)  -- then output
 
 -- |
 -- Count values.
