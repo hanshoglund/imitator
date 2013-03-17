@@ -22,9 +22,10 @@ module Music.Imitator.Reactive (
         gate,
 
         -- * Merging and splitting values
-        eitherE,
-        bothR,
+        combineE,
         splitE,
+        zipR,
+        unzipR,
         filterE,
         retainE,
         partitionE,
@@ -47,35 +48,28 @@ module Music.Imitator.Reactive (
         scanlR,
         mapAccum,
 
-        -- ** Special accumulators
+        -- *** Special accumulators
         countE,
         countR,
         monoidE,
         monoidR,
+        -- sumE,
+        -- productE,
+        -- allE,
+        -- anyE,
                    
-        -- * Toggles etc
+        -- * Toggles and switches
         tickE,
         onR,
         offR,
         toggleR, 
 
-        -- ** Special functions
+        -- * Recording and playback
+        record,
+        playback,
+
+        -- * Special functions
         seqE,
-
-        -- sumE,
-        -- productE,
-        -- allE,
-        -- anyE,
-
-        -- -- MidiSource,
-        -- -- MidiDestination,
-        -- -- midiInE,
-        -- -- midiOutE,
-        -- -- OscMessage,
-        -- -- oscInE,
-        -- -- oscOutE,
-                
-        -- * Reactive
 
         -- * Creating events and reactives
         -- ** From standard library
@@ -84,11 +78,19 @@ module Music.Imitator.Reactive (
         getLineE,
         putLineE, 
 
+        -- MidiSource,
+        -- MidiDestination,
+        -- midiInE,
+        -- midiOutE,
+        -- OscMessage,
+        -- oscInE,
+        -- oscOutE,
+
         -- ** From channels
         readChanE,
         writeChanE,
 
-        -- ** From I/O computations
+        -- ** From IO
         getE,
         pollE,
         putE,
@@ -292,10 +294,10 @@ mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
 -- |
--- Interleave values of different types. See also 'bothR'
+-- Interleave values of different types. See also 'zipR'
 --
-eitherE :: Event a -> Event b -> Event (Either a b)
-a `eitherE` b = fmap Left a `mergeE` fmap Right b
+combineE :: Event a -> Event b -> Event (Either a b)
+a `combineE` b = fmap Left a `mergeE` fmap Right b
 
 -- |
 -- Run both and behave as the second event.
@@ -321,7 +323,7 @@ retainE :: (a -> Bool) -> Event a -> Event a
 retainE p = EPred (not . p)
 
 -- |
--- Separate simultaneous values.
+-- Separate chunks of values.
 --
 scatterE :: Event [a] -> Event a
 scatterE = EConcat
@@ -343,10 +345,16 @@ partitionE p e = (filterE p e, retainE p e)
 -- | 
 -- Partition values of different types. See also 'partitionE'.
 --
--- > let (x, y) in eitherE x y = splitE e  ≡  e
+-- > let (x, y) in combineE x y = splitE e  ≡  e
 -- 
 splitE :: Event (Either a b) -> (Event a, Event b)
 splitE e = (justE $ fromLeft <$> e, justE $ fromRight <$> e)
+
+unzipE :: Event (a, b) -> (Event a, Event b)
+unzipE e = (fst <$> e, snd <$> e)
+
+unzipR :: Reactive (a, b) -> (Reactive a, Reactive b)
+unzipR r = (fst <$> r, snd <$> r)
 
 -- |
 -- Replace values, semantically @x <$ e@.
@@ -586,10 +594,10 @@ r `gate` e = (const <$> r) `select` e
 
 
 -- |
--- Combine reactives. See also 'eitherE'.
+-- Combine reactives. See also 'combineE'.
 --
-bothR :: Reactive a -> Reactive b -> Reactive (a, b)
-bothR = liftA2 (,)
+zipR :: Reactive a -> Reactive b -> Reactive (a, b)
+zipR = liftA2 (,)
 
 -- |
 -- Reactive accumulator.
@@ -663,6 +671,13 @@ mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
     where 
         e = accumE (undefined,acc) ((. snd) <$> ef)
 
+
+
+record :: Ord t => Reactive t -> Event a -> Reactive [(t, a)]
+record = undefined
+
+playback :: Ord t => [(t, a)] -> Event t -> Event a
+playback = undefined
 
 
 {-
