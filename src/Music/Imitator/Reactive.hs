@@ -3,14 +3,17 @@
 
 module Music.Imitator.Reactive (
 
-        -- * Events
+        -- * Types
         Event,
+        Reactive,
 
-        -- ** Basic combinators
-        -- never,
-        -- mergeE,
-        seqE,
-        eitherE,
+        -- * Basic combinators
+        -- ** Event to reactive
+        stepper,
+        switcher,
+        activate,
+        
+        -- ** Reactive to event
         apply,
         sample,
         snapshot,
@@ -18,29 +21,47 @@ module Music.Imitator.Reactive (
         select,
         gate,
 
-        -- ** Change value of events
-        -- mapE,
+        -- * Merging and splitting values
+        eitherE,
+        bothR,
         splitE,
         filterE,
         retainE,
         partitionE,
-        scatterE,
-        justE,
-        -- tickE,
 
-        -- ** Accumulated events
-        prevE,
-        delayE,
+        -- * Buffering events
+        justE,
         bufferE,
         gatherE,
-        -- withPrevE,
-        -- withPrevEWith,
+        scatterE,
+        prevE,
+        delayE,
+        withPrevE,
 
+        -- ** Accumulators
         accumE,
+        accumR,
         foldpE,
+        foldpR,
         scanlE,
+        scanlR,
+        mapAccum,
+
+        -- ** Special accumulators
         countE,
+        countR,
         monoidE,
+        monoidR,
+                   
+        -- * Toggles etc
+        tickE,
+        onR,
+        offR,
+        toggleR, 
+
+        -- ** Special functions
+        seqE,
+
         -- sumE,
         -- productE,
         -- allE,
@@ -55,31 +76,6 @@ module Music.Imitator.Reactive (
         -- -- oscOutE,
                 
         -- * Reactive
-        Reactive,
-
-        -- ** Basic combinators
-        stepper,
-        switcher,
-        activate,
-        bothR,
-        onR,
-        offR,
-        toggleR,
-
-        -- ** Accumulated reactives
-        accumR,
-        foldpR,
-        scanlR,
-        monoidR,
-        countR,
-        -- liftMonoidR,
-        -- sumR,
-        -- productR,
-        -- allR,
-        -- anyR,
-
-        -- ** Special accumulators
-        mapAccum,
 
         -- * Creating events and reactives
         -- ** From standard library
@@ -536,7 +532,7 @@ activate :: Event a -> Reactive (Maybe a)
 activate e = Nothing `stepper` fmap Just e
 
 -- |
--- Switch between reactives.
+-- Switch between time-varying values.
 --
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
 r `switcher` e = join (r `stepper` e)
@@ -552,7 +548,7 @@ r `apply` e = r `o` e where o = snapshotWith ($)
 -- |
 -- Sample a time-varying value.
 --
--- > r `sample` e = (const <$> r) `apply` e 
+-- > r `snapshot` e = snapshotWith const
 --
 sample :: Reactive b -> Event a -> Event b
 sample = ESamp
@@ -560,7 +556,7 @@ sample = ESamp
 -- |
 -- Sample a time-varying value with the value of the trigger.
 --
--- > r `snapshot` e = ((,) <$> r) `apply` e
+-- > r `snapshot` e = snapshotWith (,)
 --
 snapshot :: Reactive a -> Event b -> Event (a, b)
 snapshot = snapshotWith (,)
