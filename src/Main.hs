@@ -160,7 +160,7 @@ gui = do
 
     let 
         timeR :: Reactive Double
-        timeR = accumR 0 ((+ 0.05) <$ pulseE 0.05)
+        timeR = accumR 0 ((+ 0.05) <$ pulse 0.05)
 
         startE, stopE, pauseE, resumeE :: Event ()
         startE  = tickE $ widgetSources "start"
@@ -184,8 +184,8 @@ gui = do
         controlE :: Event (Transport Double)
         controlE = (Play <$ startE) <> (Pause <$ stopE)
 
-        writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulseE 0.1
-        writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulseE 0.1
+        writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulse 0.1
+        writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulse 0.1
         -- TODO write server status etc
 
         -- --------------------------------------------------------
@@ -194,7 +194,7 @@ gui = do
         tempo      = {-1-} tempoR -- TODO need transport to accumulate...
         
         -- from 0 to 1 througout the piece
-        position   = (controlE `transport` (timeR * tempo)) / duration
+        position   = (transport controlE mempty (timeR * tempo)) / duration
 
         
     -- --------------------------------------------------------

@@ -11,7 +11,9 @@ module Music.Imitator.Reactive (
         -- ** Event to reactive
         stepper,
         switcher,
-        activate,
+        maybeStepper,
+        maybeSwitcher,
+        sampleAndHold,
         
         -- ** Reactive to event
         apply,
@@ -20,28 +22,29 @@ module Music.Imitator.Reactive (
         sample,
         snapshot,
         snapshotWith,
-        sampleAndHold,
 
         -- * Merging and splitting values
+        justE,
         splitE,
         eitherE,
-        filterE,
-        retainE,
-        partitionE,
+        -- filterE,
+        -- retainE,
+        -- partitionE,
         -- zipR,
         -- unzipR,
-        justE,
 
-        -- * Buffering events
+        -- * Past-dependent values
+        -- ** Buffering events
         lastE,
         delayE,
         recallE,
         recallEWith,
+        diffE,
         bufferE,
         gatherE,
         scatterE,
 
-        -- ** Accumulators
+        -- ** Accumulating values
         accumE,
         accumR,
         foldpE,
@@ -50,13 +53,15 @@ module Music.Imitator.Reactive (
         scanlR,
         mapAccum,
 
-        -- *** Special accumulators
+        -- ** Special accumulators
         firstE,
         restE,
         countE,
         countR,
         monoidE,
         monoidR,
+
+        -- ** Lifted monoids
         sumE,
         productE,
         allE,
@@ -66,17 +71,18 @@ module Music.Imitator.Reactive (
         allR,
         anyR,    
         
-        -- *** Integral
-        time,
-        diffE,
-        integral,
-                   
         -- * Toggles and switches
         tickE,
         onR,
         offR,
         toggleR, 
 
+        -- * Time
+        Time,
+        pulse,
+        time,
+        integral,
+                   
         -- * Record and playback
         Transport(..),
         transport,
@@ -94,9 +100,6 @@ module Music.Imitator.Reactive (
         getLineE,
         putLineE,
         
-        Seconds,
-        pulseE,
-        -- systemTimeE,
         systemTimeR,
         systemTimeSecondsR, 
         systemTimeDayR, 
@@ -344,7 +347,7 @@ mergeE :: Event a -> Event a -> Event a
 mergeE = mappend
 
 -- |
--- Interleave values of different types. See also 'zipR'
+-- Interleave values of different types.
 --
 eitherE :: Event a -> Event b -> Event (Either a b)
 a `eitherE` b = fmap Left a `mergeE` fmap Right b
@@ -475,12 +478,18 @@ anyE :: Event Bool -> Event Bool
 anyE = liftMonoidE Any getAny
 
 
+-- |
+-- Get just the first value.
+--
 firstE :: Event a -> Event a
 firstE = justE . fmap snd . foldpE g (True,Nothing)
     where
         g c (True, _)  = (False,Just c)    -- first time output
         g c (False, _) = (False,Nothing)   -- then no output
             
+-- |
+-- Get all but the first value.
+--
 restE :: Event a -> Event a
 restE = justE . fmap snd . foldpE g (True,Nothing)
     where        
@@ -683,17 +692,36 @@ stepper  :: a -> Event a -> Reactive a
 stepper x e = RStep (newVar x) e
 
 -- |
--- Step between values without initial.
---
-activate :: Event a -> Reactive (Maybe a)
-activate e = Nothing `stepper` fmap Just e
-
--- |
 -- Switch between time-varying values.
 --
 switcher :: Reactive a -> Event (Reactive a) -> Reactive a
--- r `switcher` e = join (r `stepper` e)
 r `switcher` e = RJoin (r `stepper` e)
+-- r `switcher` e = join (r `stepper` e)
+
+-- |
+-- Step between values without initial.
+--
+maybeStepper :: Event a -> Reactive (Maybe a)
+maybeStepper e = Nothing `stepper` fmap Just e
+
+-- |
+-- Switch between time-varying values without initial.
+--
+maybeSwitcher :: Event (Reactive a) -> Reactive (Maybe a)
+maybeSwitcher e = pure Nothing `switcher` fmap (fmap Just) e
+
+-- |
+-- Step between values without initial, failing if sampled before the first step.
+--
+eventToReactive :: Event a -> Reactive a
+eventToReactive = stepper (error "eventToReactive: ")
+
+-- |
+-- Switch between the values of a time-varying value when an event occurs.
+--
+sampleAndHold :: Reactive b -> Event a -> Reactive b
+sampleAndHold r e = r `switcher` (pure <$> r `sample` e) 
+
 
 -- | 
 -- Apply the values of an event to a time-varying function.
@@ -728,12 +756,6 @@ snapshot = snapshotWith (,)
 snapshotWith :: (a -> b -> c) -> Reactive a -> Event b -> Event c
 snapshotWith f r e = sample (liftA2 f r (eventToReactive e)) e
 
--- Internal unsafe thing...
-eventToReactive = stepper (error "Partial reactive")
-
-sampleAndHold :: Reactive b -> Event a -> Reactive b
-sampleAndHold r e = r `switcher` (pure <$> r `sample` e) 
-
 
 -- | 
 -- Filter an event based on a time-varying predicate.
@@ -750,6 +772,15 @@ r `filter'` e = justE $ (partial <$> r) `apply` e
 -- 
 gate :: Reactive Bool -> Event a -> Event a
 r `gate` e = (const <$> r) `filter'` e
+
+
+-- | 
+-- Efficient combination of 'accumE' and 'accumR'.
+-- 
+mapAccum :: a -> Event (a -> (b,a)) -> (Event b, Reactive a)
+mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
+    where 
+        e = accumE (undefined,acc) ((. snd) <$> ef)
 
 
 -- |
@@ -804,17 +835,16 @@ allR = liftMonoidR All getAll
 anyR :: Event Bool -> Reactive Bool
 anyR = liftMonoidR Any getAny
 
-
 -- |
 -- Count values.
 --
 countR :: Enum b => Event a -> Reactive b
 countR = accumR (toEnum 0) . fmap (const succ)
 
--- diffE :: Event a -> Event a
+
 
 onR :: Event a -> Reactive Bool
-onR = fmap isJust . activate
+onR = fmap isJust . maybeStepper
 
 offR :: Event a -> Reactive Bool
 offR = fmap not . onR
@@ -822,45 +852,53 @@ offR = fmap not . onR
 toggleR :: Event a -> Reactive Bool
 toggleR = fmap odd . countR
 
-time :: Fractional a => Reactive a
-time = accumR 0 ((+ kPulseInterval) <$ pulseE kPulseInterval)
-
+-- |
+-- Difference of successive values.
+--
 diffE :: Num a => Event a -> Event a
 diffE = recallEWith $ flip (-)
 
+
+
+-- |
+-- A generalized time behaviour.
+--
+time :: Fractional a => Reactive a
+time = accumR 0 ((+ kStdPulseInterval) <$ kStdPulse)
+
+
+-- |
+-- Integrates a behaviour.
+--
+-- > integral pulse behavior
+--
 integral :: Fractional b => Event a -> Reactive b -> Reactive b
 integral t b = sumR (snapshotWith (*) b (diffE (time `sample` t)))
 
-
--- | 
--- Efficient combination of 'accumE' and 'accumR'.
--- 
-mapAccum :: a -> Event (a -> (b,a)) -> (Event b, Reactive a)
-mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
-    where 
-        e = accumE (undefined,acc) ((. snd) <$> ef)
 
 
 data Transport t 
     = Play      -- ^ Play from the current position.
     | Reverse   -- ^ Play in reverse from the current position.
     | Pause     -- ^ Stop playing, and retain current position.
---    | Seek t    -- ^ Set current position.
     deriving (Eq, Ord, Show)
+--    | Seek t    -- ^ Set current position.
 
 -- |
 -- Generates a cursor that moves forward or backward continously, with a speed of one per second.
 --
 -- The cursor may be started, stopped, moved by sending a 'Transport' event.
 --
--- > transport controller clock
+-- > transport control pulse time
 --
-transport :: (Ord t, Fractional t) => Event (Transport t) -> Reactive t -> Reactive t
-transport ctrl time = position
+transport :: (Ord t, Fractional t) => Event (Transport t) -> Event a -> Reactive t -> Reactive t
+transport ctrl pulse time = position
     where
         -- FIXME does not retain start position at the moment
         -- startPos  = sampleAndHold position ctrl        
+        
         startPos  = 0
+        
         startTime = sampleAndHold time ctrl        
         action    = Pause `stepper` ctrl
         speed     = action <$$> \a -> case a of
@@ -869,11 +907,6 @@ transport ctrl time = position
             Pause    -> 0
         position = startPos + speed * (time - startTime)
 
-
--- integral :: Num a => Reactive a -> a -> Reactive a
-
-
-(<$$>) = flip fmap
 
 -- |
 -- Record a list of values.
@@ -891,15 +924,13 @@ record t x = foldpR append [] (t `snapshot` x)
 -- use 'playback'' instead.
 -- 
 playback :: Ord t => Reactive t -> Reactive [(t,a)] -> Event a
-playback t s = scatterE $ fmap snd <$> (t `sample` p) `playback'` s
-    where
-        p = pulseE kPulseInterval
+playback t s = scatterE $ fmap snd <$> playback' kStdPulse t s
 
 -- |
 -- Play back a list of values.
 -- 
-playback' :: Ord t => Event t -> Reactive [(t,a)] -> Event [(t, a)]
-playback' t s = cursor s t
+playback' :: Ord t => Event b -> Reactive t -> Reactive [(t,a)] -> Event [(t, a)]
+playback' p t s = cursor s (t `sample` p)
     where                             
         -- cursor :: Ord t => Reactive [(t,a)] -> Event t -> Event [(a,t)]
         cursor s = snapshotWith (flip occs) s . recallE
@@ -1002,19 +1033,19 @@ systemTimeE = pollE (Just <$> getCurrentTime)
 systemTimeR :: Reactive UTCTime 
 systemTimeR = eventToReactive systemTimeE
 
-systemTimeSecondsR :: Reactive Seconds
+systemTimeSecondsR :: Reactive Time
 systemTimeSecondsR = fmap utctDayTime systemTimeR
 
 systemTimeDayR :: Reactive Day
 systemTimeDayR = fmap utctDay systemTimeR
 
-type Seconds = DiffTime
+type Time = DiffTime
 
 -- | 
--- Second pulse.
+-- An event occuring at the specified interval.
 --
-pulseE :: Seconds -> Event ()
-pulseE t = getE $ threadDelay (round (fromMicro t))
+pulse :: Time -> Event ()
+pulse t = getE $ threadDelay (round (fromMicro t))
     where           
         fromMicro = (* 1000000)
 
@@ -1102,7 +1133,7 @@ runEvent :: Show a => Event a -> IO ()
 runEvent = runLoop . showing ""
 
 runReactive :: Show a => Reactive a -> IO ()
-runReactive r = runEvent (r `sample` pulseE (1/20))
+runReactive r = runEvent (r `sample` pulse (1/20))
 
 
 -------------------------------------------------------------------------------------
@@ -1159,5 +1190,10 @@ noFun = noOverloading "Reactive"
 noOverloading ty meth = error $ meth ++ ": No overloading for " ++ ty
 
 
-kPulseInterval :: Fractional a => a
-kPulseInterval = (1/100)
+kStdPulseInterval :: Fractional a => a
+kStdPulseInterval = (1/100)
+
+kStdPulse = pulse kStdPulseInterval
+
+(<$$>) = flip fmap
+

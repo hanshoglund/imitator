@@ -46,7 +46,7 @@ rotateMouse gen =
 
 
 
-type Time     = Double
+-- type Time     = Double
 type Duration = Time
 type Envelope = Double -> Double
 type Angle    = Double
