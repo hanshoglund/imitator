@@ -174,7 +174,8 @@ gui = do
         startClicksE = accumE 0 (fmap (const (+ 1)) startE)
         stopClicksR  = accumR 0 (fmap (const (+ 1)) stopE)
         stopClicksE  = accumE 0 (fmap (const (+ 1)) stopE)
-        timeR        = secondsR
+
+        timeR        = accumR 0 ((+ 0.05) <$ pulseE 0.05)
         
         continueE = fmap (const Nothing)
 
