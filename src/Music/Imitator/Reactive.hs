@@ -76,7 +76,14 @@ module Music.Imitator.Reactive (
         getCharE,
         putCharE,
         getLineE,
-        putLineE, 
+        putLineE,
+        
+        Seconds,
+        pulseE,
+        -- systemTimeE,
+        systemTimeR,
+        secondsR, 
+        dayR, 
 
         -- MidiSource,
         -- MidiDestination,
@@ -113,6 +120,7 @@ module Music.Imitator.Reactive (
 
 import Prelude hiding (mapM)
 
+import Data.Time
 import Data.Monoid  
 import Data.Maybe
 import Data.Either
@@ -577,8 +585,9 @@ snapshot = snapshotWith (,)
 --
 snapshotWith :: (a -> b -> c) -> Reactive a -> Event b -> Event c
 snapshotWith f r e = sample (liftA2 f r (eventToReactive e)) e
-    where
-        eventToReactive = stepper (error "Partial reactive")
+
+-- Internal unsafe thing...
+eventToReactive = stepper (error "Partial reactive")
 
 -- | 
 -- Filter an event based on a time-varying predicate.
@@ -673,11 +682,25 @@ mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
 
 
 
-record :: Ord t => Reactive t -> Event a -> Reactive [(t, a)]
-record = undefined
 
-playback :: Ord t => [(t, a)] -> Event t -> Event a
-playback = undefined
+withTime :: Ord t => Reactive t -> Event a -> Event (t, a)
+withTime = snapshot
+
+
+
+record :: Ord t => Reactive t -> Event a -> Reactive [(t, a)]
+record t x = foldpR (\(t,x) xs -> xs++[(t,x)]) [] (snapshot t x)
+
+playback :: Ord t => [(t,a)] -> Event t -> Event a
+playback s t = scatterE $ fmap snd <$> (flip filterDue $ s) <$> withPrevE t
+    where
+        filterDue :: Ord t => (t,t) -> [(t,a)] -> [(t,a)]
+        filterDue (x,y) = filter (\(t,_) -> x < t && t <= y)
+
+
+-- \
+
+-- playback s t = mapAccum s ((\t s -> (undefined,undefined)) <$> t)
 
 
 {-
@@ -768,6 +791,27 @@ getLineE = getE getLine
 putLineE :: Event String -> Event String
 putLineE = putE putStrLn
 
+systemTimeE :: Event UTCTime
+systemTimeE = pollE (Just <$> getCurrentTime)
+
+systemTimeR :: Reactive UTCTime 
+systemTimeR = eventToReactive systemTimeE
+
+secondsR :: Reactive Seconds
+secondsR = fmap utctDayTime systemTimeR
+
+dayR :: Reactive Day
+dayR = fmap utctDay systemTimeR
+
+type Seconds = DiffTime
+
+-- | 
+-- Second pulse.
+--
+pulseE :: Seconds -> Event ()
+pulseE t = getE $ threadDelay (round (fromMicro t))
+    where           
+        fromMicro = (* 1000000)
 
 -------------------------------------------------------------------------------------
 -- Running
