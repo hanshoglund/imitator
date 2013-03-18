@@ -28,7 +28,8 @@ library
         hsc3,
         semigroups,
         semigroupoids,
-        vector-space
+        vector-space,
+        music-score
 
     hs-source-dirs: src
     exposed-modules:
