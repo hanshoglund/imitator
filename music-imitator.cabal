@@ -36,6 +36,8 @@ library
         Music.Imitator.Reactive
         Music.Imitator.Reactive.Chan
         Music.Imitator.Reactive.Var
+        Music.Imitator.Reactive.Midi
+        Music.Imitator.Reactive.Osc
         Music.Imitator.Sound
         Music.Imitator.Sound.Event
         Music.Imitator.Util
