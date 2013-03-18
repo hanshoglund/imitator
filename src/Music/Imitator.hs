@@ -14,12 +14,11 @@ module Music.Imitator where
 
 -}
 
-import Data.Monoid  
 import Data.Maybe
 import Data.Either
+import Data.Monoid  
 import Control.Monad
 import Control.Applicative
-import Data.Time
 
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Midi
