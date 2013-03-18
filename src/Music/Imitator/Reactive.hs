@@ -767,8 +767,8 @@ r `gate` e = (const <$> r) `filter'` e
 mapAccum :: a -> Event (a -> (b,a)) -> (Event b, Reactive a)
 mapAccum acc ef = (fst <$> e, stepper acc (snd <$> e))
     where 
-        e = accumE (undefined,acc) ((. snd) <$> ef)
-
+        e = accumE (emptyAccum,acc) ((. snd) <$> ef)
+        emptyAccum = error "mapAccum: Empty accumulator"
 
 -- |
 -- Combine reactives. See also 'eitherE'.
