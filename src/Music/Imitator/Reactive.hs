@@ -302,19 +302,20 @@ runR (RAccum v x)   = do
     x' <- runE x
     let w = (foldr (.) id x') v'
     swapVar v w
-    -- putStrLn $ "Number of f in accum: " ++ show (length x')
     return [w]    
 runR (RApply f x)   = do
     f' <- runR f
     x' <- runR x
-    -- putStrLn $ "Number of f <*> x in apply: " ++ show (length (f' <*> x'))
     return (f' <*> x')
 runR (RJoin r)   = do
     -- Note we need an extra prepare here is the subnetwork is switched in
-    r' <- runRS r
-    r_ <- prepR r'
-    runR r_
-
+    -- r' <- runRS r
+    -- r_ <- prepR r'
+    -- runR r_    
+    r' <- runR r
+    r_ <- mapM prepR r'
+    r_' <- mapM runR r_
+    return $ concat r_'
 
 -------------------------------------------------------------------------------------
 -- Event API
@@ -885,27 +886,26 @@ data Transport t
 --    | Seek t    -- ^ Set current position.
 
 -- |
--- Generates a cursor that moves forward or backward continously, with a speed of one per second.
+-- Generates a cursor that moves forward or backward continuously.
 --
 -- The cursor may be started, stopped, moved by sending a 'Transport' event.
 --
 -- > transport control pulse time
 --
 transport :: (Ord t, Fractional t) => Event (Transport t) -> Event a -> Reactive t -> Reactive t
-transport ctrl pulse time = position
-    where
-        -- FIXME does not retain start position at the moment
-        -- startPos  = sampleAndHold position ctrl        
-        
-        startPos  = 0
-        
-        startTime = sampleAndHold time ctrl        
+transport ctrl pulse speed = position
+    where          
+        -- action :: Reactive (Transport t)
         action    = Pause `stepper` ctrl
-        speed     = action <$$> \a -> case a of
+
+        -- direction :: Num a => Reactive a
+        direction = action <$$> \a -> case a of
             Play     -> 1
             Reverse  -> (-1)
-            Pause    -> 0
-        position = startPos + speed * (time - startTime)
+            Pause    -> 0         
+            
+        -- position :: Num a => Reactive a
+        position = integral pulse (speed * direction)
 
 
 -- |

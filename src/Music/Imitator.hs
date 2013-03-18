@@ -22,7 +22,7 @@ import Control.Applicative
 import Data.Time
 
 import Music.Imitator.Reactive
-import Music.Imitator.Sound
+import Music.Imitator.Sound hiding (pulse)
 import Music.Imitator.Util
 
 import Music.Imitator.Util

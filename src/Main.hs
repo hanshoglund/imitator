@@ -182,7 +182,7 @@ gui = do
         
 
         controlE :: Event (Transport Double)
-        controlE = (Play <$ startE) <> (Pause <$ stopE)
+        controlE = (Play <$ startE) <> (Pause <$ stopE) <> (Reverse <$ resumeE)
 
         writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulse 0.1
         writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulse 0.1
@@ -191,17 +191,16 @@ gui = do
         -- --------------------------------------------------------
         
         duration   = (1*60)                               
-        tempo      = {-1-} tempoR -- TODO need transport to accumulate...
         
         -- from 0 to 1 througout the piece
-        position   = (transport controlE mempty (timeR * tempo)) / duration
+        position   = (transport controlE (pulse 0.1) (tempoR * 10)) / duration
 
         
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ writeTransport position)
-        <> (continue $ writeGain 0.5)
-
+        <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
+        <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
 
     -- --------------------------------------------------------
     forkIO eventLoop
