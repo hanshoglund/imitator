@@ -159,8 +159,9 @@ gui = do
     (timerSources,  timerSinks)  <- addTimers frame
 
     let 
-        timeR :: Reactive Double
-        timeR = accumR 0 ((+ 0.05) <$ pulse 0.05)
+        -- timeR :: Reactive Double
+        -- timeR = accumR 0 ((+ 0.05) <$ pulse 0.05)
+        timeR = time
 
         startE, stopE, pauseE, resumeE :: Event ()
         startE  = tickE $ widgetSources "start"
@@ -179,29 +180,42 @@ gui = do
         gainS :: Sink Int
         gainS = widgetSinks "gain"
 
-        
-
-        controlE :: Event (Transport Double)
-        controlE = (Play <$ startE) <> (Pause   <$ pauseE) 
-                <> (Stop <$ stopE)  <> (Reverse <$ resumeE)
-
         writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulse 0.1
         writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulse 0.1
         -- TODO write server status etc
 
         -- --------------------------------------------------------
         
-        duration   = (1*60)                               
-        
-        -- from 0 to 1 througout the piece
-        position   = (transport controlE (pulse 0.1) (tempoR * 10)) / duration
+        control :: Event (Transport Double)
+        control = mempty 
+            <> (Play    <$ startE) 
+            <> (Pause   <$ pauseE) 
+            <> (Stop    <$ stopE) 
+            <> (Reverse <$ resumeE)
 
+        duration :: Reactive Double
+        duration = (1*60)                               
+        
+        position :: Reactive Double
+        position  = transport control (pulse 0.1) (tempoR * 10) / duration
+
+        actions :: Event String
+        actions = playback position $ pure 
+            [ 
+                (0.0, "What"),
+                (0.1, "a"),
+                (0.2, "day"),
+                (0.3, "for"),
+                (0.4, "an"),            
+                (0.5, "Auto-da-fe")            
+            ]
         
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ writeTransport position)
-        <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
-        <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
+        <> (continue $ showing "Events:   " $ actions)
+        -- <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
+        -- <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
 
     -- --------------------------------------------------------
     forkIO eventLoop

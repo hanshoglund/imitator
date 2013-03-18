@@ -1,5 +1,5 @@
 
-{-# LANGUAGE GADTs, TypeFamilies, ScopedTypeVariables #-}
+{-# LANGUAGE GADTs, TypeFamilies, ScopedTypeVariables, OverloadedStrings #-}
 
 module Music.Imitator.Reactive (
 
@@ -104,13 +104,6 @@ module Music.Imitator.Reactive (
         systemTimeSecondsR, 
         systemTimeDayR, 
 
-        -- MidiSource,
-        -- MidiDestination,
-        -- midiInE,
-        -- midiOutE,
-        -- OscMessage,
-        -- oscInE,
-        -- oscOutE,
 
         -- ** From channels
         readChanE,
@@ -144,6 +137,7 @@ import Data.Time
 import Data.Monoid  
 import Data.Maybe
 import Data.Either
+import Data.String
 import Data.VectorSpace hiding (Sum, getSum)
 import Control.Monad
 import Control.Applicative
@@ -154,17 +148,6 @@ import System.IO.Unsafe
 
 import Music.Imitator.Reactive.Chan
 import Music.Imitator.Reactive.Var
-
--- import System.MIDI (MidiMessage,  MidiMessage')
--- import qualified System.MIDI            as Midi
--- import qualified Sound.OpenSoundControl as OSC
--- 
--- kPortMidiInfo = unsafePerformIO $ do
---     Midi.initialize
---     num  <- Midi.countDevices
---     infos <- Prelude.mapM Midi.getDeviceInfo [0..num - 1]
---     return infos     
-
 
 
 -------------------------------------------------------------------------------------
@@ -608,6 +591,9 @@ instance Applicative Reactive where
 instance Monad Reactive where
     return  = pure
     x >>= k = (RJoin . fmap k) x
+
+instance IsString a => IsString (Reactive a) where
+    fromString = pure . fromString
 
 instance Eq (Reactive b) where
     (==) = noFun "(==)"
@@ -1144,24 +1130,6 @@ runReactive r = runEvent (r `sample` pulse (1/20))
 
 
 -------------------------------------------------------------------------------------
-
--- type MidiSource      = Midi.Source
--- type MidiDestination = Midi.Destination
--- 
--- midiInE :: MidiSource -> Event MidiMessage
--- midiInE = undefined
--- 
--- midiOutE :: MidiDestination -> Event MidiMessage -> Event MidiMessage
--- midiOutE = undefined
--- 
--- type OscMessage = OSC.Message
--- 
--- oscInE :: Int -> Event OscMessage
--- oscInE = undefined
--- 
--- oscOutE :: String -> Int -> Event OscMessage
--- oscOutE = undefined
-
 
 partial :: (a -> Bool) -> (a -> Maybe a)
 partial p x

@@ -19,7 +19,10 @@ module Music.Imitator.Util (
         toLowerChar,
         toUpperString,
         toLowerString,
-        toCapitalString,
+        toCapitalString,       
+        isSubstringOf,
+        isInfixOfNormalized,
+        isSubstringOfNormalized,
         
         -- ** Lists
         prefix,
@@ -95,7 +98,17 @@ toCapitalString :: String -> String
 toCapitalString [] = []
 toCapitalString (x:xs) = toUpperChar x : toLowerString xs
 
+isSubstringOf :: String -> String -> Bool
+a `isSubstringOf` b 
+    =  a `List.isPrefixOf` b
+    || a `List.isInfixOf`  b
+    || a `List.isSuffixOf` b
 
+isInfixOfNormalized :: String -> String -> Bool
+a `isInfixOfNormalized` b = toLowerString a `List.isInfixOf` toLowerString b 
+
+isSubstringOfNormalized :: String -> String -> Bool
+a `isSubstringOfNormalized` b = toLowerString a `isSubstringOf` toLowerString b 
 
 -------------------------------------------------------------------------------------
 -- List
