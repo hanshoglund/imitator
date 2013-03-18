@@ -882,8 +882,12 @@ data Transport t
     = Play      -- ^ Play from the current position.
     | Reverse   -- ^ Play in reverse from the current position.
     | Pause     -- ^ Stop playing, and retain current position.
+    | Stop      -- ^ Stop and reset position.
     deriving (Eq, Ord, Show)
 --    | Seek t    -- ^ Set current position.
+
+isStop Stop = True
+isStop _    = False
 
 -- |
 -- Generates a cursor that moves forward or backward continuously.
@@ -893,7 +897,7 @@ data Transport t
 -- > transport control pulse time
 --
 transport :: (Ord t, Fractional t) => Event (Transport t) -> Event a -> Reactive t -> Reactive t
-transport ctrl pulse speed = position
+transport ctrl pulse speed = position'
     where          
         -- action :: Reactive (Transport t)
         action    = Pause `stepper` ctrl
@@ -903,9 +907,12 @@ transport ctrl pulse speed = position
             Play     -> 1
             Reverse  -> (-1)
             Pause    -> 0         
+            Stop     -> 0         
             
         -- position :: Num a => Reactive a
         position = integral pulse (speed * direction)
+        startPosition = position `sampleAndHold` (filterE isStop ctrl)
+        position'     = position - startPosition
 
 
 -- |

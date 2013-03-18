@@ -182,7 +182,8 @@ gui = do
         
 
         controlE :: Event (Transport Double)
-        controlE = (Play <$ startE) <> (Pause <$ stopE) <> (Reverse <$ resumeE)
+        controlE = (Play <$ startE) <> (Pause   <$ pauseE) 
+                <> (Stop <$ stopE)  <> (Reverse <$ resumeE)
 
         writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulse 0.1
         writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulse 0.1
