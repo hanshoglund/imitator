@@ -1,7 +1,31 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
-module Music.Imitator where
+-------------------------------------------------------------------------------------
+-- |
+-- Copyright   : (c) Hans Hoglund 2012
+--
+-- License     : GPL
+--
+-- Maintainer  : hans@hanshoglund.se
+-- Stability   : stable
+-- Portability : portable
+--
+-- Imitator is a program and library that performs \"spacial looping\" using the 
+-- SuperCollider (scsynth) bindings for Haskell.
+--
+-------------------------------------------------------------------------------------
+
+module Music.Imitator (
+        Envelope,
+        Angle,
+        Transformation,
+        Command(..),
+        imitatorRT,
+        imitatorNRT,
+        
+        runImitatorNRT,
+  ) where
 
 {-
     GUI:
@@ -59,13 +83,71 @@ data Command
     | StopRecord            -- ^ Stop recording
     | ReadBuffer  FilePath  -- ^ Replace entire buffer with file
     | WriteBuffer FilePath  -- ^ Write entire buffer to file
-    | Play Time Duration    -- ^Plays from @t@ to time @t+d@, using the given transformations.
+    | Play Time Duration    -- ^ Plays from @t@ to time @t+d@, using the given transformations.
 
+-- |
+-- Write synthdefs where @scsynth@ can find them.
+--
+writeSynthDefs :: IO ()
+writeSynthDefs = undefined
+
+-- index, num channels
+kInBus   = (0,  2)
+kBFBus   = (20, 4)
+kOutBus  = (0,  8)
+kMainBuf = (0,  2)
+
+-- |
+-- Record to buffer.
+--
+recordG :: UGen
+recordG = input an ai
+    where
+        (an, ai) = kInBus
+        (bn, bi) = kMainBuf
+
+-- |
+-- Read from output B-format buffer, write to output buffers
+--
+decodeG :: UGen
+decodeG = undefined
+
+-- |
+-- Play a single slice
+--
+playG :: UGen
+playG = undefined
+
+
+
+
+-- |
+-- Play back commmands as messages to @scsynth@.
+--
+-- Time should go from 0 to 1 during the piece.
+--
+-- > imitatorRT time
+--
 imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
-imitatorNRT :: Track Command -> NRT
+imitatorRT = mempty
 
-imitatorRT = undefined
+-- |
+-- Convert commmands to a non-realtime score for @scsynth@.
+--
+-- Expects total duration in seconds.
+--
+-- > imitatorRT dur
+--
+imitatorNRT :: Track Command -> Duration -> NRT
 imitatorNRT = undefined
 
-
+-- |
+-- Run over the given input file.
+runImitatorNRT :: FilePath -> FilePath -> IO ()
+runImitatorNRT input output = do
+    -- write synthdefs
+    -- splice synthdef paths into score (how)?
+    -- convert score to NRT
+    -- runNRT
+    return ()
 
