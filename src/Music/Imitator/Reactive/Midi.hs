@@ -1,16 +1,22 @@
 
 module Music.Imitator.Reactive.Midi (
         module Codec.Midi,
-        MidiName,   
+        
+        -- * Basic types
         Midi.MidiTime,
-        MidiMessage,
+        Midi.MidiMessage,
+
+        -- * Sources and destinations
         MidiSource,
         MidiDestination,
         midiSources,
         midiDestinations,
         findSource,
         findDestination,
+        
+        -- * Sending and receiving
         midiIn,
+        midiIn',
         midiOut,
   ) where
 
@@ -28,12 +34,8 @@ import Music.Imitator.Util
 import Codec.Midi hiding (Time)
 import qualified System.MIDI            as Midi
 
-
-type MidiName        = String
-type MidiMessage     = Message          -- TODO move to hamid?
 type MidiSource      = Midi.Source
 type MidiDestination = Midi.Destination
-
 
 midiSources :: Reactive [MidiSource]
 midiSources = eventToReactive 
@@ -53,14 +55,18 @@ findDestination nm = g <$> nm <*> midiDestinations
     where
         g = (\n -> listToMaybe . filter (\d -> isSubstringOfNormalized n $ unsafePerformIO (Midi.name d)))
 
-midiIn :: MidiSource -> Event Midi.MidiEvent
-midiIn dev = unsafePerformIO $ do
+
+midiIn :: MidiSource -> Event Midi.MidiMessage
+midiIn dev = snd <$> midiIn' dev
+
+midiIn' :: MidiSource -> Event (Midi.MidiTime, Midi.MidiMessage)
+midiIn' dev = unsafePerformIO $ do
     (k, e) <- newSource
     str <- Midi.openSource dev (Just $ curry k)
     Midi.start str
     return e
 
-midiOut :: MidiDestination -> Event Message -> Event Message
+midiOut :: MidiDestination -> Event Midi.MidiMessage -> Event Midi.MidiMessage
 midiOut dest = putE $ \msg -> do
     Midi.send dest' msg
     where

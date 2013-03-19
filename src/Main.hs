@@ -216,7 +216,7 @@ gui = do
         notes = liftA3 NoteOn 0 (round <$> gainR*70+30) (round <$> volumeR*120) `sample` (pulse 0.2)        
 
         inNotes :: Event (MidiTime, MidiMessage)
-        inNotes = midiIn source
+        inNotes = midiIn' source
             where 
                 source = unsafeGetReactive $ fromJust <$> (findSource $ pure "MIDI Monitor")
         
@@ -237,7 +237,6 @@ gui = do
         <> (continue $ showing "Notes out:    " $ sendNotes)
         -- <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
         -- <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
-        <> (noContinue $ stopE)
 
     -- --------------------------------------------------------
     forkIO $ do 

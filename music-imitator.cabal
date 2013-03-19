@@ -23,7 +23,7 @@ library
         random,
         stm,
         newtype,
-        hamid,
+        hamid      >= 0.6,
         HCodecs    == 0.2.2,
         hosc,
         hsc3,
