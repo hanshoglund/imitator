@@ -37,7 +37,7 @@ module Music.Imitator.Reactive (
         -- ** Buffering events
         lastE,
         delayE,
-        recallE,
+        -- recallE,
         recallEWith,
         diffE,
         bufferE,

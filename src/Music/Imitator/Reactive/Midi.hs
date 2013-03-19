@@ -26,7 +26,7 @@ import Control.Monad
 import Control.Applicative
 import Control.Newtype
 import Control.Concurrent (forkIO, threadDelay)
-import System.IO.Unsafe
+import System.IO.Unsafe (unsafePerformIO)
 
 import Music.Imitator.Reactive
 import Music.Imitator.Util
