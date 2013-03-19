@@ -128,7 +128,8 @@ module Music.Imitator.Reactive (
         notify,
         showing,
         runEvent,
-        runReactive
+        runReactive,
+        unsafeGetReactive,
   ) where
 
 import Prelude hiding (mapM)
@@ -1127,6 +1128,9 @@ runEvent = runLoop . showing ""
 
 runReactive :: Show a => Reactive a -> IO ()
 runReactive r = runEvent (r `sample` pulse (1/20))
+
+unsafeGetReactive :: Reactive a -> a
+unsafeGetReactive r = unsafePerformIO $ runRS r
 
 
 -------------------------------------------------------------------------------------

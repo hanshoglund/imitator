@@ -5,6 +5,7 @@ module Main where
 
 import Data.Monoid
 import Control.Applicative
+import Control.Monad (join)
 
 import Control.Concurrent (forkIO, forkOS, threadDelay)
 import System.Exit
@@ -13,7 +14,7 @@ import Graphics.UI.WX hiding (Event, Reactive)
 
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Chan
-
+import Music.Imitator.Reactive.Midi
 
 addMenus :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addMenus frame = do
@@ -209,18 +210,47 @@ gui = do
                 (0.4, "an"),            
                 (0.5, "Auto-da-fe")            
             ]
+
+       
+        notes :: Event Message
+        notes = liftA3 NoteOn 0 (fmap round $ gainR * 70 + 30) 120 `sample` (pulse 0.2)        
         
+        sendNotes :: Event Message
+        sendNotes = midiOut dest notes
+            where 
+                dest = unsafeGetReactive $ fromJust <$> (findDestination $ pure "MIDI Monitor")
+                fromJust (Just x) = x
+                 
+         
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ writeTransport position)
-        <> (continue $ showing "Events:   " $ actions)
+        -- <> (continue $ showing "Events:   " $ actions)
+        -- <> (continue $ showing "Notes:    " $ notes)
+        <> (continue $ {-showing "NotesOut: " $ -}sendNotes)
+        -- <> (continue $ showing "Destinations: " $ findDestination (pure "MIDI Monitor") `sample` pulse 1)
+        
         -- <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
         -- <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
+        <> (noContinue $ stopE)
 
     -- --------------------------------------------------------
-    forkIO eventLoop
+    forkIO $ do 
+        eventLoop
+        -- close frame -- fixme on main thread
     return ()
 
+
+
+rr :: Reactive (Event a -> Event b) -> Event a -> Event b
+rr r e = justE $ (`sample` e) $ join $ fmap maybeStepper (r <*> pure e)
+
+-- eventToReactive :: Event a -> Reactive a
+-- eventToReactive = stepper (error "eventToReactive: ")
+
+
+rr2 :: Reactive (Event a -> Event b) -> Event a -> Event (Event b)
+rr2 r e = (r <*> pure e) `sample` e
 
 
 
@@ -236,3 +266,5 @@ set' widget prop x = case x of
 
 continue :: Event a -> Event (Maybe b)
 continue     = (Nothing <$)
+noContinue :: Event a -> Event (Maybe a)
+noContinue   = (Just <$>)

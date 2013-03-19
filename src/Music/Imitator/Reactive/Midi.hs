@@ -1,7 +1,16 @@
 
-module Music.Imitator.Reactive.Midi -- (
---   ) 
-where
+module Music.Imitator.Reactive.Midi (
+        module Codec.Midi,
+        MidiName,
+        MidiSource,
+        MidiDestination,
+        midiSources,
+        midiDestinations,
+        findSource,
+        findDestination,
+        midiIn,
+        midiOut,
+  ) where
 
 import Data.Monoid  
 import Data.Maybe
@@ -14,42 +23,52 @@ import System.IO.Unsafe
 import Music.Imitator.Reactive
 import Music.Imitator.Util
 
-import System.MIDI (MidiMessage,  MidiMessage')
+import Codec.Midi hiding (Time)
 import qualified System.MIDI            as Midi
+
 
 type MidiName        = String
 type MidiSource      = Midi.Source
 type MidiDestination = Midi.Destination
 
 
-midiSources :: Reactive [(MidiName, MidiSource)]
-midiSources = fmap (\s -> (unsafePerformIO $ Midi.getName s,s)) 
-    <$> eventToReactive 
-        (pollE $ threadDelay 1 >> Midi.enumerateSources >>= return . Just)
+midiSources :: Reactive [MidiSource]
+midiSources = eventToReactive 
+        (pollE $ threadDelay 1 >> Midi.sources >>= return . Just)
 
-midiDestinations :: Reactive [(MidiName, MidiDestination)]
-midiDestinations = fmap (\s -> (unsafePerformIO $ Midi.getName s,s)) 
-    <$> eventToReactive 
-        (pollE $ threadDelay 1 >> Midi.enumerateDestinations >>= return . Just)
+midiDestinations :: Reactive [MidiDestination]
+midiDestinations = eventToReactive 
+        (pollE $ threadDelay 1 >> Midi.destinations >>= return . Just)
 
 findSource :: Reactive String -> Reactive (Maybe MidiSource)
-findSource name = g <$> name <*> midiSources
+findSource nm = g <$> nm <*> midiSources
     where
-        g = (\n -> listToMaybe . fmap snd . filter (\(m,_) -> isSubstringOfNormalized n m))
+        g = (\n -> listToMaybe . filter (\d -> isSubstringOfNormalized n $ unsafePerformIO (Midi.name d)))
 
 findDestination :: Reactive String -> Reactive (Maybe MidiDestination)
-findDestination name = g <$> name <*> midiDestinations
+findDestination nm = g <$> nm <*> midiDestinations
     where
-        g = (\n -> listToMaybe . fmap snd . filter (\(m,_) -> isSubstringOfNormalized n m))
+        g = (\n -> listToMaybe . filter (\d -> isSubstringOfNormalized n $ unsafePerformIO (Midi.name d)))
 
-midiIn :: MidiSource -> Event MidiMessage
+midiIn :: MidiSource -> Event Message
 midiIn = undefined
 
-midiOut :: MidiDestination -> Event MidiMessage -> Event MidiMessage
-midiOut = undefined
+midiOut :: MidiDestination -> Event Message -> Event Message
+midiOut dest = putE $ \msg -> do
+    Midi.send dest' msg
+    where
+        dest' = unsafePerformIO $ do
+            -- putStrLn "Midi.openDestination"
+            Midi.openDestination dest
 
 
 
+
+
+
+
+
+---------
 
 eventToReactive :: Event a -> Reactive a
 eventToReactive = stepper (error "eventToReactive: ")

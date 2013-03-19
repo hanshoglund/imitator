@@ -24,6 +24,7 @@ library
         stm,
         newtype,
         hamid,
+        HCodecs    == 0.2.2,
         hosc,
         hsc3,
         semigroups,
@@ -46,5 +47,5 @@ library
 executable "Imitator"
     hs-source-dirs: src
     main-is: Main.hs
-    ghc-options: -threaded -O3
+    ghc-options: -threaded -O3 -prof
 
