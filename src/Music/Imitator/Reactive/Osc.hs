@@ -1,10 +1,15 @@
 
 module Music.Imitator.Reactive.Osc (
         module Sound.OpenSoundControl,
+
+        -- * Basic types
         OscTime,
         OscPacket,
         OscMessage,
         OscBundle,
+
+        -- * Sending and receiving
+        -- ** UDP
         oscInUdp,
         oscOutUdp,
   ) where
@@ -29,6 +34,11 @@ type OscPacket  = Osc.Packet
 type OscMessage = Osc.Message
 type OscBundle  = Osc.Bundle
 
+-- |
+-- Recieve OSC from the given port.
+--
+-- > oscInUdp port
+--
 oscInUdp :: Int -> Event OscPacket
 oscInUdp port = unsafePerformIO $ do
     (k, e) <- newSource
@@ -37,6 +47,11 @@ oscInUdp port = unsafePerformIO $ do
         Osc.recvPacket fd >>= k
     return e
 
+-- |
+-- Send OSC to the given address.
+--
+-- > oscInUdp address port
+--
 oscOutUdp :: OSC a => String -> Int -> Event a -> Event a
 oscOutUdp addr port = putE $ \msg -> do
     Osc.sendOSC dest msg

@@ -22,7 +22,7 @@ import Data.Monoid
 import Control.Monad
 import Control.Applicative
 
--- import Music.Score
+import Music.Score
 
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Midi
@@ -43,8 +43,8 @@ rotateMouse gen =
         $ gen
 -}
 
-type Time     = Double
-type Duration = Time
+-- type Time     = Double
+-- type Duration = Time
 type Envelope = Double -> Double
 type Angle    = Double
 
@@ -55,10 +55,8 @@ data Transformation
     -- TODO ATK rotation etc
 
 data Command
-    = StartRecord
-    | PauseRecord
-    | ResumeRecord
-    | StopRecord
+    = StartRecord           -- ^ Start recording
+    | StopRecord            -- ^ Stop recording
     | ReadBuffer  FilePath  -- ^ Replace entire buffer with file
     | WriteBuffer FilePath  -- ^ Write entire buffer to file
     | Play Time Duration    -- ^Plays from @t@ to time @t+d@, using the given transformations.
