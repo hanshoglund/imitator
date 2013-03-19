@@ -75,7 +75,7 @@ module Music.Imitator.Sound (
         -- ** Buffers
         recordBuf,
         playBuf,
-        tgrains,   
+        grainBuf,   
         
         -- ** I/O
         input,
@@ -308,27 +308,31 @@ mouseButton = U.mouseX KR 0 1 Linear 0
 -- |
 -- Record to buffer.
 --
--- > playBuf numChan bufNum offset recLevel preLevel run loop trigger doneAction
+-- > recordBuf buffer offset trig onOff input 
 --
-recordBuf :: Rate -> UGen -> UGen -> UGen -> UGen -> UGen -> Loop -> UGen -> DoneAction -> UGen -> UGen
-recordBuf playBuf numChan bufNum offset recLevel preLevel run loop trigger doneAction = undefined
+recordBuf :: UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+recordBuf buffer offset trig onOff input 
+    = U.recordBuf AR buffer offset 1 0 onOff NoLoop trig RemoveSynth input
 
 -- |
 -- Play from buffer.
 --
--- > playBuf numChan bufNum rate trig startPos loop doneAction
+-- > playBuf numChan bufNum trig speed startPos 
 --
-playBuf :: Int -> Rate -> UGen -> UGen -> UGen -> UGen -> Loop -> DoneAction -> UGen
-playBuf numChan bufNum rate trig startPos loop doneAction = undefined
+playBuf :: Int -> UGen -> UGen -> UGen -> UGen -> UGen
+playBuf numChan bufNum trig speed startPos 
+    = U.playBuf numChan AR bufNum speed trig startPos NoLoop RemoveSynth
 
 -- |
 -- Play grains from buffer.
 --
--- > tgrains numChan trig bufNum rate centerPos dur pan amp interp
+-- > grainBuf numChan bufNum trig speed centerPos dur
 --
-tgrains :: Int -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen
-tgrains numChan trig bufNum rate centerPos dur pan amp interp = undefined
-
+grainBuf :: Int -> UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+grainBuf numChan bufNum trig speed centerPos dur 
+    = U.tGrains numChan trig bufNum speed centerPos dur 0 1 noInterp
+    where
+        (noInterp, linInterp, cubInterp) = (1,2,4)
 
 -- |
 -- Read input.
