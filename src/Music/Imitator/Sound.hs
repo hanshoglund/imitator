@@ -43,13 +43,7 @@ module Music.Imitator.Sound (
         -- lfSaw,
         -- lfTri,
 
-        -- * Control
-        control,
-        mouse,
-        mouseButton,
-
         -- ** Filters
-
         -- bpf,
         -- combN,
         -- combL,
@@ -68,16 +62,6 @@ module Music.Imitator.Sound (
 
         -- ** Reverb
         -- freeVerb,
-
-        -- ** Buffers
-        recordBuf,
-        playBuf,
-        grainBuf,   
-
-        -- ** I/O
-        input,
-        output,
-        feedback,
 
         -- ** Spacialization
         -- *** Encoders
@@ -99,6 +83,21 @@ module Music.Imitator.Sound (
         U.mce3,
         U.mceChannels,
         numChannels,
+
+        -- ** Control
+        control,
+        mouse,
+        mouseButton,
+
+        -- ** Buffers
+        recordBuf,
+        playBuf,
+        grainBuf,   
+
+        -- ** Buses (I/O)
+        input,
+        output,
+        feedback,
 
 
         -- * Server
