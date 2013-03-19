@@ -113,6 +113,7 @@ module Music.Imitator.Sound (
         closeBuffer,
 
         -- ** Non real-time
+        NRT,
         runServer,
 
         -- ** Real-time

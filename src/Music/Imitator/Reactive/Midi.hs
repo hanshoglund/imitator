@@ -31,7 +31,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import Music.Imitator.Reactive
 import Music.Imitator.Util
 
-import Codec.Midi hiding (Time)
+import Codec.Midi hiding (Time, Track)
 import qualified System.MIDI            as Midi
 
 type MidiSource      = Midi.Source

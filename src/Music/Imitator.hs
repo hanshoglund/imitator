@@ -60,3 +60,12 @@ data Command
     | ReadBuffer  FilePath  -- ^ Replace entire buffer with file
     | WriteBuffer FilePath  -- ^ Write entire buffer to file
     | Play Time Duration    -- ^Plays from @t@ to time @t+d@, using the given transformations.
+
+imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
+imitatorNRT :: Track Command -> NRT
+
+imitatorRT = undefined
+imitatorNRT = undefined
+
+
+
