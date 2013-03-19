@@ -22,6 +22,8 @@ import Data.Monoid
 import Control.Monad
 import Control.Applicative
 
+-- import Music.Score
+
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Midi
 import Music.Imitator.Reactive.Osc
@@ -41,9 +43,7 @@ rotateMouse gen =
         $ gen
 -}
 
-
-
--- type Time     = Double
+type Time     = Double
 type Duration = Time
 type Envelope = Double -> Double
 type Angle    = Double
@@ -56,32 +56,9 @@ data Transformation
 
 data Command
     = StartRecord
-        -- begin filling buffer from time 0
     | PauseRecord
-        -- pause recording
     | ResumeRecord
-        -- resume from paused position
     | StopRecord
-        -- stop recording                      
-    | ReadBuffer FilePath
-        -- read input from given file
-    | Play  Time Duration Transformation
-        -- Play t d e
-        -- Plays from time t to time t+d, using the given transformation
-
-
-{-
-
-
-runCommand :: Command -> IO ()
-runCommand = undefined
-
-runImitator :: [(Time, Command)] -> IO ()
-runImitator []     = return ()
-runImitator ((t,x):xs) = do
-    -- usleep (round t*1000000)
-    -- TODO cross-platform
-    runCommand x
-    runImitator xs
-
-                                -}
+    | ReadBuffer  FilePath  -- ^ Replace entire buffer with file
+    | WriteBuffer FilePath  -- ^ Write entire buffer to file
+    | Play Time Duration    -- ^Plays from @t@ to time @t+d@, using the given transformations.

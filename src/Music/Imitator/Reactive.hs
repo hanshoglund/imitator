@@ -78,13 +78,13 @@ module Music.Imitator.Reactive (
         toggleR, 
 
         -- * Time
-        Time,
+        -- Time,
         pulse,
         time,
         integral,
                    
         -- * Record and playback
-        Transport(..),
+        TransportControl(..),
         transport,
         record,
         playback,
@@ -865,7 +865,7 @@ integral t b = sumR (snapshotWith (*) b (diffE (time `sample` t)))
 
 
 
-data Transport t 
+data TransportControl t 
     = Play      -- ^ Play from the current position.
     | Reverse   -- ^ Play in reverse from the current position.
     | Pause     -- ^ Stop playing, and retain current position.
@@ -879,14 +879,14 @@ isStop _    = False
 -- |
 -- Generates a cursor that moves forward or backward continuously.
 --
--- The cursor may be started, stopped, moved by sending a 'Transport' event.
+-- The cursor may be started, stopped, moved by sending a 'TransportControl' event.
 --
--- > transport control pulse time
+-- > transport control pulse speed
 --
-transport :: (Ord t, Fractional t) => Event (Transport t) -> Event a -> Reactive t -> Reactive t
+transport :: (Ord t, Fractional t) => Event (TransportControl t) -> Event a -> Reactive t -> Reactive t
 transport ctrl pulse speed = position'
     where          
-        -- action :: Reactive (Transport t)
+        -- action :: Reactive (TransportControl t)
         action    = Pause `stepper` ctrl
 
         -- direction :: Num a => Reactive a
@@ -1021,24 +1021,25 @@ getLineE = getE getLine
 putLineE :: Event String -> Event String
 putLineE = putE putStrLn
 
+-- type Time = DiffTime
+
 systemTimeE :: Event UTCTime
 systemTimeE = pollE (Just <$> getCurrentTime)
 
 systemTimeR :: Reactive UTCTime 
 systemTimeR = eventToReactive systemTimeE
 
-systemTimeSecondsR :: Reactive Time
+systemTimeSecondsR :: Reactive DiffTime
 systemTimeSecondsR = fmap utctDayTime systemTimeR
 
 systemTimeDayR :: Reactive Day
 systemTimeDayR = fmap utctDay systemTimeR
 
-type Time = DiffTime
 
 -- | 
 -- An event occuring at the specified interval.
 --
-pulse :: Time -> Event ()
+pulse :: DiffTime -> Event ()
 pulse t = getE $ threadDelay (round (fromMicro t))
     where           
         fromMicro = (* 1000000)

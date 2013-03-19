@@ -17,7 +17,7 @@ import Control.Newtype
 import System.IO.Unsafe (unsafePerformIO)
 import Control.Concurrent (forkIO, forkOS, threadDelay)
 
-import Music.Imitator.Reactive hiding (Time, Transport)
+import Music.Imitator.Reactive
 import Music.Imitator.Util
 
 import Sound.OpenSoundControl hiding (Time, time)

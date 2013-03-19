@@ -188,7 +188,7 @@ gui = do
 
         -- --------------------------------------------------------
         
-        control :: Event (Transport Double)
+        control :: Event (TransportControl Double)
         control = mempty 
             <> (Play    <$ startE) 
             <> (Pause   <$ pauseE) 

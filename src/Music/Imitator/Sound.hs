@@ -155,11 +155,11 @@ import Sound.SC3.UGen ( UGen(..), Rate(..),
                         Warp(..), Loop(..), DoneAction(..),
                         mce, mceChannels
                       )
-import qualified Sound.SC3.UGen      as U
+import qualified Sound.SC3.UGen             as U
 import qualified Sound.SC3.UGen.Noise.Monad as N
-import qualified Sound.SC3.Server.FD as S
+import qualified Sound.SC3.Server.FD        as S
 
-import Sound.OSC.Transport.FD.UDP ( openUDP)
+import Sound.OSC.Transport.FD.UDP ( openUDP )
 import Sound.OpenSoundControl.Type ( Message(..), Datum(..), Bundle(..) )
 import Sound.SC3.Server.NRT ( NRT(..), writeNRT )
 import Sound.OSC.Transport.FD.UDP ( UDP )
@@ -421,6 +421,15 @@ numChannels = length . mceChannels
 -}
 
 
+newBuffer :: Int -> Int -> Int -> Message
+newBuffer = undefined
+
+readBuffer :: Int -> String -> Int -> Int -> Message
+readBuffer = undefined
+
+closeBuffer :: Int -> Message
+closeBuffer = undefined
+
 
 
 
@@ -464,16 +473,6 @@ asyncStd msg = do
     checkServerActive
     fd <- kStdServer
     S.async fd msg
-
-newBuffer :: Int -> Int -> Int -> Message
-newBuffer = undefined
-
-readBuffer :: Int -> String -> Int -> Int -> Message
-readBuffer = undefined
-
-closeBuffer :: Int -> Message
-closeBuffer = undefined
-
 
 -- ./scsynth -N Cmds.osc _ NRTout.aiff 44100 AIFF int16
 -- |
