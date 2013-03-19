@@ -20,7 +20,7 @@ import Control.Concurrent (forkIO, forkOS, threadDelay)
 import Music.Imitator.Reactive hiding (Time, Transport)
 import Music.Imitator.Util
 
-import Sound.OpenSoundControl hiding (Time)
+import Sound.OpenSoundControl hiding (Time, time)
 import qualified Sound.OSC.FD as Osc
 
 type OscTime    = Osc.Time
