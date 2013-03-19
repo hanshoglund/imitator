@@ -212,14 +212,18 @@ gui = do
             ]
 
        
-        notes :: Event Message
-        notes = liftA3 NoteOn 0 (fmap round $ gainR * 70 + 30) 120 `sample` (pulse 0.2)        
+        notes :: Event MidiMessage
+        notes = liftA3 NoteOn 0 (round <$> gainR*70+30) (round <$> volumeR*120) `sample` (pulse 0.2)        
+
+        inNotes :: Event (MidiTime, MidiMessage)
+        inNotes = midiIn source
+            where 
+                source = unsafeGetReactive $ fromJust <$> (findSource $ pure "MIDI Monitor")
         
-        sendNotes :: Event Message
+        sendNotes :: Event MidiMessage
         sendNotes = midiOut dest notes
             where 
                 dest = unsafeGetReactive $ fromJust <$> (findDestination $ pure "MIDI Monitor")
-                fromJust (Just x) = x
                  
          
     -- --------------------------------------------------------
@@ -227,9 +231,10 @@ gui = do
         <> (continue $ writeTransport position)
         -- <> (continue $ showing "Events:   " $ actions)
         -- <> (continue $ showing "Notes:    " $ notes)
-        <> (continue $ {-showing "NotesOut: " $ -}sendNotes)
         -- <> (continue $ showing "Destinations: " $ findDestination (pure "MIDI Monitor") `sample` pulse 1)
-        
+
+        <> (continue $ showing "Notes in:     " $ inNotes)
+        <> (continue $ showing "Notes out:    " $ sendNotes)
         -- <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
         -- <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
         <> (noContinue $ stopE)
@@ -268,3 +273,5 @@ continue :: Event a -> Event (Maybe b)
 continue     = (Nothing <$)
 noContinue :: Event a -> Event (Maybe a)
 noContinue   = (Just <$>)
+
+fromJust (Just x) = x

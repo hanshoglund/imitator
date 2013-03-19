@@ -1,7 +1,9 @@
 
 module Music.Imitator.Reactive.Midi (
         module Codec.Midi,
-        MidiName,
+        MidiName,   
+        Midi.MidiTime,
+        MidiMessage,
         MidiSource,
         MidiDestination,
         midiSources,
@@ -28,6 +30,7 @@ import qualified System.MIDI            as Midi
 
 
 type MidiName        = String
+type MidiMessage     = Message          -- TODO move to hamid?
 type MidiSource      = Midi.Source
 type MidiDestination = Midi.Destination
 
@@ -50,8 +53,12 @@ findDestination nm = g <$> nm <*> midiDestinations
     where
         g = (\n -> listToMaybe . filter (\d -> isSubstringOfNormalized n $ unsafePerformIO (Midi.name d)))
 
-midiIn :: MidiSource -> Event Message
-midiIn = undefined
+midiIn :: MidiSource -> Event Midi.MidiEvent
+midiIn dev = unsafePerformIO $ do
+    (k, e) <- newSource
+    str <- Midi.openSource dev (Just $ curry k)
+    Midi.start str
+    return e
 
 midiOut :: MidiDestination -> Event Message -> Event Message
 midiOut dest = putE $ \msg -> do
