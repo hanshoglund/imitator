@@ -51,10 +51,12 @@ import Music.Score
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Midi
 import Music.Imitator.Reactive.Osc
-import Music.Imitator.Sound hiding (pulse)
+import Music.Imitator.Sound
 import Music.Imitator.Util
 
 import Music.Imitator.Util
+
+
 
 {-
 -- score = []

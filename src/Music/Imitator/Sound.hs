@@ -11,26 +11,21 @@
 -- Stability   : stable
 -- Portability : portable
 --
--- Sound backend (implemented as a wrapper around hsc3).
+-- Wrapper around hsc3 for the purpose of Imitator.
 --
 -------------------------------------------------------------------------------------
 
 module Music.Imitator.Sound (
+
+        module Music.Imitator.Sound.Prim,
         
         -- * Generators
-        
-        UGen(..),
-        Warp(..),
-        Rate(..),
-        Loop(..),
-        DoneAction(..),
-
         -- ** Oscillators
         sine,
         phasor,
-        pulse,
+        pulse',
         saw,
-        vibrato,
+        -- vibrato,
         impulse,
 
         noise,     
@@ -47,7 +42,9 @@ module Music.Imitator.Sound (
         -- lfPulse,
         -- lfSaw,
         -- lfTri,
-        
+
+        -- * Control
+        control,
         mouse,
         mouseButton,
 
@@ -76,7 +73,7 @@ module Music.Imitator.Sound (
         recordBuf,
         playBuf,
         grainBuf,   
-        
+
         -- ** I/O
         input,
         output,
@@ -95,7 +92,12 @@ module Music.Imitator.Sound (
         foaTilt,
         foaTumble,
 
-        -- ** Utilities
+        -- ** Multichannel
+        (!),
+        U.mce,
+        U.mce2,
+        U.mce3,
+        U.mceChannels,
         numChannels,
 
 
@@ -119,7 +121,7 @@ module Music.Imitator.Sound (
         -- ** Real-time
         startServer,
         stopServer,
-        serverActive,
+        isServerRunning,
         serverStatus,
         serverStatusData,
         serverUgens,
@@ -151,11 +153,6 @@ import Data.Bits
 import System.Random
 import System.IO.Unsafe ( unsafePerformIO )
 
-
-import Sound.SC3.UGen ( UGen(..), Rate(..), 
-                        Warp(..), Loop(..), DoneAction(..),
-                        mce, mceChannels
-                      )
 import qualified Sound.SC3.UGen             as U
 import qualified Sound.SC3.UGen.Noise.Monad as N
 import qualified Sound.SC3.Server.FD        as S
@@ -165,21 +162,11 @@ import Sound.OpenSoundControl.Type ( Message(..), Datum(..), Bundle(..) )
 import Sound.SC3.Server.NRT ( NRT(..), writeNRT )
 import Sound.OSC.Transport.FD.UDP ( UDP )
 
+import Music.Imitator.Sound.Prim
 import Music.Imitator.Util
 
 
 
-
-{-
-impulseTest :: UGen
-
-
-impulseTest = 
-    decode kNumSpeakers 
-        $ foaRotate ((fst mouse + 1) * tau + (tau/8)) 
-        $ foaPanB 0 0 
-        $ (impulse 12 * 0.5)
--}
 
 -- |
 -- Sinusoid generator.
@@ -210,8 +197,8 @@ phasor trig rate start end resetPos = U.phasor AR trig rate start end resetPos
 --
 -- > pulse freq width                 
 --
-pulse :: UGen -> UGen -> UGen
-pulse freq width = U.pulse AR freq width
+pulse' :: UGen -> UGen -> UGen
+pulse' freq width = U.pulse AR freq width
 
 -- |
 -- Sawtooth wave generator.
@@ -288,12 +275,20 @@ dust2 density = unsafePerformIO $ N.dust2 AR density
 
 
 -- |
+-- Control input.
+--
+-- > control name default
+--
+control :: String -> Double -> UGen
+control = U.control AR
+
+-- |
 -- Mouse position generator.
 --
 -- > let (x, y) = mouse
 --
 mouse :: (UGen, UGen)
-mouse    = (U.mouseX KR 0 1 Linear 0, U.mouseY KR 0 1 Linear 0)
+mouse    = (U.mouseX KR 0 1 Linear 0.2, U.mouseY KR 0 1 Linear 0.2)
 
 
 -- |
@@ -302,7 +297,7 @@ mouse    = (U.mouseX KR 0 1 Linear 0, U.mouseY KR 0 1 Linear 0)
 -- > mouseButton
 --
 mouseButton :: UGen
-mouseButton = U.mouseX KR 0 1 Linear 0
+mouseButton = U.mouseButton KR 0 1 0.2
 
 
 -- |
@@ -361,7 +356,7 @@ feedback numCh bus = U.inFeedback numCh bus
 
 
 foaOmni :: UGen -> UGen
-foaOmni input = mce $ replicate 4 input
+foaOmni input = U.mce $ replicate 4 input
 
 foaPanB :: UGen -> UGen -> UGen -> UGen
 foaPanB azimuth elev input = U.mkFilter "FoaPanB" [input, azimuth, elev] 4
@@ -369,27 +364,32 @@ foaPanB azimuth elev input = U.mkFilter "FoaPanB" [input, azimuth, elev] 4
 decode :: Int -> UGen -> UGen
 decode numSpeakers input = U.decodeB2 numSpeakers w x y 0
     where
-        [w,x,y,_] = mceChannels input
+        [w,x,y,_] = U.mceChannels input
 
 
 foaRotate :: UGen -> UGen -> UGen
 foaRotate angle input = U.mkFilter "FoaRotate" [w,x,y,z,angle] 4
     where
-        [w,x,y,z] = mceChannels input
+        [w,x,y,z] = U.mceChannels input
 
 foaTilt :: UGen -> UGen -> UGen
 foaTilt angle input = U.mkFilter "FoaTilt" [w,x,y,z,angle] 4
     where
-        [w,x,y,z] = mceChannels input
+        [w,x,y,z] = U.mceChannels input
 
 foaTumble :: UGen -> UGen -> UGen
 foaTumble angle input = U.mkFilter "FoaTumble" [w,x,y,z,angle] 4
     where
-        [w,x,y,z] = mceChannels input
+        [w,x,y,z] = U.mceChannels input
 
+
+-- |
+-- Multichannel duplication.
+(!) :: UGen -> Int -> UGen
+g ! n = U.mce $ concat $ replicate n (U.mceChannels g)
 
 numChannels :: UGen -> Int
-numChannels = length . mceChannels
+numChannels = length . U.mceChannels
 
 
 
@@ -521,7 +521,7 @@ stopServer = execute "killall" ["scsynth"]
 
 checkServerActive :: IO ()
 checkServerActive = do
-    active <- serverActive
+    active <- isServerRunning
     case (active) of
         False -> fail "Server not running"
         True  -> return ()
@@ -529,8 +529,8 @@ checkServerActive = do
 -- |
 -- Return whether the server is active.
 --
-serverActive :: IO Bool
-serverActive = do
+isServerRunning :: IO Bool
+isServerRunning = do
     status <- try serverStatus :: IO (Either SomeException [String])
     case status of
         Left _  -> return False
