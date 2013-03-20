@@ -367,18 +367,30 @@ feedback :: Int -> UGen -> UGen
 feedback numCh bus = U.inFeedback numCh bus
 
 
+-- |
+-- > foaOmni input
+--
 foaOmni :: UGen -> UGen
 foaOmni input = U.mce $ replicate 4 input
 
+-- |
+-- > foaPanB azimuth elev input
+--
 foaPanB :: UGen -> UGen -> UGen -> UGen
 foaPanB azimuth elev input = U.mkFilter "FoaPanB" [input, azimuth, elev] 4
 
+-- |
+-- > decode numSpeakers input
+--
 decode :: Int -> UGen -> UGen
 decode numSpeakers input = U.decodeB2 numSpeakers w x y 0
     where
         [w,x,y,_] = U.mceChannels input
 
 
+-- |
+-- > foaRotate angle input
+--
 foaRotate :: UGen -> UGen -> UGen
 foaRotate angle input = U.mkFilter "FoaRotate" [w,x,y,z,angle] 4
     where
