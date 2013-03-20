@@ -54,6 +54,7 @@ oscInUdp port = unsafePerformIO $ do
 --
 oscOutUdp :: OSC a => String -> Int -> Event a -> Event a
 oscOutUdp addr port = putE $ \msg -> do
+    -- putStrLn "Osc.sendOSC"
     Osc.sendOSC dest msg
         where
             dest = unsafePerformIO $ do

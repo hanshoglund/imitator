@@ -56,6 +56,10 @@ import Music.Imitator.Reactive.Osc
 import Music.Imitator.Sound
 import Music.Imitator.Util
 
+import Control.Concurrent (forkIO)
+
+import qualified Data.List as List
+
 import Sound.SC3.Server.Synthdef (synthdef, synthdefWrite) -- TODO move
 import qualified Sound.SC3.Server.FD        as S           -- TODO move
 import qualified Sound.SC3.UGen             as U           -- TODO move
@@ -73,11 +77,10 @@ data Transformation
     -- TODO ATK rotation etc
 
 data Command
-    = StartRecord           -- ^ Start recording
-    | StopRecord            -- ^ Stop recording
-    | ReadBuffer  FilePath  -- ^ Replace entire buffer with file
-    | WriteBuffer FilePath  -- ^ Write entire buffer to file
-    | Play Time Duration    -- ^ Plays from @t@ to time @t+d@, using the given transformations.
+    = StartRecord               -- ^ Start recording
+    | StopRecord                -- ^ Stop recording
+    | ReadBuffer FilePath           -- ^ Replace entire buffer with file
+    | PlayBuffer Int Time Duration  -- ^ Plays from @t@ to time @t+d@, using the given transformations.
 
 
 
@@ -116,12 +119,13 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 -- Play a single slice to B-format bus.
 --
 playG :: UGen
-playG = output cx $ playBuf bc bx 0 1 0 
+playG = output cx $ playBuf bc bx 0 1 0 * kOutVol 
     where              
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
         -- TODO write to sound field
         -- (sfx, sfn)   = kSoundFieldBus
+kOutVol = 0.1
 
 -- |
 -- Read from output B-format bus, write to output buffers
@@ -163,18 +167,18 @@ allocateBuffers = mempty
          (index, channels, frames) = kMainBuffer
     
 -- |
--- Create groups 1, 2, and 3 for record, play and decode respectively.        
+-- Create groups 5, 6, 7 for record, play and decode respectively.        
 -- 
 createGroups :: [OscMessage]
 createGroups = [
-         S.g_new [ (1,S.AddToTail,0),
-                   (2,S.AddToTail,0),
-                   (3,S.AddToTail,0) ]
+         S.g_new [ (5, S.AddToTail, 0),
+                   (6, S.AddToTail, 0),
+                   (7, S.AddToTail, 0) ]
     ]
 
 createRecorder :: [OscMessage]
 createRecorder = [
-        S.s_new "imitator-record" 10 S.AddToTail 1 []
+        S.s_new "imitator-record" 10 S.AddToTail 5 []
     ]
 freeRecorder :: [OscMessage]
 freeRecorder = [
@@ -183,7 +187,7 @@ freeRecorder = [
 
 createDecoder :: [OscMessage]
 createDecoder = [
-        S.s_new "imitator-decode" 11 S.AddToTail 3 []
+        S.s_new "imitator-decode" 11 S.AddToTail 7 []
     ]
 freeDecoder :: [OscMessage]
 freeDecoder = [
@@ -192,7 +196,7 @@ freeDecoder = [
 
 createPlaySynth :: Int -> [OscMessage]
 createPlaySynth n = [
-        S.s_new "imitator-play" (20 + n) S.AddToTail 2 []
+        S.s_new "imitator-play" (20 + n) S.AddToTail 6 []
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [
@@ -205,12 +209,30 @@ setupServer = mempty
     <> loadSynthDefs
     <> allocateBuffers
     <> createGroups
-    <> createDecoder
+--    <> createDecoder must wait here
 
 
 translateCommand :: Command -> [OscMessage]
-translateCommand cmd = mempty
+translateCommand StartRecord        = createRecorder
+translateCommand StopRecord         = freeRecorder
+translateCommand (ReadBuffer p)     = [readBuffer 0 p]
+translateCommand (PlayBuffer n t d)   = createPlaySynth n
+-- TODO buffer allocation, params to play etc
 
+
+cmds :: Track Command
+cmds = Track [
+    (0,     StartRecord),
+    (0.5,   PlayBuffer 0 0 0),
+    (1.0,   PlayBuffer 1 0 0),
+    (0.5,   PlayBuffer 2 0 0),
+    
+    (8,     PlayBuffer 3 0 0),
+    (9,     PlayBuffer 4 0 0),
+    (10,    PlayBuffer 5 0 0),
+    
+    (300,   StopRecord)
+    ]
 
 
 -- |
@@ -221,7 +243,15 @@ translateCommand cmd = mempty
 -- > imitatorRT time
 --
 imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
-imitatorRT = mempty
+imitatorRT cmds time = playback time (pure msgs)
+    where
+        msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< cmds
+        prependSetup t = listToTrack setupServer <> delay 3 t
+        fixDelayBug = delay 1
+
+listToTrack :: [a] -> Track a
+listToTrack = mconcat . fmap return
+
 
 -- |
 -- Convert commmands to a non-realtime score for @scsynth@.
@@ -234,7 +264,10 @@ imitatorNRT :: Track Command -> Duration -> NRT
 imitatorNRT = undefined
 
 
-
+runImitatorRT :: IO ()
+runImitatorRT = do
+    forkIO $ runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds time
+    return ()
 
 -- |
 -- Run over the given input file.

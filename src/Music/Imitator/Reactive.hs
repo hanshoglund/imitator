@@ -1106,7 +1106,9 @@ notify m x = putLineE (fmap (const m) x) `seqE` x
 -- message, for each value.
 -- 
 showing :: Show a => String -> Event a -> Event a
-showing m x = putLineE (fmap (\x -> m ++ show x) x) `seqE` x
+showing m x = putE k x
+    where
+        k x = putStrLn $ m ++ show x
 
 -- |
 -- Creates a new source and a computation that writes  it.
