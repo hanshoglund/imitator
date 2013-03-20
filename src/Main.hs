@@ -176,18 +176,15 @@ gui = do
         gainR   = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
         volumeR = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
 
-        transportS :: Sink Int
-        transportS = widgetSinks "transport"
+        transportS :: Sink Double
+        transportS = widgetSinks "transport" . (round . (* 1000.0) <$>)
         
-        gainS :: Sink Int
-        gainS = widgetSinks "gain"
+        gainS :: Sink Double
+        gainS = widgetSinks "gain" . (round . (* 1000.0) <$>)
+        
 
-        writeGain x      = gainS $ (round <$> x * 1000.0)       `sample` pulse 0.1
-        writeTransport x = transportS $ (round <$> x * 1000.0)  `sample` pulse 0.1
         -- TODO write server status etc
 
-        -- --------------------------------------------------------
-        
         control :: Event (TransportControl Double)
         control = mempty 
             <> (Play    <$ startE) 
@@ -206,7 +203,7 @@ gui = do
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        <> (continue $ writeTransport position)
+        <> (continue $ showing "Position      " $ transportS $ position `sample` pulse 0.1)
         <> (continue $ showing "OSC scsynth:  " $ sendCommands)
 
     -- --------------------------------------------------------

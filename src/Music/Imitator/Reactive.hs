@@ -1092,7 +1092,7 @@ kLoopInterval = 1000 * 5
 -------------------------------------------------------------------------------------
 
 type Source a = Event a
-type Sink a   = Event a -> Event a
+type Sink a   = Event a -> Event ()
 
 -- |
 -- Behaves like the original event but writes a given message to the standard
@@ -1124,7 +1124,7 @@ newSource = do
 newSink :: IO (IO (Maybe a), Sink a)
 newSink = do
     ch <- newChan
-    return (tryReadChan ch, writeChanE ch)  
+    return (tryReadChan ch, tickE . writeChanE ch)  
 
 runEvent :: Show a => Event a -> IO ()
 runEvent = runLoop . showing ""
