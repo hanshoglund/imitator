@@ -157,6 +157,7 @@ addTimers frame = do
 gui :: IO ()
 gui = do     
     startServer
+    writeSynthDefs
     frame <- frame [text := "Imitator"]
 
     (menuSources,   menuSinks)   <- addMenus frame
@@ -164,10 +165,6 @@ gui = do
     (timerSources,  timerSinks)  <- addTimers frame
 
     let 
-        -- timeR :: Reactive Double
-        -- timeR = accumR 0 ((+ 0.05) <$ pulse 0.05)
-        timeR = time
-
         startE, stopE, pauseE, resumeE :: Event ()
         startE  = tickE $ widgetSources "start"
         stopE   = tickE $ widgetSources "stop"
@@ -204,74 +201,18 @@ gui = do
         position :: Reactive Double
         position  = transport control (pulse 0.1) (tempoR * 10) / duration
 
-        actions :: Event String
-        actions = playback position $ pure 
-            [ 
-                (0.0, "What"),
-                (0.1, "a"),
-                (0.2, "day"),
-                (0.3, "for"),
-                (0.4, "an"),            
-                (0.5, "Auto-da-fe")            
-            ]
-
-       
-        -- notes :: Event MidiMessage
-        -- notes = liftA3 NoteOn 0 (round <$> gainR*70+30) (round <$> volumeR*120) `sample` pulse 0.2        
-        -- 
-        -- inNotes :: Event (MidiTime, MidiMessage)
-        -- inNotes = midiIn' source
-        --     where 
-        --         source = unsafeGetReactive $ fromJust <$> (findSource $ pure "MIDI Monitor")
-        --                                           
-        -- osc :: Event OscMessage
-        -- osc = liftA2 message "/test/info/time" (fmap (\x -> [x]) $ fmap Double $ gainR) `sample` pulse 0.2
-        --    
-        -- sendOsc :: Event OscMessage
-        -- sendOsc = oscOutUdp "127.0.0.1" 98765 osc
-        -- 
-        -- sendNotes :: Event MidiMessage
-        -- sendNotes = midiOut dest notes
-        --     where 
-        --         dest = unsafeGetReactive $ fromJust <$> (findDestination $ pure "MIDI Monitor")
-        
-        sendOscToScSynth = oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds (position * 100)         
+        sendCommands :: Event OscMessage
+        sendCommands = oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds (position * 100)         
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ writeTransport position)
-        -- <> (continue $ showing "Events:   " $ actions)
-        -- <> (continue $ showing "Notes:    " $ notes)
-        -- <> (continue $ showing "Destinations: " $ findDestination (pure "MIDI Monitor") `sample` pulse 1)
-
-        -- <> (continue $ showing "Notes in:     " $ inNotes)
-        -- <> (continue $ showing "Notes out:    " $ sendNotes)
-        -- <> (continue $ showing "OSC   out:    " $ sendOsc)
-
-        <> (continue $ showing "OSC scsynth:  " $ sendOscToScSynth)
-
-        -- <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
-        -- <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
+        <> (continue $ showing "OSC scsynth:  " $ sendCommands)
 
     -- --------------------------------------------------------
-    forkIO $ do 
-        eventLoop
-        -- close frame -- fixme on main thread
+
+    forkIO eventLoop
     return ()
-
-
-
-rr :: Reactive (Event a -> Event b) -> Event a -> Event b
-rr r e = justE $ (`sample` e) $ join $ fmap maybeStepper (r <*> pure e)
-
--- eventToReactive :: Event a -> Reactive a
--- eventToReactive = stepper (error "eventToReactive: ")
-
-
-rr2 :: Reactive (Event a -> Event b) -> Event a -> Event (Event b)
-rr2 r e = (r <*> pure e) `sample` e
-
-
 
 
 main :: IO ()
@@ -288,4 +229,5 @@ continue     = (Nothing <$)
 noContinue :: Event a -> Event (Maybe a)
 noContinue   = (Just <$>)
 
+fromJust :: Maybe a -> a
 fromJust (Just x) = x

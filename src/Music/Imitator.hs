@@ -25,6 +25,7 @@ module Music.Imitator (
         imitatorNRT,
         startServer,
         stopServer,
+        writeSynthDefs,
         
         runImitatorRT,
         runImitatorNRT,
