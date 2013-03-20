@@ -124,13 +124,17 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 -- Play a single slice to B-format bus.
 --
 playG :: UGen
-playG = output cx $ playBuf bc bx 0 1 0 * kOutVol 
-    where              
+playG = 
+    -- output cx $ bufferOut
+    output sfx $ (! 4) $ firstChannel $ bufferOut
+    where                 
+        bufferOut = playBuf bc bx 0 1 0 * kOutVol
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
+        (sfx, sfn)   = kSoundFieldBus
         -- TODO write to sound field
-        -- (sfx, sfn)   = kSoundFieldBus
 kOutVol = 0.1
+firstChannel = head . mceChannels
 
 -- |
 -- Read from output B-format bus, write to output buffers
@@ -214,7 +218,10 @@ setupServer = mempty
     <> loadSynthDefs
     <> allocateBuffers
     <> createGroups
---    <> createDecoder must wait here
+
+setupServer2 :: [OscMessage]
+setupServer2 = mempty
+    <> createDecoder
 
 
 translateCommand :: Command -> [OscMessage]
@@ -235,7 +242,7 @@ imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
 imitatorRT cmds time = playback time (pure msgs)
     where
         msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< cmds
-        prependSetup t = listToTrack setupServer <> delay 3 t
+        prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
 
 listToTrack :: [a] -> Track a
@@ -255,7 +262,7 @@ imitatorNRT = undefined
 
 runImitatorRT :: IO ()
 runImitatorRT = do
-    forkIO $ runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds time
+    runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds time
     return ()
 
 -- |
@@ -271,7 +278,8 @@ runImitatorNRT input output = do
 
 cmds :: Track Command
 cmds = Track [
-    (0,     StartRecord),
+    -- (0,     StartRecord),
+    (0,     ReadBuffer "/Users/hans/Desktop/test.wav"),
     (0.5,   PlayBuffer 0 0 0),
     (1.0,   PlayBuffer 1 0 0),
     (0.5,   PlayBuffer 2 0 0),
