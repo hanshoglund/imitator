@@ -198,13 +198,19 @@ gui = do
         position :: Reactive Double
         position  = transport control (pulse 0.1) (tempoR * 10) / duration
 
-        sendCommands :: Event OscMessage
-        sendCommands = oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds (position * 100)         
+        serverMessages :: Event OscMessage
+        serverMessages = imitatorRT cmds (position * 100)
+
+        sendToServer :: Event OscMessage -> Event OscMessage
+        sendToServer msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        <> (continue $ showing "Position      " $ transportS $ position `sample` pulse 0.1)
-        <> (continue $ showing "OSC scsynth:  " $ sendCommands)
+
+        <> (continue $ transportS               $ position `sample` pulse 0.1)
+        <> (continue $ sendToServer             $ serverMessages)
+
+        <> (continue $ showing "Sending to server:  " $ serverMessages)
 
     -- --------------------------------------------------------
 
