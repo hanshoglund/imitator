@@ -58,6 +58,7 @@ import Music.Imitator.Util
 
 import Sound.SC3.Server.Synthdef (synthdef, synthdefWrite) -- TODO move
 import qualified Sound.SC3.Server.FD        as S           -- TODO move
+import qualified Sound.SC3.UGen             as U           -- TODO move
 
 
 -- type Time     = Double
@@ -89,13 +90,13 @@ data Command
 
 -- -- (index, numChan)
 kInBus, kOutBus, kSoundFieldBus :: (Num a, Num b) => (a, b)
-kInBus          = (0,  2)
-kOutBus         = (0,  8)
-kSoundFieldBus = (20, 4)
+kOutBus         = (0,                                 8)
+kInBus          = (8,                                 2)
+kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
 
 -- (index, channels, frames)
-kMainBuf :: (Num a, Num b, Num c) => (a, b, c)
-kMainBuf = (0, 2, 48000*60*35)
+kMainBuffer :: (Num a, Num b, Num c) => (a, b, c)
+kMainBuffer = (0, 2, 48000 * 60 * 35)
 
 -- |
 -- Record to buffer.
@@ -107,17 +108,18 @@ recordG = recordBuf bx offset trig onOff (input an ax)
         trig     = 0
         onOff    = 1
         (ax, an)     = kInBus
-        (bx, bc, bf) = kMainBuf
+        (bx, bc, bf) = kMainBuffer
 
 -- |
 -- Play a single slice to B-format bus.
 --
 playG :: UGen
-playG = output 0 $ playBuf bx bc 0 1 0 
+playG = output cx $ playBuf bc bx 0 1 0 
     where              
-        -- TODO
-        (bx, bc, bf) = kMainBuf
-        (sfx, sfn)   = kSoundFieldBus
+        (bx, bc, bf) = kMainBuffer
+        (cx,  cn)    = kOutBus
+        -- TODO write to sound field
+        -- (sfx, sfn)   = kSoundFieldBus
 
 -- |
 -- Read from output B-format bus, write to output buffers
@@ -134,30 +136,68 @@ decodeG = output cx $ decode cn (input sfn sfx)
 --
 writeSynthDefs :: IO ()
 writeSynthDefs = do
+    createDirectoryIfMissing True kSynthDefPath
     writeGen "record" recordG
     writeGen "decode" decodeG
     writeGen "play"   playG
     where                 
-        writeGen name gen = synthdefWrite def path
+        writeGen name gen = synthdefWrite def kSynthDefPath
             where
                 def  = synthdef ("imitator-" ++ name) gen
-                path = kSynthDefPath ++ "/imitator-" ++ name ++ ".scsyndef"
+
 
 loadSynthDefs :: [OscMessage]
-loadSynthDefs = mempty
-
-createGroups :: [OscMessage]
-createGroups = mempty
-
-createStdSynths :: [OscMessage]
-createStdSynths = mempty
+loadSynthDefs = [
+        S.d_loadDir kSynthDefPath
+    ]
 
 allocateBuffers :: [OscMessage]
 allocateBuffers = mempty
-    <> (single $ newBuffer index channels frames)
+    <> [newBuffer index frames channels]
     where
-         (index, channels, frames) = kMainBuf
+         (index, channels, frames) = kMainBuffer
+
+readBuffer' :: FilePath -> [OscMessage]
+readBuffer' path = [
+        S.b_read 0 path 0 (-1) 0 False
+    ]
     
+-- |
+-- Create groups 1, 2, and 3 for record, play and decode respectively.        
+-- 
+createGroups :: [OscMessage]
+createGroups = [
+         S.g_new [ (1,S.AddToTail,0),
+                   (2,S.AddToTail,0),
+                   (3,S.AddToTail,0) ]
+    ]
+
+-- |
+-- Create the standard synths (record and decode).
+-- 
+createStdSynths :: [OscMessage]
+createStdSynths = [
+        S.s_new "imitator-record" 10 S.AddToTail 1 [],
+        S.s_new "imitator-decode" 11 S.AddToTail 3 []
+    ]
+
+setupServer :: [OscMessage]
+setupServer = mempty
+    <> loadSynthDefs
+    <> allocateBuffers
+    <> createGroups
+    <> createStdSynths
+
+-- FIXME
+createPlaySynth :: Int -> [OscMessage]
+createPlaySynth n = [
+        S.s_new "imitator-play" (20 + n) S.AddToTail 2 []
+    ]
+
+
+translateCommand :: Command -> [OscMessage]
+translateCommand cmd = mempty
+
 
 
 -- |
@@ -189,6 +229,11 @@ runImitatorNRT input output = do
     -- convert score to NRT
     -- runNRT
     return ()
+
+
+sendS c   = sendStd c >> isServerRunning
+sendSS c  = mapM sendStd c >> isServerRunning
+dumpNodes = sendStd $ S.g_dumpTree [(0,True)]
 
 
 

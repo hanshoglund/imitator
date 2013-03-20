@@ -103,6 +103,7 @@ module Music.Imitator.Sound (
         -- * Server
         -- ** Play and stop
         play,
+        play',
         abort,
         sendStd,      
         
@@ -144,7 +145,9 @@ module Music.Imitator.Sound (
         kStdPort,
         kMasterVolume,
         kOutputOffset,
-        kNumSpeakers,        
+        kNumSpeakers,  
+        kAudioBusOffset,
+        kControlBusOffset      
   ) where
 
 import Data.Monoid
@@ -444,6 +447,14 @@ play gen = do
             recvMsg         = S.d_recv $ S.synthdef "playGen" (U.out kOutputOffset $ gen * kMasterVolume)
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
 
+play' :: UGen -> IO ()
+play' gen = do
+    asyncStd $ recvMsg
+    sendStd  $ addToTailMsg
+        where           
+            recvMsg         = S.d_recv $ S.synthdef "playGen'" gen
+            addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
+
 -- |
 -- Abort all current synthesis (remove generators from the synthesis graph).
 --
@@ -480,7 +491,12 @@ runServer cmds input output = do
                 output, 
                 show kStdOutputSampleRate, 
                 kStdOutputType, 
-                kStdOutputFormat
+                kStdOutputFormat,
+        
+        "-i",   show kInputBuses,
+        "-o",   show kOutputBuses,
+        "-a",   show kAudioBuses,
+        "-c",   show kControlBuses
         ]
     where
         scorePath = "score.osc"
@@ -492,12 +508,18 @@ runServer cmds input output = do
 -- Start the server.
 --
 startServer :: IO ()
-startServer = execute "scsynth" [
-    "-v", "1", 
-    "-u", show kStdPort,
-    "-S", show kStdSampleRate,
-    "-m", show kRealTimeMemorySize
-    ]
+startServer = do
+    execute "scsynth" [
+        "-v",   "1", 
+        "-u",   show kStdPort,
+        "-S",   show kStdSampleRate,
+        "-m",   show kRealTimeMemorySize,
+
+        "-i",   show kInputBuses,
+        "-o",   show kOutputBuses,
+        "-a",   show kAudioBuses,
+        "-c",   show kControlBuses
+        ]
 
 
 -- |
@@ -585,6 +607,13 @@ kMasterVolume           = 0.3
 kStdOutputSampleRate    = 44100
 kStdOutputType          = "WAV"
 kStdOutputFormat        = "int16"
+
+kInputBuses             = 8
+kOutputBuses            = 8
+kAudioBuses             = 128
+kControlBuses           = 4096
+kAudioBusOffset         = kInputBuses + kOutputBuses
+kControlBusOffset       = kInputBuses + kOutputBuses + kAudioBuses
 
 kNumSpeakers, kOutputOffset :: Num a => a
 kOutputOffset           = 0
