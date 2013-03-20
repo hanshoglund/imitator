@@ -21,6 +21,7 @@ library
         unix,
         time,
         random,
+        directory,
         stm,
         newtype,
         hamid      >= 0.6,

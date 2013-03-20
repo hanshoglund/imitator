@@ -45,6 +45,8 @@ import Data.Either
 import Data.Monoid  
 import Control.Monad
 import Control.Applicative
+import System.Directory
+import System.IO.Unsafe
 
 import Music.Score
 
@@ -54,20 +56,9 @@ import Music.Imitator.Reactive.Osc
 import Music.Imitator.Sound
 import Music.Imitator.Util
 
-import Music.Imitator.Util
+import Sound.SC3.Server.Synthdef (synthdef, synthdefWrite) -- TODO move
+import qualified Sound.SC3.Server.FD        as S           -- TODO move
 
-
-
-{-
--- score = []
-
-rotateMouse :: UGen -> UGen
-rotateMouse gen =
-    decode kNumSpeakers 
-        $ foaRotate ((fst mouse + 1) * tau + (tau/8)) 
-        $ foaPanB 0 0 
-        $ gen
--}
 
 -- type Time     = Double
 -- type Duration = Time
@@ -87,40 +78,84 @@ data Command
     | WriteBuffer FilePath  -- ^ Write entire buffer to file
     | Play Time Duration    -- ^ Plays from @t@ to time @t+d@, using the given transformations.
 
--- |
--- Write synthdefs where @scsynth@ can find them.
---
-writeSynthDefs :: IO ()
-writeSynthDefs = undefined
 
--- index, num channels
-kInBus   = (0,  2)
-kBFBus   = (20, 4)
-kOutBus  = (0,  8)
-kMainBuf = (0,  2)
+
+
+
+
+
+
+
+
+-- -- (index, numChan)
+-- kInBus, kOutBus, kBFBus :: Num a => (a, a)
+-- kInBus   = (0,  2)
+-- kOutBus  = (0,  8)
+-- kBFBus   = (20, 4)
+
+-- (index, channels, frames)
+kMainBuf :: Num a => (a, a, a)
+kMainBuf = (0, 2, 48000*60*35)
+
 
 -- |
 -- Record to buffer.
 --
 recordG :: UGen
-recordG = input an ai
-    where
-        (an, ai) = kInBus
-        (bn, bi) = kMainBuf
+recordG = recordBuf bx offset trig onOff (input an ax)
+    where                               
+        offset   = 0
+        trig     = 0
+        onOff    = 1
+        (ax, an)     = (0, 2)
+        (bx, bc, bf) = (0, 2, 48000*60*35)
 
 -- |
--- Read from output B-format buffer, write to output buffers
+-- Read from output B-format bus, write to output buffers
 --
 decodeG :: UGen
-decodeG = undefined
+decodeG = output ox $ decode on (input bfn bfx)
+    where          
+        (ox,  on)  = (0,  8)
+        (bfx, bfn) = (20, 4)
 
 -- |
--- Play a single slice
+-- Play a single slice to B-format bus.
 --
 playG :: UGen
-playG = undefined
+playG = output 0 $ playBuf bx bc 0 1 0 
+    where
+        (bx, bc, bf) = (0, 2, 48000*60*35)
 
+-- |
+-- Write synthdefs where @scsynth@ can find them.
+--
+writeSynthDefs :: IO ()
+writeSynthDefs = do
+    writeGen "record" recordG
+    writeGen "decode" decodeG
+    writeGen "play"   playG
+    where                 
+        writeGen name gen = synthdefWrite def path
+            where
+                def  = synthdef ("imitator-" ++ name) gen
+                path = kSynthDefPath ++ "/imitator-" ++ name ++ ".scsyndef"
 
+loadSynthDefs :: [OscMessage]
+loadSynthDefs = mempty
+
+createGroups :: [OscMessage]
+createGroups = mempty
+
+createStdSynths :: [OscMessage]
+createStdSynths = mempty
+
+allocateBuffers :: [OscMessage]
+allocateBuffers = mempty
+    <> (single $ newBuffer index channels frames)
+    where
+         (index, channels, frames) = (0, 2, 48000*60*35)
+    
 
 
 -- |
@@ -153,3 +188,10 @@ runImitatorNRT input output = do
     -- runNRT
     return ()
 
+
+
+
+kMainPath     = unsafePerformIO (getAppUserDataDirectory "Imitator")
+kSynthDefPath = kMainPath ++ "/synthdefs"
+
+single x = [x]
