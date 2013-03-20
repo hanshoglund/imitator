@@ -182,6 +182,8 @@ gui = do
         gainS :: Sink Double
         gainS = widgetSinks "gain" . (round . (* 1000.0) <$>)
         
+        serverS :: Event OscMessage -> Event OscMessage
+        serverS msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
 
         -- TODO write server status etc
 
@@ -200,15 +202,12 @@ gui = do
 
         serverMessages :: Event OscMessage
         serverMessages = imitatorRT cmds (position * 100)
-
-        sendToServer :: Event OscMessage -> Event OscMessage
-        sendToServer msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
 
-        <> (continue $ transportS               $ position `sample` pulse 0.1)
-        <> (continue $ sendToServer             $ serverMessages)
+        <> (continue $ transportS  $ position `sample` pulse 0.1)
+        <> (continue $ serverS     $ serverMessages)
 
         <> (continue $ showing "Sending to server:  " $ serverMessages)
 
