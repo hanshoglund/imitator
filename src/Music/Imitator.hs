@@ -23,8 +23,12 @@ module Music.Imitator (
         Command(..),
         imitatorRT,
         imitatorNRT,
+        startServer,
+        stopServer,
         
+        runImitatorRT,
         runImitatorNRT,
+        cmds,
   ) where
 
 {-
@@ -219,22 +223,6 @@ translateCommand (ReadBuffer p)     = [readBuffer 0 p]
 translateCommand (PlayBuffer n t d)   = createPlaySynth n
 -- TODO buffer allocation, params to play etc
 
-
-cmds :: Track Command
-cmds = Track [
-    (0,     StartRecord),
-    (0.5,   PlayBuffer 0 0 0),
-    (1.0,   PlayBuffer 1 0 0),
-    (0.5,   PlayBuffer 2 0 0),
-    
-    (8,     PlayBuffer 3 0 0),
-    (9,     PlayBuffer 4 0 0),
-    (10,    PlayBuffer 5 0 0),
-    
-    (300,   StopRecord)
-    ]
-
-
 -- |
 -- Play back commmands as messages to @scsynth@.
 --
@@ -279,12 +267,44 @@ runImitatorNRT input output = do
     return ()
 
 
+
+cmds :: Track Command
+cmds = Track [
+    (0,     StartRecord),
+    (0.5,   PlayBuffer 0 0 0),
+    (1.0,   PlayBuffer 1 0 0),
+    (0.5,   PlayBuffer 2 0 0),
+    
+    (8,     PlayBuffer 3 0 0),
+    (9,     PlayBuffer 4 0 0),
+    (10,    PlayBuffer 5 0 0),
+    
+    (300,   StopRecord)
+    ]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 sendS c   = sendStd c >> isServerRunning
 sendSS c  = mapM sendStd c >> isServerRunning
 dumpNodes = sendStd $ S.g_dumpTree [(0,True)]
-
-
-
 
 kMainPath     = unsafePerformIO (getAppUserDataDirectory "Imitator")
 kSynthDefPath = kMainPath ++ "/synthdefs"

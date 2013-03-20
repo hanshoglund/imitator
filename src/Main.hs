@@ -12,6 +12,8 @@ import System.Exit
 
 import Graphics.UI.WX hiding (Event, Reactive)
 
+import Music.Imitator
+
 import Music.Imitator.Reactive
 import Music.Imitator.Reactive.Chan
 import Music.Imitator.Reactive.Midi
@@ -153,7 +155,8 @@ addTimers frame = do
 
 
 gui :: IO ()
-gui = do
+gui = do     
+    startServer
     frame <- frame [text := "Imitator"]
 
     (menuSources,   menuSinks)   <- addMenus frame
@@ -213,25 +216,26 @@ gui = do
             ]
 
        
-        notes :: Event MidiMessage
-        notes = liftA3 NoteOn 0 (round <$> gainR*70+30) (round <$> volumeR*120) `sample` pulse 0.2        
-
-        inNotes :: Event (MidiTime, MidiMessage)
-        inNotes = midiIn' source
-            where 
-                source = unsafeGetReactive $ fromJust <$> (findSource $ pure "MIDI Monitor")
-                                                  
-        osc :: Event OscMessage
-        osc = liftA2 message "/test/info/time" (fmap (\x -> [x]) $ fmap Double $ gainR) `sample` pulse 0.2
-           
-        sendOsc :: Event OscMessage
-        sendOsc = oscOutUdp "127.0.0.1" 98765 osc
-
-        sendNotes :: Event MidiMessage
-        sendNotes = midiOut dest notes
-            where 
-                dest = unsafeGetReactive $ fromJust <$> (findDestination $ pure "MIDI Monitor")
-                 
+        -- notes :: Event MidiMessage
+        -- notes = liftA3 NoteOn 0 (round <$> gainR*70+30) (round <$> volumeR*120) `sample` pulse 0.2        
+        -- 
+        -- inNotes :: Event (MidiTime, MidiMessage)
+        -- inNotes = midiIn' source
+        --     where 
+        --         source = unsafeGetReactive $ fromJust <$> (findSource $ pure "MIDI Monitor")
+        --                                           
+        -- osc :: Event OscMessage
+        -- osc = liftA2 message "/test/info/time" (fmap (\x -> [x]) $ fmap Double $ gainR) `sample` pulse 0.2
+        --    
+        -- sendOsc :: Event OscMessage
+        -- sendOsc = oscOutUdp "127.0.0.1" 98765 osc
+        -- 
+        -- sendNotes :: Event MidiMessage
+        -- sendNotes = midiOut dest notes
+        --     where 
+        --         dest = unsafeGetReactive $ fromJust <$> (findDestination $ pure "MIDI Monitor")
+        
+        sendOscToScSynth = oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds (position * 100)         
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
@@ -240,10 +244,11 @@ gui = do
         -- <> (continue $ showing "Notes:    " $ notes)
         -- <> (continue $ showing "Destinations: " $ findDestination (pure "MIDI Monitor") `sample` pulse 1)
 
-        <> (continue $ showing "Notes in:     " $ inNotes)
+        -- <> (continue $ showing "Notes in:     " $ inNotes)
         -- <> (continue $ showing "Notes out:    " $ sendNotes)
-        <> (continue $ showing "OSC   out:    " $ sendOsc)
+        -- <> (continue $ showing "OSC   out:    " $ sendOsc)
 
+        <> (continue $ showing "OSC scsynth:  " $ sendOscToScSynth)
 
         -- <> (continue $ showing "Speed:    " $ tempoR `sample` pulse 0.1)
         -- <> (continue $ showing "Position: " $ position `sample` pulse 0.1)
