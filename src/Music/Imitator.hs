@@ -205,7 +205,7 @@ createPlaySynth n = [
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [
-    S.n_free [20 + n]
+        S.n_free [20 + n]
     ]
 
 
