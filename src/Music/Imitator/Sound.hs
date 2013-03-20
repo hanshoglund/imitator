@@ -145,10 +145,14 @@ module Music.Imitator.Sound (
         kStdServer,
         kStdPort,
         kMasterVolume,
+        kInputBuses,
+        kOutputBuses,
+        kAudioBuses,
+        kControlBuses,
         kOutputOffset,
-        kNumSpeakers,  
         kAudioBusOffset,
-        kControlBusOffset      
+        kControlBusOffset,
+        kNumSpeakers,  
   ) where
 
 import Data.Monoid
@@ -623,7 +627,7 @@ kStdOutputSampleRate    = 44100
 kStdOutputType          = "WAV"
 kStdOutputFormat        = "int16"
 
-kInputBuses             = 8
+kInputBuses             = 10
 kOutputBuses            = 8
 kAudioBuses             = 128
 kControlBuses           = 4096

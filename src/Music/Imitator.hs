@@ -98,8 +98,8 @@ data Command
 
 -- -- (index, numChan)
 kInBus, kOutBus, kSoundFieldBus :: (Num a, Num b) => (a, b)
-kOutBus         = (0,                                 8)
-kInBus          = (8,                                 2)
+kOutBus         = (                               0,  8)
+kInBus          = (fromIntegral kInputBuses     + 0,  2)
 kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
 
 -- (index, channels, frames)
