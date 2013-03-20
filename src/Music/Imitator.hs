@@ -88,15 +88,14 @@ data Command
 
 
 -- -- (index, numChan)
--- kInBus, kOutBus, kBFBus :: Num a => (a, a)
--- kInBus   = (0,  2)
--- kOutBus  = (0,  8)
--- kBFBus   = (20, 4)
+kInBus, kOutBus, kSoundFieldBus :: (Num a, Num b) => (a, b)
+kInBus          = (0,  2)
+kOutBus         = (0,  8)
+kSoundFieldBus = (20, 4)
 
 -- (index, channels, frames)
-kMainBuf :: Num a => (a, a, a)
+kMainBuf :: (Num a, Num b, Num c) => (a, b, c)
 kMainBuf = (0, 2, 48000*60*35)
-
 
 -- |
 -- Record to buffer.
@@ -107,25 +106,28 @@ recordG = recordBuf bx offset trig onOff (input an ax)
         offset   = 0
         trig     = 0
         onOff    = 1
-        (ax, an)     = (0, 2)
-        (bx, bc, bf) = (0, 2, 48000*60*35)
-
--- |
--- Read from output B-format bus, write to output buffers
---
-decodeG :: UGen
-decodeG = output ox $ decode on (input bfn bfx)
-    where          
-        (ox,  on)  = (0,  8)
-        (bfx, bfn) = (20, 4)
+        (ax, an)     = kInBus
+        (bx, bc, bf) = kMainBuf
 
 -- |
 -- Play a single slice to B-format bus.
 --
 playG :: UGen
 playG = output 0 $ playBuf bx bc 0 1 0 
-    where
-        (bx, bc, bf) = (0, 2, 48000*60*35)
+    where              
+        -- TODO
+        (bx, bc, bf) = kMainBuf
+        (sfx, sfn)   = kSoundFieldBus
+
+-- |
+-- Read from output B-format bus, write to output buffers
+--
+decodeG :: UGen
+decodeG = output cx $ decode cn (input sfn sfx)
+    where          
+        (sfx, sfn) = kSoundFieldBus
+        (cx,  cn)  = kOutBus
+
 
 -- |
 -- Write synthdefs where @scsynth@ can find them.
@@ -154,7 +156,7 @@ allocateBuffers :: [OscMessage]
 allocateBuffers = mempty
     <> (single $ newBuffer index channels frames)
     where
-         (index, channels, frames) = (0, 2, 48000*60*35)
+         (index, channels, frames) = kMainBuf
     
 
 
