@@ -117,6 +117,7 @@ module Music.Imitator.Sound (
         -- ** Buffer allocation
         newBuffer,
         readBuffer,
+        readBuffer',
         freeBuffer,
 
         -- ** Non real-time
@@ -413,11 +414,25 @@ newBuffer = S.b_alloc
 -- |
 -- Read buffer from a file.
 -- 
--- > readBuffer bufNum filePath fileStartFrame fileNumFrames bufStartFrame
+-- > readBuffer bufNum filePath
 --
-readBuffer :: Int -> String -> Int -> Int -> Int -> Message
-readBuffer bufNum filePath fileStartFrame fileNumFrames bufStartFrame 
-    = S.b_read bufNum filePath fileStartFrame fileNumFrames bufStartFrame False
+readBuffer :: Int -> FilePath -> Message
+readBuffer num path = readBuffer' num path Nothing Nothing Nothing
+
+-- |
+-- Read buffer from a file.
+-- 
+-- > readBuffer bufNum filePath fileStart fileNumFrames bufStart
+--
+readBuffer' :: Int -> String -> Maybe Int -> Maybe Int -> Maybe Int -> Message
+readBuffer' bufNum filePath fileStart numFrames bufStart 
+    = S.b_read 
+        bufNum 
+        filePath 
+        (maybe 0    id fileStart) 
+        (maybe (-1) id numFrames) 
+        (maybe 0    id bufStart)  
+        False
 
 -- |
 -- Free a buffer.

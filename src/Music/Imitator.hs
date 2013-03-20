@@ -86,7 +86,7 @@ data Command
 
 
 
-
+-- ----------------------------------------------------------------------
 
 -- -- (index, numChan)
 kInBus, kOutBus, kSoundFieldBus :: (Num a, Num b) => (a, b)
@@ -97,6 +97,8 @@ kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
 -- (index, channels, frames)
 kMainBuffer :: (Num a, Num b, Num c) => (a, b, c)
 kMainBuffer = (0, 2, 48000 * 60 * 35)
+
+-- ----------------------------------------------------------------------
 
 -- |
 -- Record to buffer.
@@ -130,6 +132,7 @@ decodeG = output cx $ decode cn (input sfn sfx)
         (sfx, sfn) = kSoundFieldBus
         (cx,  cn)  = kOutBus
 
+-- ----------------------------------------------------------------------
 
 -- |
 -- Write synthdefs where @scsynth@ can find them.
@@ -145,6 +148,8 @@ writeSynthDefs = do
             where
                 def  = synthdef ("imitator-" ++ name) gen
 
+-- ----------------------------------------------------------------------
+
 
 loadSynthDefs :: [OscMessage]
 loadSynthDefs = [
@@ -156,11 +161,6 @@ allocateBuffers = mempty
     <> [newBuffer index frames channels]
     where
          (index, channels, frames) = kMainBuffer
-
-readBuffer' :: FilePath -> [OscMessage]
-readBuffer' path = [
-        S.b_read 0 path 0 (-1) 0 False
-    ]
     
 -- |
 -- Create groups 1, 2, and 3 for record, play and decode respectively.        
@@ -172,27 +172,40 @@ createGroups = [
                    (3,S.AddToTail,0) ]
     ]
 
--- |
--- Create the standard synths (record and decode).
--- 
-createStdSynths :: [OscMessage]
-createStdSynths = [
-        S.s_new "imitator-record" 10 S.AddToTail 1 [],
+createRecorder :: [OscMessage]
+createRecorder = [
+        S.s_new "imitator-record" 10 S.AddToTail 1 []
+    ]
+freeRecorder :: [OscMessage]
+freeRecorder = [
+        S.n_free [10]
+    ]
+
+createDecoder :: [OscMessage]
+createDecoder = [
         S.s_new "imitator-decode" 11 S.AddToTail 3 []
     ]
+freeDecoder :: [OscMessage]
+freeDecoder = [
+        S.n_free [11]
+    ]
+
+createPlaySynth :: Int -> [OscMessage]
+createPlaySynth n = [
+        S.s_new "imitator-play" (20 + n) S.AddToTail 2 []
+    ]
+freePlaySynth :: Int -> [OscMessage]
+freePlaySynth n = [
+    S.n_free [20 + n]
+    ]
+
 
 setupServer :: [OscMessage]
 setupServer = mempty
     <> loadSynthDefs
     <> allocateBuffers
     <> createGroups
-    <> createStdSynths
-
--- FIXME
-createPlaySynth :: Int -> [OscMessage]
-createPlaySynth n = [
-        S.s_new "imitator-play" (20 + n) S.AddToTail 2 []
-    ]
+    <> createDecoder
 
 
 translateCommand :: Command -> [OscMessage]
@@ -220,12 +233,14 @@ imitatorRT = mempty
 imitatorNRT :: Track Command -> Duration -> NRT
 imitatorNRT = undefined
 
+
+
+
 -- |
 -- Run over the given input file.
 runImitatorNRT :: FilePath -> FilePath -> IO ()
 runImitatorNRT input output = do
-    -- write synthdefs
-    -- splice synthdef paths into score (how)?
+    writeSynthDefs
     -- convert score to NRT
     -- runNRT
     return ()
