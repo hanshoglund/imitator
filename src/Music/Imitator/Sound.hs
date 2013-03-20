@@ -627,8 +627,10 @@ kStdOutputSampleRate    = 44100
 kStdOutputType          = "WAV"
 kStdOutputFormat        = "int16"
 
-kInputBuses             = 10
-kOutputBuses            = 8
+-- FIXME must be different for each hardware setup...
+(kInputBuses, kOutputBuses) = (10, 8)
+-- (kInputBuses, kOutputBuses) = (2,2)
+
 kAudioBuses             = 128
 kControlBuses           = 4096
 kAudioBusOffset         = kInputBuses + kOutputBuses
