@@ -12,6 +12,8 @@ import System.Exit
 
 import Graphics.UI.WX hiding (Event, Reactive)
 
+import Music.Score (Time(..))
+
 import Music.Imitator
 
 import Music.Imitator.Reactive
@@ -187,18 +189,18 @@ gui = do
 
         -- TODO write server status etc
 
-        control :: Event (TransportControl Double)
+        control :: Event (TransportControl Time)
         control = mempty 
             <> (Play    <$ startE) 
             <> (Pause   <$ pauseE) 
             <> (Stop    <$ stopE) 
             <> (Reverse <$ resumeE)
 
-        duration :: Reactive Double
+        duration :: Reactive Time
         duration = (1*60)                               
         
-        position :: Reactive Double
-        position  = transport control (pulse 0.1) (tempoR * 10) / duration
+        position :: Reactive Time
+        position  = transport control (pulse 0.1) ((Time <$> tempoR) * 10) / duration
 
         serverMessages :: Event OscMessage
         serverMessages = imitatorRT cmds (position * 100)
@@ -206,7 +208,7 @@ gui = do
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
 
-        <> (continue $ transportS  $ position `sample` pulse 0.1)
+        <> (continue $ transportS  $ getTime <$> position `sample` pulse 0.1)
         <> (continue $ serverS     $ serverMessages)
 
         <> (continue $ showing "Sending to server:  " $ serverMessages)

@@ -126,14 +126,14 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 playG :: UGen
 playG = 
     -- output cx $ bufferOut
-    output sfx $ foaPanB (fst mouse * tau) 0 $ firstChannel $ bufferOut
+    output sfx $ foaPanB 0 0 $ firstChannel $ bufferOut
     where                 
         bufferOut = playBuf bc bx 0 1 0 * kOutVol
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
         (sfx, sfn)   = kSoundFieldBus
         -- TODO write to sound field
-kOutVol = 0.05
+kOutVol = 0.3
 firstChannel = head . mceChannels
 
 -- |
@@ -278,26 +278,26 @@ runImitatorNRT input output = do
 
 cmds :: Track Command
 cmds = Track [
-    (0,     StartRecord),
-    -- (0,     ReadBuffer "/Users/hans/Desktop/test.wav"),
+    -- (0,     StartRecord),
+    (0,     ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
     (0.5,   PlayBuffer 0 0 0),
     (1.0,   PlayBuffer 1 0 0),
-    (1.5,   PlayBuffer 2 0 0),
-    (2.0,   PlayBuffer 3 0 0),
-    (2.5,   PlayBuffer 4 0 0),
-    (3.0,   PlayBuffer 5 0 0),
-    (3.5,   PlayBuffer 6 0 0),
-    (4.0,   PlayBuffer 7 0 0),
-    (4.5,   PlayBuffer 8 0 0),
-    (5.0,   PlayBuffer 9 0 0),
-    (5.5,   PlayBuffer 10 0 0),
-    (6.0,   PlayBuffer 11 0 0),
-    (6.5,   PlayBuffer 12 0 0),
-    (7.0,   PlayBuffer 13 0 0),
-    (7.5,   PlayBuffer 14 0 0),    
-    (8,     PlayBuffer 15 0 0),
-    (9,     PlayBuffer 16 0 0),
-    (10,    PlayBuffer 17 0 0),
+    -- (1.5,   PlayBuffer 2 0 0),
+    -- (2.0,   PlayBuffer 3 0 0),
+    -- (2.5,   PlayBuffer 4 0 0),
+    -- (3.0,   PlayBuffer 5 0 0),
+    -- (3.5,   PlayBuffer 6 0 0),
+    -- (4.0,   PlayBuffer 7 0 0),
+    -- (4.5,   PlayBuffer 8 0 0),
+    -- (5.0,   PlayBuffer 9 0 0),
+    -- (5.5,   PlayBuffer 10 0 0),
+    -- (6.0,   PlayBuffer 11 0 0),
+    -- (6.5,   PlayBuffer 12 0 0),
+    -- (7.0,   PlayBuffer 13 0 0),
+    -- (7.5,   PlayBuffer 14 0 0),    
+    -- (8,     PlayBuffer 15 0 0),
+    -- (9,     PlayBuffer 16 0 0),
+    -- (10,    PlayBuffer 17 0 0), 
     
     (300,   StopRecord)
     ]
