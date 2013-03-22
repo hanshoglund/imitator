@@ -85,7 +85,7 @@ data Command
     = StartRecord               -- ^ Start recording
     | StopRecord                -- ^ Stop recording
     | ReadBuffer FilePath           -- ^ Replace entire buffer with file
-    | PlayBuffer Int Time Duration  -- ^ Plays from @t@ to time @t+d@, using the given transformations.
+    | PlayBuffer Int Time Duration Angle  -- ^ Plays from @t@ to time @t+d@, using the given transformations.
 
 
 
@@ -126,7 +126,7 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 playG :: UGen
 playG = 
     -- output cx $ bufferOut
-    output sfx $ foaPanB 0 0 $ firstChannel $ bufferOut
+    output sfx $ foaPanB (control "pos" 0{-tau * fst mouse-}) 0 $ firstChannel $ bufferOut
     where                 
         bufferOut = playBuf bc bx 0 1 0 * kOutVol
         (bx, bc, bf) = kMainBuffer
@@ -203,9 +203,9 @@ freeDecoder = [
         S.n_free [11]
     ]
 
-createPlaySynth :: Int -> [OscMessage]
-createPlaySynth n = [
-        S.s_new "imitator-play" (20 + n) S.AddToTail 6 []
+createPlaySynth :: Int -> Angle -> [OscMessage]
+createPlaySynth n pos = [
+        S.s_new "imitator-play" (20 + n) S.AddToTail 6 [("pos", pos)]
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [
@@ -228,7 +228,7 @@ translateCommand :: Command -> [OscMessage]
 translateCommand StartRecord        = createRecorder
 translateCommand StopRecord         = freeRecorder
 translateCommand (ReadBuffer p)     = [readBuffer 0 p]
-translateCommand (PlayBuffer n t d)   = createPlaySynth n
+translateCommand (PlayBuffer n t d pos)   = createPlaySynth n pos
 -- TODO buffer allocation, params to play etc
 
 -- |
@@ -280,18 +280,18 @@ cmds :: Track Command
 cmds = Track [
     -- (0,     StartRecord),
     (0,     ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
-    (0.5,   PlayBuffer 0 0 0),
-    (1.0,   PlayBuffer 1 0 0),
-    -- (1.5,   PlayBuffer 2 0 0),
-    -- (2.0,   PlayBuffer 3 0 0),
-    -- (2.5,   PlayBuffer 4 0 0),
-    -- (3.0,   PlayBuffer 5 0 0),
-    -- (3.5,   PlayBuffer 6 0 0),
-    -- (4.0,   PlayBuffer 7 0 0),
-    -- (4.5,   PlayBuffer 8 0 0),
-    -- (5.0,   PlayBuffer 9 0 0),
-    -- (5.5,   PlayBuffer 10 0 0),
-    -- (6.0,   PlayBuffer 11 0 0),
+    (0.5,   PlayBuffer 0 0 0  (0*tau)),
+    (1.0,   PlayBuffer 1 0 0  (0.1*tau)),
+    (1.5,   PlayBuffer 2 0 0  (0.2*tau)),
+    (2.0,   PlayBuffer 3 0 0  (0.3*tau)),
+    (2.5,   PlayBuffer 4 0 0  (0.4*tau)),
+    (3.0,   PlayBuffer 5 0 0  (0.5*tau)),
+    (3.5,   PlayBuffer 6 0 0  (0.6*tau)),
+    (4.0,   PlayBuffer 7 0 0  (0.7*tau)),
+    (4.5,   PlayBuffer 8 0 0  (0.8*tau)),
+    (5.0,   PlayBuffer 9 0 0  (0.9*tau)),
+    (5.5,   PlayBuffer 10 0 0 (0.10*tau)),
+    (6.0,   PlayBuffer 11 0 0 (0.11*tau)),
     -- (6.5,   PlayBuffer 12 0 0),
     -- (7.0,   PlayBuffer 13 0 0),
     -- (7.5,   PlayBuffer 14 0 0),    

@@ -200,7 +200,7 @@ gui = do
         duration = (1*60)                               
         
         position :: Reactive Time
-        position  = transport control (pulse 0.1) ((Time <$> tempoR) * 10) / duration
+        position  = transport control (pulse 0.1) ((Time . toRational <$> tempoR) * 10) / duration
 
         serverMessages :: Event OscMessage
         serverMessages = imitatorRT cmds (position * 100)
@@ -208,7 +208,7 @@ gui = do
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
 
-        <> (continue $ transportS  $ getTime <$> position `sample` pulse 0.1)
+        <> (continue $ transportS  $ (fromRational . getTime) <$> position `sample` pulse 0.1)
         <> (continue $ serverS     $ serverMessages)
 
         <> (continue $ showing "Sending to server:  " $ serverMessages)
