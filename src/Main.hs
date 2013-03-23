@@ -16,10 +16,10 @@ import Music.Score (Time(..))
 
 import Music.Imitator
 
-import Music.Imitator.Reactive
-import Music.Imitator.Reactive.Chan
-import Music.Imitator.Reactive.Midi
-import Music.Imitator.Reactive.Osc
+import Control.Reactive
+import Control.Reactive.Chan
+import Control.Reactive.Midi
+import Control.Reactive.Osc
 
 addMenus :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addMenus frame = do

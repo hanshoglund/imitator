@@ -55,9 +55,9 @@ import System.IO.Unsafe
 
 import Music.Score
 
-import Music.Imitator.Reactive
-import Music.Imitator.Reactive.Midi
-import Music.Imitator.Reactive.Osc
+import Control.Reactive
+import Control.Reactive.Midi
+import Control.Reactive.Osc
 import Music.Imitator.Sound
 import Music.Imitator.Util
 
