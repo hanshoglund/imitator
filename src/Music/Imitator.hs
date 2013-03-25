@@ -126,48 +126,33 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 playG :: UGen
 playG = 
     -- output cx $ bufferOut
-    output sfx $ foaPanB azimuth 0 $ firstChannel $ bufferOut
+    output sfx $ envelope $ panning $ firstChannel $ bufferOut
     where                       
-        azimuth     = control "azimuth" 0
-        volume      = control "volume"  0
-        envelope    = control "envelope" 0
+        azimuth         = control "azimuth" 0
+        volumeCtrl      = control "volume"  0
+        envelopeIndex   = control "envelope" 0
 
         envelopes = [
-                envSust 0.1 [(0.01, 1, EnvExp)] 
-                            [(0.2,  0, EnvLin)]
+                envSust 0.0 [(0.01, 1, EnvLin)] 
+                            [(0.2,  0, EnvLin)], -- sharp
+
+                envSust 0.0 [(1.0,  1, EnvLin)]  -- smooth
+                            [(2.0,  0, EnvLin)]
             ]
-        
-        bufferOut = playBuf bc bx 0 1 0 * kOutVol
+
+--        envelope     = (*) $ select envelopeIndex (fmap (flip envGen $ trig) envelopes)
+        envelope     = (*) $ envGen (envelopes !! 0) trig
+        trig         = 1
+            
+        panning      = foaPanB azimuth 0
+                
+        bufferOut    = playBuf bc bx 0 1 0 * kOutVol
+
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
         (sfx, sfn)   = kSoundFieldBus
         -- TODO write to sound field
 
-
--- |
--- Crossfade between list elements.
---
--- > select n as  =  as !! 0
---
-select :: UGen -> [UGen] -> UGen
-select n []     = 0
-select n (a:as) = select' (limit 0 1 n) a (select (n-1) as)
-    where
-        limit m n x = m `max` (n `min` x)
-
-
-
-
--- select 0 a b = a
--- select 1 a b = b
-select' :: UGen -> UGen -> UGen -> UGen
-select' n a b = f n a + g n b
-    where
-        f n x = cos (n*(pi/2)) * x
-        g n x = sin (n*(pi/2)) * x
-
-
-firstChannel = head . mceChannels
 
 -- |
 -- Read from output B-format bus, write to output buffers
@@ -320,19 +305,19 @@ runImitatorNRT input output = do
 cmds :: Track Command
 cmds = Track [
     -- (0,     StartRecord),
-    (0,     ReadBuffer "/Users/hans/Desktop/Test/test.wav"),
+    (0,     ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
     (0.5,   PlayBuffer 0  0  0  (0*tau)),
-    (1.0,   PlayBuffer 0  0  0  (0.1*tau)),
-    (1.5,   PlayBuffer 0  0  0  (0.2*tau)),
-    (2.0,   PlayBuffer 0  0  0  (0.3*tau)),
-    (2.5,   PlayBuffer 0  0  0  (0.4*tau)),
-    (3.0,   PlayBuffer 0  0  0  (0.5*tau)),
-    (3.5,   PlayBuffer 0  0  0  (0.6*tau)),
-    (4.0,   PlayBuffer 0  0  0  (0.7*tau)),
-    (4.5,   PlayBuffer 0  0  0  (0.8*tau)),
-    (5.0,   PlayBuffer 0  0  0  (0.9*tau)),
-    (5.5,   PlayBuffer 0  0  0 (0.10*tau)),
-    (6.0,   PlayBuffer 0  0  0 (0.11*tau)),
+    -- (1.0,   PlayBuffer 0  0  0  (0.1*tau)),
+    -- (1.5,   PlayBuffer 0  0  0  (0.2*tau)),
+    -- (2.0,   PlayBuffer 0  0  0  (0.3*tau)),
+    -- (2.5,   PlayBuffer 0  0  0  (0.4*tau)),
+    -- (3.0,   PlayBuffer 0  0  0  (0.5*tau)),
+    -- (3.5,   PlayBuffer 0  0  0  (0.6*tau)),
+    -- (4.0,   PlayBuffer 0  0  0  (0.7*tau)),
+    -- (4.5,   PlayBuffer 0  0  0  (0.8*tau)),
+    -- (5.0,   PlayBuffer 0  0  0  (0.9*tau)),
+    -- (5.5,   PlayBuffer 0  0  0 (0.10*tau)),
+    -- (6.0,   PlayBuffer 0  0  0 (0.11*tau)),     
     
     (300,   StopRecord)
     ]
@@ -370,4 +355,27 @@ kSynthDefPath = kMainPath ++ "/synthdefs"
 single x = [x]
 
 
+
+-- |
+-- Crossfade between list elements.
+--
+-- > select n as  =  as !! 0
+--
+select :: UGen -> [UGen] -> UGen
+select n []     = 0
+select n (a:as) = select' (limit 0 1 n) a (select (n-1) as)
+    where
+        limit m n x = m `max` (n `min` x)
+
+-- select 0 a b = a
+-- select 1 a b = b
+select' :: UGen -> UGen -> UGen -> UGen
+select' n a b = f n a + g n b
+    where
+        f n x = cos (n*(pi/2)) * x
+        g n x = sin (n*(pi/2)) * x   
+        
+        
+firstChannel :: UGen -> UGen
+firstChannel = head . mceChannels
 
