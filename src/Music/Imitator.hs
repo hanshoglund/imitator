@@ -70,10 +70,10 @@ import qualified Sound.SC3.Server.FD        as S           -- TODO move
 import qualified Sound.SC3.UGen             as U           -- TODO move
 
 
--- type Time     = Double
--- type Duration = Time
--- type Envelope = Double -> Double
 type Angle    = Double
+type Volume   = Double
+type Curve    = Int
+
 
 data Transformation
     = Rotate Angle
@@ -84,10 +84,16 @@ data Transformation
 data Command
     = StartRecord               -- ^ Start recording
     | StopRecord                -- ^ Stop recording
-    | ReadBuffer FilePath           -- ^ Replace entire buffer with file
-    | PlayBuffer Int Time Duration Angle  -- ^ Plays from @t@ to time @t+d@, using the given transformations.
+    | ReadBuffer FilePath       -- ^ Replace entire buffer with file
+    | PlayBuffer 
+        Int         -- node, ignore this
+        Time        -- start pos in seconds
+        Duration    -- end pos in seconds
+        Volume      -- volume, 0 to 1
+        Curve       -- envelope, 0..2
+        Angle       -- angle in radians (0 front, tau/4 is left, tau/2 is back etc)
 
-
+                               
 
 
 
@@ -126,10 +132,10 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 playG :: UGen
 playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
     where
-        startPos        = control "position" 410
+        startPos        = control "time"     410
         duration        = control "duration" 1
-        envelopeIndex   = control "envelope" 0
         volumeCtrl      = control "volume"   0.5
+        envelopeIndex   = control "curve"    0
         azimuth         = control "azimuth"  0
 
         envelopes = [
@@ -139,7 +145,7 @@ playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
                 envSust 0.0 [(1.0,  1, EnvLin)]  -- smooth
                             [(3.0,  0, EnvLin)],
 
-                envSust 0.0 [(5.0,   1, EnvLin)]  -- super smooth
+                envSust 0.0 [(5.0,  1, EnvLin)]  -- super smooth
                             [(5.0,  0, EnvLin)]
             ]
         
@@ -150,9 +156,6 @@ playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
         
         trigger      = sine (1/(2*duration))
 
-        -- envelope     = (*) $ envGen trigger (envelopes !! 2)
-        -- trigger      = mouseButton
-            
         panning      = foaPanB azimuth 0
                 
         bufferOut    = (playBuf bc bx 0 1 (startPos*kSampleRate)) * volumeCtrl * kOutVol
@@ -230,9 +233,14 @@ freeDecoder = [
         S.n_free [11]
     ]
 
-createPlaySynth :: Int -> Angle -> [OscMessage]
-createPlaySynth n azimuth = [
-        S.s_new "imitator-play" (20 + n) S.AddToTail 6 [("azimuth", azimuth)]
+createPlaySynth :: Int -> Time -> Duration -> Volume -> Curve -> Angle -> [OscMessage]
+createPlaySynth node time duration volume curve azimuth = [
+        S.s_new "imitator-play" (20 + node) S.AddToTail 6 
+            [ ("time",      fromRational $ getTime $ time),
+              ("duration",  fromRational $ getDuration $ duration),
+              ("volume",    volume),
+              ("curve",     fromIntegral $ curve),
+              ("azimuth",   azimuth) ]
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [
@@ -255,8 +263,8 @@ translateCommand :: Command -> [OscMessage]
 translateCommand StartRecord             = createRecorder
 translateCommand StopRecord              = freeRecorder
 translateCommand (ReadBuffer p)          = [readBuffer 0 p]
-translateCommand (PlayBuffer n t d az)   = createPlaySynth n az
--- TODO buffer allocation, params to play etc
+translateCommand (PlayBuffer n t d vol curve az) = createPlaySynth n t d vol curve az
+
 
 -- |
 -- Play back commmands as messages to @scsynth@.
@@ -280,7 +288,7 @@ listToTrack = mconcat . fmap return
 allocateNodes :: Track Command -> Track Command
 allocateNodes = Track . snd . List.mapAccumL g 0 . getTrack
     where
-        g s (t,PlayBuffer _ pt pd paz) = (s + 1, (t,PlayBuffer s pt pd paz))
+        g s (t,PlayBuffer _ pt pd pv pc paz) = (s + 1, (t,PlayBuffer s pt pd pv pc paz))
         g s (t,cmd) = (s, (t,cmd))
 
 -- |
@@ -310,23 +318,15 @@ runImitatorNRT input output = do
     return ()
 
 
-
+-- FIXME short durations strange (<2)
 cmds :: Track Command
 cmds = Track [
     -- (0,     StartRecord),
     (0,     ReadBuffer "/Users/hans/Desktop/Passager.wav"),
-    (0.5,   PlayBuffer 0  0  0  (0*tau)),
-    -- (1.0,   PlayBuffer 0  0  0  (0.1*tau)),
-    -- (1.5,   PlayBuffer 0  0  0  (0.2*tau)),
-    -- (2.0,   PlayBuffer 0  0  0  (0.3*tau)),
-    -- (2.5,   PlayBuffer 0  0  0  (0.4*tau)),
-    -- (3.0,   PlayBuffer 0  0  0  (0.5*tau)),
-    -- (3.5,   PlayBuffer 0  0  0  (0.6*tau)),
-    -- (4.0,   PlayBuffer 0  0  0  (0.7*tau)),
-    -- (4.5,   PlayBuffer 0  0  0  (0.8*tau)),
-    -- (5.0,   PlayBuffer 0  0  0  (0.9*tau)),
-    -- (5.5,   PlayBuffer 0  0  0 (0.10*tau)),
-    -- (6.0,   PlayBuffer 0  0  0 (0.11*tau)),     
+
+    (0.0,   PlayBuffer nd 350 0.2 0.1 1 (0*tau)),
+    -- (0.0,   PlayBuffer nd 134 1 0.5 1 (0*tau)),
+    -- (0.0,   PlayBuffer nd 238 1 0.5 1 (0*tau)),
     
     (300,   StopRecord)
     ]
@@ -340,9 +340,11 @@ cmds = Track [
 
 
 
+
 --------------------------------------------------------------------------------
 
 kOutVol = 0.7
+nd = 0
 
 
 
