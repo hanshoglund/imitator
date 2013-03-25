@@ -623,7 +623,7 @@ runServer cmds input output = do
         "-c",   show kControlBuses
         ]
     where
-        scorePath = "score.osc"
+        scorePath = "/Users/hans/Documents/Kod/hs/music-imitator/score.osc"
 
 
 

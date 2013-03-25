@@ -305,8 +305,16 @@ allocateNodes = Track . snd . List.mapAccumL g 0 . getTrack
 --
 -- > imitatorRT dur
 --
-imitatorNRT :: Track Command -> Duration -> NRT
-imitatorNRT = undefined
+imitatorNRT :: Track Command -> NRT
+imitatorNRT cmds = S.NRT $ fmap toBundle msgs
+    where               
+        toBundle (t,m) = Bundle (fromRational $ getTime t) [m]
+        
+        msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< allocateNodes cmds
+
+        prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
+        fixDelayBug = delay 1
+
 
 
 
@@ -317,12 +325,13 @@ runImitatorRT = do
 
 -- |
 -- Run over the given input file.
-runImitatorNRT :: FilePath -> FilePath -> IO ()
-runImitatorNRT input output = do
+runImitatorNRT :: IO ()
+runImitatorNRT  = do
     writeSynthDefs
-    -- convert score to NRT
-    -- runNRT
+    runServer (imitatorNRT cmds) (kPath++"/input.wav") (kPath++"/output.wav")
     return ()
+    where
+        kPath = "/Users/hans/Documents/Kod/hs/music-imitator"
 
 
 
