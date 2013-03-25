@@ -143,15 +143,18 @@ playG =
         (sfx, sfn)   = kSoundFieldBus
         -- TODO write to sound field
 
--- Play gen with the given index
+
+-- |
+-- Crossfade between list elements.
+--
+-- > select n as  =  as !! 0
+--
 select :: UGen -> [UGen] -> UGen
 select n []     = 0
 select n (a:as) = select' (limit 0 1 n) a (select (n-1) as)
     where
         limit m n x = m `max` (n `min` x)
 
--- 0-1 fade from  xs0 to xs1
--- 1-2 fade from  xs1 to xs2
 
 
 
