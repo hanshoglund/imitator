@@ -382,18 +382,18 @@ envLoop z as bs cs = U.Envelope (z:levels) times curves (Just $ length as) (Just
 -- |
 -- Create a generator from an envelope.
 --
--- > envGen envelope trigger
+-- > envGen trigger envelope
 --
-envGen :: U.Envelope UGen -> UGen -> UGen
-envGen e t = envGen' e t 1
+envGen :: UGen -> U.Envelope UGen -> UGen
+envGen t e = envGen' 1 t e
 
 -- |
 -- Create a generator from an envelope.
 --
--- > envGen' envelope trigger timeScale
+-- > envGen' timeScale trigger envelope
 --
-envGen' :: U.Envelope UGen -> UGen -> UGen -> UGen
-envGen' e t ts = U.envGen AR t 1 0 ts RemoveSynth e
+envGen' :: UGen -> UGen -> U.Envelope UGen -> UGen
+envGen' ts t e = U.envGen AR t 1 0 ts RemoveSynth e
 
 
 

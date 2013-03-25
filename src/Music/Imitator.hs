@@ -141,12 +141,16 @@ playG =
                             [(8.0,  0, EnvLin)],
 
                 envSust 0.0 [(5.0,   1, EnvLin)]  -- super smooth
-                            [(10.0,  0, EnvLin)]
+                            [(5.0,  0, EnvLin)]
             ]
-
-        envelope     = (*) $ select envelopeIndex (fmap (flip envGen $ trigger) envelopes)
-        -- envelope     = (*) $ envGen (envelopes !! 0) trigger
-        trigger      = sine (1/(2*duration))
+        
+        -- FIXME all of these are run on trigger, first one freeing node
+        envelope     = (*) $ select 2 (fmap (envGen trigger) envelopes)
+        
+        
+        -- envelope     = (*) $ envGen trigger (envelopes !! 2)
+        -- trigger      = sine (1/(2*duration))
+        trigger      = mouseButton
             
         panning      = foaPanB azimuth 0
                 
