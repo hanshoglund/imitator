@@ -125,11 +125,12 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 --
 playG :: UGen
 playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
-    where                       
-        azimuth         = control "azimuth"  0
-        volumeCtrl      = control "volume"   1
+    where
+        startPos        = control "position" 410
+        duration        = control "duration" 1
         envelopeIndex   = control "envelope" 0
-        duration        = control "duration" 5
+        volumeCtrl      = control "volume"   0.5
+        azimuth         = control "azimuth"  0
 
         envelopes = [
                 envSust 0.0 [(0.01, 1, EnvLin)] 
@@ -154,7 +155,7 @@ playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
             
         panning      = foaPanB azimuth 0
                 
-        bufferOut    = playBuf bc bx 0 1 0 * volumeCtrl * kOutVol
+        bufferOut    = (playBuf bc bx 0 1 (startPos*kSampleRate)) * volumeCtrl * kOutVol
 
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus

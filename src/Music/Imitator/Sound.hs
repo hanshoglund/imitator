@@ -159,7 +159,8 @@ module Music.Imitator.Sound (
         kOutputOffset,
         kAudioBusOffset,
         kControlBusOffset,
-        kNumSpeakers,  
+        kNumSpeakers,     
+        kSampleRate,
   ) where
 
 import Data.Monoid
