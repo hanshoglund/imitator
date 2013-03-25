@@ -155,6 +155,7 @@ playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
                 g (n, env) = envGen t env where t = trigger*(n U.==* envelopeIndex)
         
         trigger      = sine (1/(2*duration))
+        -- trigger      = phasor 0 (1/duration)
 
         panning      = foaPanB azimuth 0
                 
@@ -318,13 +319,14 @@ runImitatorNRT input output = do
     return ()
 
 
--- FIXME short durations strange (<2)
+-- FIXME duration must be shorter than env start time
+
 cmds :: Track Command
 cmds = Track [
     -- (0,     StartRecord),
     (0,     ReadBuffer "/Users/hans/Desktop/Passager.wav"),
 
-    (0.0,   PlayBuffer nd 350 0.2 0.1 1 (0*tau)),
+    (0.0,   PlayBuffer nd 350 2 0.1 0 (0*tau)),
     -- (0.0,   PlayBuffer nd 134 1 0.5 1 (0*tau)),
     -- (0.0,   PlayBuffer nd 238 1 0.5 1 (0*tau)),
     
