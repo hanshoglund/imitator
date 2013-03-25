@@ -126,14 +126,18 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 playG :: UGen
 playG = 
     -- output cx $ bufferOut
-    output sfx $ foaPanB (control "pos" 0{-tau * fst mouse-}) 0 $ firstChannel $ bufferOut
-    where                 
+    output sfx $ foaPanB azimuth 0 $ firstChannel $ bufferOut
+    where                       
+        azimuth     = control "azimuth" 0
+        volume      = control "volume"  0
+        envelope    = control "envelope" 0
+        
         bufferOut = playBuf bc bx 0 1 0 * kOutVol
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
         (sfx, sfn)   = kSoundFieldBus
         -- TODO write to sound field
-kOutVol = 0.3
+
 firstChannel = head . mceChannels
 
 -- |
@@ -204,8 +208,8 @@ freeDecoder = [
     ]
 
 createPlaySynth :: Int -> Angle -> [OscMessage]
-createPlaySynth n pos = [
-        S.s_new "imitator-play" (20 + n) S.AddToTail 6 [("pos", pos)]
+createPlaySynth n azimuth = [
+        S.s_new "imitator-play" (20 + n) S.AddToTail 6 [("azimuth", azimuth)]
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [
@@ -225,10 +229,10 @@ setupServer2 = mempty
 
 
 translateCommand :: Command -> [OscMessage]
-translateCommand StartRecord        = createRecorder
-translateCommand StopRecord         = freeRecorder
-translateCommand (ReadBuffer p)     = [readBuffer 0 p]
-translateCommand (PlayBuffer n t d pos)   = createPlaySynth n pos
+translateCommand StartRecord             = createRecorder
+translateCommand StopRecord              = freeRecorder
+translateCommand (ReadBuffer p)          = [readBuffer 0 p]
+translateCommand (PlayBuffer n t d az)   = createPlaySynth n az
 -- TODO buffer allocation, params to play etc
 
 -- |
@@ -241,13 +245,20 @@ translateCommand (PlayBuffer n t d pos)   = createPlaySynth n pos
 imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
 imitatorRT cmds time = playback time (pure msgs)
     where
-        msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< cmds
+        msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< allocateNodes cmds
+
         prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
 
+-- Create a track in which all given values happen at time zero.
 listToTrack :: [a] -> Track a
 listToTrack = mconcat . fmap return
 
+allocateNodes :: Track Command -> Track Command
+allocateNodes = Track . snd . List.mapAccumL g 0 . getTrack
+    where
+        g s (t,PlayBuffer _ pt pd paz) = (s + 1, (t,PlayBuffer s pt pd paz))
+        g s (t,cmd) = (s, (t,cmd))
 
 -- |
 -- Convert commmands to a non-realtime score for @scsynth@.
@@ -258,6 +269,7 @@ listToTrack = mconcat . fmap return
 --
 imitatorNRT :: Track Command -> Duration -> NRT
 imitatorNRT = undefined
+
 
 
 runImitatorRT :: IO ()
@@ -279,25 +291,19 @@ runImitatorNRT input output = do
 cmds :: Track Command
 cmds = Track [
     -- (0,     StartRecord),
-    (0,     ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
-    (0.5,   PlayBuffer 0 0 0  (0*tau)),
-    (1.0,   PlayBuffer 1 0 0  (0.1*tau)),
-    (1.5,   PlayBuffer 2 0 0  (0.2*tau)),
-    (2.0,   PlayBuffer 3 0 0  (0.3*tau)),
-    (2.5,   PlayBuffer 4 0 0  (0.4*tau)),
-    (3.0,   PlayBuffer 5 0 0  (0.5*tau)),
-    (3.5,   PlayBuffer 6 0 0  (0.6*tau)),
-    (4.0,   PlayBuffer 7 0 0  (0.7*tau)),
-    (4.5,   PlayBuffer 8 0 0  (0.8*tau)),
-    (5.0,   PlayBuffer 9 0 0  (0.9*tau)),
-    (5.5,   PlayBuffer 10 0 0 (0.10*tau)),
-    (6.0,   PlayBuffer 11 0 0 (0.11*tau)),
-    -- (6.5,   PlayBuffer 12 0 0),
-    -- (7.0,   PlayBuffer 13 0 0),
-    -- (7.5,   PlayBuffer 14 0 0),    
-    -- (8,     PlayBuffer 15 0 0),
-    -- (9,     PlayBuffer 16 0 0),
-    -- (10,    PlayBuffer 17 0 0), 
+    (0,     ReadBuffer "/Users/hans/Desktop/Test/test.wav"),
+    (0.5,   PlayBuffer 0  0  0  (0*tau)),
+    (1.0,   PlayBuffer 0  0  0  (0.1*tau)),
+    (1.5,   PlayBuffer 0  0  0  (0.2*tau)),
+    (2.0,   PlayBuffer 0  0  0  (0.3*tau)),
+    (2.5,   PlayBuffer 0  0  0  (0.4*tau)),
+    (3.0,   PlayBuffer 0  0  0  (0.5*tau)),
+    (3.5,   PlayBuffer 0  0  0  (0.6*tau)),
+    (4.0,   PlayBuffer 0  0  0  (0.7*tau)),
+    (4.5,   PlayBuffer 0  0  0  (0.8*tau)),
+    (5.0,   PlayBuffer 0  0  0  (0.9*tau)),
+    (5.5,   PlayBuffer 0  0  0 (0.10*tau)),
+    (6.0,   PlayBuffer 0  0  0 (0.11*tau)),
     
     (300,   StopRecord)
     ]
@@ -311,10 +317,13 @@ cmds = Track [
 
 
 
+--------------------------------------------------------------------------------
+
+kOutVol = 0.7
 
 
 
-
+--------------------------------------------------------------------------------
 
 
 
@@ -330,3 +339,6 @@ kMainPath     = unsafePerformIO (getAppUserDataDirectory "Imitator")
 kSynthDefPath = kMainPath ++ "/synthdefs"
 
 single x = [x]
+
+
+
