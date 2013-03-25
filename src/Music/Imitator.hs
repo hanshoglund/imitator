@@ -135,15 +135,21 @@ playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
         startPos        = control "time"     410
         duration        = control "duration" 1
         volumeCtrl      = control "volume"   0.5
-        envelopeIndex   = control "curve"    0
+        envelopeIndex   = control "curve"    2
         azimuth         = control "azimuth"  0
 
         envelopes = [
-                envSust 0.0 [(0.01, 1, EnvLin)] 
-                            [(0.2,  0, EnvLin)], -- sharp
+                envSust 0.0 [(0.05, 1, EnvLin)] 
+                            [(0.1,  0, EnvLin)], -- sharp
 
-                envSust 0.0 [(1.0,  1, EnvLin)]  -- smooth
-                            [(3.0,  0, EnvLin)],
+                envSust 0.0 [(0.2,  1, EnvLin)]
+                            [(0.4,  0, EnvLin)],
+
+                envSust 0.0 [(1.8,  1, EnvLin)]  -- standard
+                            [(2.5,  0, EnvLin)],
+
+                envSust 0.0 [(3.0,  1, EnvLin)]  -- smooth
+                            [(4.0,  0, EnvLin)],
 
                 envSust 0.0 [(5.0,  1, EnvLin)]  -- super smooth
                             [(5.0,  0, EnvLin)]
@@ -319,22 +325,35 @@ runImitatorNRT input output = do
     return ()
 
 
+
+
 -- FIXME duration must be shorter than env start time
 
 cmds :: Track Command
-cmds = Track [
-    -- (0,     StartRecord),
-    (0,     ReadBuffer "/Users/hans/Desktop/Passager.wav"),
-
-    (0.0,   PlayBuffer nd 350 2 0.1 0 (0*tau)),
-    -- (0.0,   PlayBuffer nd 134 1 0.5 1 (0*tau)),
-    -- (0.0,   PlayBuffer nd 238 1 0.5 1 (0*tau)),
-    
-    (300,   StopRecord)
+cmds = join $ Track [
+    (0,     return $ ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
+    (0,     sp1),
+    (10,    sp1),
+    (19,    sp1),
+    (26,    sp2),
+    (34,    sp2),
+    (300,   return $ StopRecord)
     ]
 
+sp1 = Track [
+    (0.0,   PlayBuffer nd 50 7 0.4 3 (0    * tau)),
+    (0.2,   PlayBuffer nd 50 7 0.4 3 (-0.2 * tau)),
+    (0.4,   PlayBuffer nd 50 7 0.4 3 (-0.2 * tau)),
+    (0.6,   PlayBuffer nd 50 7 0.4 3 (0    * tau))
+    ]
 
-
+sp2 = Track [
+    (0.0,   PlayBuffer nd 80 7 0.4 3 (0    * tau)),
+    (0.2,   PlayBuffer nd 80 7 0.4 3 (0.2  * tau)),
+    (0.4,   PlayBuffer nd 80 7 0.4 3 (-0.2 * tau)),
+    (0.6,   PlayBuffer nd 80 7 0.4 3 (0.4  * tau)),
+    (0.8,   PlayBuffer nd 80 7 0.4 3 (-0.4 * tau))
+    ]
 
 
 
