@@ -25,6 +25,7 @@ module Music.Imitator.Sound (
         sine,
         saw,
         phasor,
+        phasor',
         pulse',
         impulse,
 
@@ -202,13 +203,24 @@ sine freq  = U.sinOsc AR freq 0
 impulse :: UGen -> UGen
 impulse freq = U.impulse AR freq 0
 
+
 -- |
 -- Phase generator.
 --
--- > phasor trig rate start end resetPos                 
+-- Loops 0-1, jumps to 0 on trigger.
 --
-phasor :: UGen -> UGen -> UGen -> UGen -> UGen -> UGen
-phasor trig rate start end resetPos = U.phasor AR trig rate start end resetPos
+-- > phasor trig freq                 
+--
+phasor :: UGen -> UGen -> UGen
+phasor trig freq = phasor' trig (freq/kSampleRate) 0 1 0
+
+-- |
+-- Phase generator.
+--
+-- > phasor' trig diff start end resetPos                 
+--
+phasor' :: UGen -> UGen -> UGen -> UGen -> UGen -> UGen
+phasor' trig rate start end resetPos = U.phasor AR trig rate start end resetPos
 
 -- |
 -- Pulse generator.
@@ -734,3 +746,4 @@ kNumSpeakers, kOutputOffset :: Num a => a
 kOutputOffset           = 0
 kNumSpeakers            = 8
 
+kSampleRate = 44100

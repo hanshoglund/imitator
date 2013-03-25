@@ -61,7 +61,7 @@ import Control.Reactive.Osc
 import Music.Imitator.Sound
 import Music.Imitator.Util
 
-import Control.Concurrent (forkIO)
+import Control.Concurrent (forkIO, threadDelay)
 
 import qualified Data.List as List
 
@@ -126,27 +126,31 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 playG :: UGen
 playG = 
     -- output cx $ bufferOut
-    output sfx $ envelope $ panning $ firstChannel $ bufferOut
+    output sfx $ envelope $ panning $ impulse 1{-firstChannel $ bufferOut-}
     where                       
-        azimuth         = control "azimuth" 0
-        volumeCtrl      = control "volume"  0
-        envelopeIndex   = control "envelope" 0
+        azimuth         = control "azimuth"  0
+        volumeCtrl      = control "volume"   1
+        envelopeIndex   = control "envelope" 2
+        duration        = control "duration" 20
 
         envelopes = [
                 envSust 0.0 [(0.01, 1, EnvLin)] 
                             [(0.2,  0, EnvLin)], -- sharp
 
-                envSust 0.0 [(1.0,  1, EnvLin)]  -- smooth
-                            [(2.0,  0, EnvLin)]
+                envSust 0.0 [(4.0,  1, EnvLin)]  -- smooth
+                            [(8.0,  0, EnvLin)],
+
+                envSust 0.0 [(5.0,   1, EnvLin)]  -- super smooth
+                            [(10.0,  0, EnvLin)]
             ]
 
---        envelope     = (*) $ select envelopeIndex (fmap (flip envGen $ trig) envelopes)
-        envelope     = (*) $ envGen (envelopes !! 0) trig
-        trig         = 1
+        envelope     = (*) $ select envelopeIndex (fmap (flip envGen $ trigger) envelopes)
+        -- envelope     = (*) $ envGen (envelopes !! 0) trigger
+        trigger      = sine (1/(2*duration))
             
         panning      = foaPanB azimuth 0
                 
-        bufferOut    = playBuf bc bx 0 1 0 * kOutVol
+        bufferOut    = playBuf bc bx 0 1 0 * volumeCtrl * kOutVol
 
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
@@ -305,7 +309,7 @@ runImitatorNRT input output = do
 cmds :: Track Command
 cmds = Track [
     -- (0,     StartRecord),
-    (0,     ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
+    (0,     ReadBuffer "/Users/hans/Desktop/Passager.wav"),
     (0.5,   PlayBuffer 0  0  0  (0*tau)),
     -- (1.0,   PlayBuffer 0  0  0  (0.1*tau)),
     -- (1.5,   PlayBuffer 0  0  0  (0.2*tau)),
@@ -378,4 +382,13 @@ select' n a b = f n a + g n b
         
 firstChannel :: UGen -> UGen
 firstChannel = head . mceChannels
+
+
+
+--- Testing
+main = do
+    writeSynthDefs
+    startServer
+    threadDelay 1000000
+    runImitatorRT
 
