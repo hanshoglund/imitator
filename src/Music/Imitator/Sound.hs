@@ -47,6 +47,7 @@ module Music.Imitator.Sound (
         envSust,
         envLoop,
         envGen,
+        envGen',
 
         -- ** Filters
         -- bpf,
@@ -340,7 +341,7 @@ env :: UGen -> [(UGen, UGen, U.EnvCurve)] -> U.Envelope UGen
 env _ [] = error "env: Empty envelope"
 env z as = U.Envelope (z:levels) times curves Nothing Nothing
     where
-        (levels, times, curves) = unzip3 as
+        (times, levels, curves) = unzip3 as
 
 
 -- |
@@ -352,7 +353,7 @@ envSust :: UGen -> [(UGen, UGen, U.EnvCurve)] -> [(UGen, UGen, U.EnvCurve)] -> U
 envSust _ [] [] = error "envSust: Empty envelope"
 envSust z as bs = U.Envelope (z:levels) times curves (Just $ length as) Nothing
     where
-        (levels, times, curves) = unzip3 $ as ++ bs
+        (times, levels, curves) = unzip3 $ as ++ bs
 
 -- |
 -- Create a looped envelope.
@@ -363,7 +364,8 @@ envLoop :: UGen -> [(UGen, UGen, U.EnvCurve)] -> [(UGen, UGen, U.EnvCurve)] -> [
 envLoop _ [] [] [] = error "envLoop: Empty envelope"
 envLoop z as bs cs = U.Envelope (z:levels) times curves (Just $ length as) (Just $ length as + length bs)
     where
-        (levels, times, curves) = unzip3 $ as ++ bs ++ cs
+        (times, levels, curves) = unzip3 $ as ++ bs ++ cs
+
 
 -- |
 -- Create a generator from an envelope.

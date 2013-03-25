@@ -131,12 +131,38 @@ playG =
         azimuth     = control "azimuth" 0
         volume      = control "volume"  0
         envelope    = control "envelope" 0
+
+        envelopes = [
+                envSust 0.1 [(0.01, 1, EnvExp)] 
+                            [(0.2,  0, EnvLin)]
+            ]
         
         bufferOut = playBuf bc bx 0 1 0 * kOutVol
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
         (sfx, sfn)   = kSoundFieldBus
         -- TODO write to sound field
+
+-- Play gen with the given index
+select :: UGen -> [UGen] -> UGen
+select n []     = 0
+select n (a:as) = select' (limit 0 1 n) a (select (n-1) as)
+    where
+        limit m n x = m `max` (n `min` x)
+
+-- 0-1 fade from  xs0 to xs1
+-- 1-2 fade from  xs1 to xs2
+
+
+
+-- select 0 a b = a
+-- select 1 a b = b
+select' :: UGen -> UGen -> UGen -> UGen
+select' n a b = f n a + g n b
+    where
+        f n x = cos (n*(pi/2)) * x
+        g n x = sin (n*(pi/2)) * x
+
 
 firstChannel = head . mceChannels
 
