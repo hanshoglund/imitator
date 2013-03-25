@@ -327,7 +327,6 @@ runImitatorRT = do
 -- Run over the given input file.
 runImitatorNRT :: IO ()
 runImitatorNRT  = do
-    writeSynthDefs
     runServer (imitatorNRT cmds) (kPath++"/input.wav") (kPath++"/output.wav")
     return ()
     where
@@ -425,7 +424,9 @@ firstChannel = head . mceChannels
 --- Testing
 main = do
     writeSynthDefs
-    startServer
-    threadDelay 1000000
-    runImitatorRT
+    runImitatorNRT
+    
+    -- startServer
+    -- threadDelay 1000000
+    -- runImitatorRT
 
