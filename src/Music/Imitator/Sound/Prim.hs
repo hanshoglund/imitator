@@ -19,9 +19,12 @@ module Music.Imitator.Sound.Prim (
         Rate(..),
         Loop(..),
         DoneAction(..),
+        EnvCurve(..),
+        Envelope(..),
   ) where
 
 import Sound.SC3.UGen ( UGen(..), Rate(..), 
                         Warp(..), Loop(..), DoneAction(..),
-                        mce, mceChannels
+                        mce, mceChannels,
+                        EnvCurve(..), Envelope(..),
                       )

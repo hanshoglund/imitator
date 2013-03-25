@@ -17,7 +17,7 @@
 -------------------------------------------------------------------------------------
 
 module Music.Imitator (
-        Envelope,
+        -- Envelope,
         Angle,
         Transformation,
         Command(..),
@@ -72,7 +72,7 @@ import qualified Sound.SC3.UGen             as U           -- TODO move
 
 -- type Time     = Double
 -- type Duration = Time
-type Envelope = Double -> Double
+-- type Envelope = Double -> Double
 type Angle    = Double
 
 data Transformation

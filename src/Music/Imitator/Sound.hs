@@ -20,12 +20,12 @@ module Music.Imitator.Sound (
         module Music.Imitator.Sound.Prim,
         
         -- * Generators
+        
         -- ** Oscillators
         sine,
+        saw,
         phasor,
         pulse',
-        saw,
-        -- vibrato,
         impulse,
 
         noise,     
@@ -35,13 +35,18 @@ module Music.Imitator.Sound (
         clipNoise,
         dust,
         dust2,
-
         -- lfCub,
         -- lcGauss,
         -- lfPar,
         -- lfPulse,
         -- lfSaw,
         -- lfTri,
+        
+        -- ** Envelopes
+        env,
+        envSust,
+        envLoop,
+        envGen,
 
         -- ** Filters
         -- bpf,
@@ -286,6 +291,7 @@ dust2 :: UGen -> UGen
 dust2 density = unsafePerformIO $ N.dust2 AR density
 
 
+
 -- |
 -- Control input.
 --
@@ -321,6 +327,66 @@ recordBuf :: UGen -> UGen -> UGen -> UGen -> UGen -> UGen
 recordBuf buffer offset trig onOff input 
     = U.recordBuf AR buffer offset 1 0 onOff NoLoop trig RemoveSynth input
 
+--------------------------------------------------------------------------------
+-- Envelopes
+--------------------------------------------------------------------------------
+
+-- |
+-- Create a fixed-time envelope.
+--
+-- > env val1 [(dur2,val2,curve2)..] 
+--
+env :: UGen -> [(UGen, UGen, U.EnvCurve)] -> U.Envelope UGen
+env _ [] = error "env: Empty envelope"
+env z as = U.Envelope (z:levels) times curves Nothing Nothing
+    where
+        (levels, times, curves) = unzip3 as
+
+
+-- |
+-- Create a sustained envelope.
+--
+-- > envSust val1 [(dur2,val2,curve2)..] [(dur2,val2,curve2)..]
+--
+envSust :: UGen -> [(UGen, UGen, U.EnvCurve)] -> [(UGen, UGen, U.EnvCurve)] -> U.Envelope UGen 
+envSust _ [] [] = error "envSust: Empty envelope"
+envSust z as bs = U.Envelope (z:levels) times curves (Just $ length as) Nothing
+    where
+        (levels, times, curves) = unzip3 $ as ++ bs
+
+-- |
+-- Create a looped envelope.
+--
+-- > envSust val2 [(dur2,val2,curve2)..] [(dur2,val2,curve2)..] [(dur2,val2,curve2)..]
+--
+envLoop :: UGen -> [(UGen, UGen, U.EnvCurve)] -> [(UGen, UGen, U.EnvCurve)] -> [(UGen, UGen, U.EnvCurve)] -> U.Envelope UGen
+envLoop _ [] [] [] = error "envLoop: Empty envelope"
+envLoop z as bs cs = U.Envelope (z:levels) times curves (Just $ length as) (Just $ length as + length bs)
+    where
+        (levels, times, curves) = unzip3 $ as ++ bs ++ cs
+
+-- |
+-- Create a generator from an envelope.
+--
+-- > envGen envelope trigger
+--
+envGen :: U.Envelope UGen -> UGen -> UGen
+envGen e t = envGen' e t 1
+
+-- |
+-- Create a generator from an envelope.
+--
+-- > envGen' envelope trigger timeScale
+--
+envGen' :: U.Envelope UGen -> UGen -> UGen -> UGen
+envGen' e t ts = U.envGen AR t 1 0 ts RemoveSynth e
+
+
+
+--------------------------------------------------------------------------------
+-- Buffers
+--------------------------------------------------------------------------------
+
 -- |
 -- Play from buffer.
 --
@@ -340,6 +406,11 @@ grainBuf numChan bufNum trig speed centerPos dur
     = U.tGrains numChan trig bufNum speed centerPos dur 0 1 noInterp
     where
         (noInterp, linInterp, cubInterp) = (1,2,4)
+
+
+--------------------------------------------------------------------------------
+-- I/O
+--------------------------------------------------------------------------------
 
 -- |
 -- Read input.
@@ -366,6 +437,10 @@ output bus = U.out bus
 feedback :: Int -> UGen -> UGen
 feedback numCh bus = U.inFeedback numCh bus
 
+
+--------------------------------------------------------------------------------
+-- Spacialization
+--------------------------------------------------------------------------------
 
 -- |
 -- > foaOmni input
@@ -418,6 +493,9 @@ numChannels = length . U.mceChannels
 
 
 
+--------------------------------------------------------------------------------
+-- Buffer allocation
+--------------------------------------------------------------------------------
 
 -- |
 -- Allocate a new buffer
@@ -463,9 +541,9 @@ freeBuffer = S.b_free
 
 
 
-
-
-
+--------------------------------------------------------------------------------
+-- Server
+--------------------------------------------------------------------------------
 
 -- |
 -- Add a generator to the synthesis graph.
@@ -619,6 +697,8 @@ printServerStatus = do
     msg <- return $ concatLines status
     putStrLn msg
 
+
+--------------------------------------------------------------------------------
 
 -- |
 -- Standard server connection.
