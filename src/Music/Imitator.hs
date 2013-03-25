@@ -124,33 +124,33 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 -- Play a single slice to B-format bus.
 --
 playG :: UGen
-playG = 
-    -- output cx $ bufferOut
-    output sfx $ envelope $ panning $ impulse 1{-firstChannel $ bufferOut-}
+playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
     where                       
         azimuth         = control "azimuth"  0
         volumeCtrl      = control "volume"   1
-        envelopeIndex   = control "envelope" 2
-        duration        = control "duration" 20
+        envelopeIndex   = control "envelope" 0
+        duration        = control "duration" 5
 
         envelopes = [
                 envSust 0.0 [(0.01, 1, EnvLin)] 
                             [(0.2,  0, EnvLin)], -- sharp
 
-                envSust 0.0 [(4.0,  1, EnvLin)]  -- smooth
-                            [(8.0,  0, EnvLin)],
+                envSust 0.0 [(1.0,  1, EnvLin)]  -- smooth
+                            [(3.0,  0, EnvLin)],
 
                 envSust 0.0 [(5.0,   1, EnvLin)]  -- super smooth
                             [(5.0,  0, EnvLin)]
             ]
         
         -- FIXME all of these are run on trigger, first one freeing node
-        envelope     = (*) $ select 2 (fmap (envGen trigger) envelopes)
+        envelope     = (*) $ sum $ fmap g (zip [0..] envelopes)
+            where
+                g (n, env) = envGen t env where t = trigger*(n U.==* envelopeIndex)
         
-        
+        trigger      = sine (1/(2*duration))
+
         -- envelope     = (*) $ envGen trigger (envelopes !! 2)
-        -- trigger      = sine (1/(2*duration))
-        trigger      = mouseButton
+        -- trigger      = mouseButton
             
         panning      = foaPanB azimuth 0
                 
