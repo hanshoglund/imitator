@@ -624,7 +624,7 @@ runServer cmds input output = do
         ]
     where
         scorePath = "/Users/hans/Documents/Kod/hs/music-imitator/score.osc"
-
+        -- FIXME hardcoded
 
 
 
@@ -734,7 +734,7 @@ kStdOutputSampleRate    = 44100
 kStdOutputType          = "WAV"
 kStdOutputFormat        = "int16"
 
--- FIXME must be different for each hardware setup...
+-- FIXME hardcoded
 (kInputBuses, kOutputBuses) = (10, 8)
 -- (kInputBuses, kOutputBuses) = (2,2)
 

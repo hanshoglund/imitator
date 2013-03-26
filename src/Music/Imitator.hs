@@ -53,27 +53,30 @@ import Control.Applicative
 import System.Directory
 import System.IO.Unsafe
 
-import Music.Score
-
 import Control.Reactive
 import Control.Reactive.Midi
 import Control.Reactive.Osc
+import Control.Concurrent (forkIO, threadDelay)
+
+import Music.Score
+
 import Music.Imitator.Sound
 import Music.Imitator.Util
 
-import Control.Concurrent (forkIO, threadDelay)
-
 import qualified Data.List as List
-
 import Sound.SC3.Server.Synthdef (synthdef, synthdefWrite) -- TODO move
 import qualified Sound.SC3.Server.FD        as S           -- TODO move
 import qualified Sound.SC3.UGen             as U           -- TODO move
 
 
+-- ----------------------------------------------------------------------
+-- Audio commands
+-- ----------------------------------------------------------------------
+
+
 type Angle    = Double
 type Volume   = Double
 type Curve    = Int
-
 
 data Transformation
     = Rotate Angle
@@ -94,24 +97,8 @@ data Command
         Angle       -- angle in radians (0 front, tau/4 is left, tau/2 is back etc)
 
                                
-
-
-
-
-
-
 -- ----------------------------------------------------------------------
-
--- -- (index, numChan)
-kInBus, kOutBus, kSoundFieldBus :: (Num a, Num b) => (a, b)
-kOutBus         = (                               0,  8)
-kInBus          = (fromIntegral kInputBuses     + 0,  2)
-kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
-
--- (index, channels, frames)
-kMainBuffer :: (Num a, Num b, Num c) => (a, b, c)
-kMainBuffer = (0, 2, 48000 * 60 * 35)
-
+-- Audio generators
 -- ----------------------------------------------------------------------
 
 -- |
@@ -130,7 +117,7 @@ recordG = recordBuf bx offset trig onOff (input an ax)
 -- Play a single slice to B-format bus.
 --
 playG :: UGen
-playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
+playG = output sfx $ envelope $ spatialization $ getChannel 0 $ bufferOut
     where
         startPos        = control "time"     410
         duration        = control "duration" 1
@@ -155,23 +142,21 @@ playG = output sfx $ envelope $ panning $ firstChannel $ bufferOut
                             [(5.0,  0, EnvLin)]
             ]
         
-        -- FIXME all of these are run on trigger, first one freeing node
-        envelope     = (*) $ sum $ fmap g (zip [0..] envelopes)
+        envelope :: UGen -> UGen
+        envelope    = (*) $ sum $ fmap g (zip [0..] envelopes)
             where
-                g (n, env) = envGen t env where t = trigger*(n U.==* envelopeIndex)
-        
-        trigger      = sine (1/(2*duration))
-        -- trigger      = phasor 0 (1/duration)
+                g (n, env) = envGen t env where t = trig * (n U.==* envelopeIndex)        
+                trig       = sine (1/(2*duration))
 
-        panning      = foaPanB azimuth 0
-                
+        spatialization :: UGen -> UGen
+        spatialization  = foaPanB azimuth 0                
+
+        bufferOut :: UGen
         bufferOut    = (playBuf bc bx 0 1 (startPos*kSampleRate)) * volumeCtrl * kOutVol
 
         (bx, bc, bf) = kMainBuffer
         (cx,  cn)    = kOutBus
         (sfx, sfn)   = kSoundFieldBus
-        -- TODO write to sound field
-
 
 -- |
 -- Read from output B-format bus, write to output buffers
@@ -197,8 +182,6 @@ writeSynthDefs = do
         writeGen name gen = synthdefWrite def kSynthDefPath
             where
                 def  = synthdef ("imitator-" ++ name) gen
-
--- ----------------------------------------------------------------------
 
 
 loadSynthDefs :: [OscMessage]
@@ -288,16 +271,6 @@ imitatorRT cmds time = playback time (pure msgs)
         prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
 
--- Create a track in which all given values happen at time zero.
-listToTrack :: [a] -> Track a
-listToTrack = mconcat . fmap return
-
-allocateNodes :: Track Command -> Track Command
-allocateNodes = Track . snd . List.mapAccumL g 0 . getTrack
-    where
-        g s (t,PlayBuffer _ pt pd pv pc paz) = (s + 1, (t,PlayBuffer s pt pd pv pc paz))
-        g s (t,cmd) = (s, (t,cmd))
-
 -- |
 -- Convert commmands to a non-realtime score for @scsynth@.
 --
@@ -315,6 +288,15 @@ imitatorNRT cmds = S.NRT $ fmap toBundle msgs
         prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
 
+-- |
+-- Simplistic node allocator. Assures each PlayBuffer command uses a separate node index.
+--
+allocateNodes :: Track Command -> Track Command
+allocateNodes = Track . snd . List.mapAccumL g 0 . getTrack
+    where
+        g s (t,PlayBuffer _ pt pd pv pc paz) = (s + 1, (t,PlayBuffer s pt pd pv pc paz))
+        g s (t,cmd) = (s, (t,cmd))
+
 
 
 
@@ -324,14 +306,15 @@ runImitatorRT = do
     return ()
 
 -- |
--- Run over the given input file.
+-- Run imitator in non-realtime. Output is written to @output.wav@.
+-- 
 runImitatorNRT :: IO ()
 runImitatorNRT  = do
     runServer (imitatorNRT cmds) (kPath++"/input.wav") (kPath++"/output.wav")
     return ()
     where
         kPath = "/Users/hans/Documents/Kod/hs/music-imitator"
-
+        -- TODO do we really need the input file here?
 
 
 
@@ -339,13 +322,14 @@ runImitatorNRT  = do
 
 cmds :: Track Command
 cmds = join $ Track [
-    (0,     return $ ReadBuffer "/Users/hans/Desktop/Test/Test 1.aiff"),
+    -- (0,   return $ StartRecord)
+    (0,     return $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff"),
     (0,     sp1),
     (10,    sp1),
     (19,    sp1),
     (26,    sp2),
-    (34,    sp2),
-    (300,   return $ StopRecord)
+    (34,    sp2)
+    -- (300,   return $ StopRecord)
     ]
 
 sp1 = Track [
@@ -363,38 +347,59 @@ sp2 = Track [
     (0.8,   PlayBuffer nd 80 7 0.4 3 (-0.4 * tau))
     ]
 
-
-
-
-
-
-
-
---------------------------------------------------------------------------------
-
-kOutVol = 0.7
 nd = 0
 
+type Diagram = ()
+cmdsToSvg :: Track Command -> Diagram
+cmdsToSvg = undefined
+
+
+--- Testing
+main = do
+    writeSynthDefs
+    runImitatorNRT
+    
+    -- startServer
+    -- threadDelay 1000000
+    -- runImitatorRT
+
+
+
+
+
+
 
 
 --------------------------------------------------------------------------------
 
+kOutVol         = 0.7
+kMainPath       = unsafePerformIO (getAppUserDataDirectory "Imitator")
+kSynthDefPath   = kMainPath ++ "/synthdefs"
 
+-- |
+-- Channels to use on audio interface (index, numChan)
+-- 
+kInBus          :: (Num a, Num b) => (a, b)
+kOutBus         :: (Num a, Num b) => (a, b)
+kSoundFieldBus  :: (Num a, Num b) => (a, b)
+kOutBus         = (                               0,  8)
+kInBus          = (fromIntegral kInputBuses     + 0,  2)
+kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
 
+-- |
+-- Buffers to use (index, channels, frames)
+-- 
+kMainBuffer :: (Num a, Num b, Num c) => (a, b, c)
+kMainBuffer = (0, 2, 48000 * 60 * 35)
 
+--------------------------------------------------------------------------------
 
+-- sendS c   = sendStd c >> isServerRunning
+-- sendSS c  = mapM sendStd c >> isServerRunning
+-- dumpNodes = sendStd $ S.g_dumpTree [(0,True)]
 
-
-sendS c   = sendStd c >> isServerRunning
-sendSS c  = mapM sendStd c >> isServerRunning
-dumpNodes = sendStd $ S.g_dumpTree [(0,True)]
-
-kMainPath     = unsafePerformIO (getAppUserDataDirectory "Imitator")
-kSynthDefPath = kMainPath ++ "/synthdefs"
-
-single x = [x]
-
-
+single :: a -> [a]
+single = return
 
 -- |
 -- Crossfade between list elements.
@@ -416,17 +421,14 @@ select' n a b = f n a + g n b
         g n x = sin (n*(pi/2)) * x   
         
         
-firstChannel :: UGen -> UGen
-firstChannel = head . mceChannels
+getChannel :: Int -> UGen -> UGen
+getChannel n = (!! n) . mceChannels
 
 
+-- |
+-- Create a track in which all given values happen at time zero.
+-- 
+listToTrack :: [a] -> Track a
+listToTrack = mconcat . fmap return
 
---- Testing
-main = do
-    writeSynthDefs
-    runImitatorNRT
-    
-    -- startServer
-    -- threadDelay 1000000
-    -- runImitatorRT
 
