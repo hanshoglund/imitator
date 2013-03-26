@@ -203,7 +203,7 @@ gui = do
         position  = transport control (pulse 0.1) ((Time . toRational <$> tempoR) * 10) / duration
 
         serverMessages :: Event OscMessage
-        serverMessages = imitatorRT cmds (position * 100)
+        serverMessages = imitatorRT kMainScore (position * 100)
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty

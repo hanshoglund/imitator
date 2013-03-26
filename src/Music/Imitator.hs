@@ -17,19 +17,25 @@
 -------------------------------------------------------------------------------------
 
 module Music.Imitator (
+        -- ** Commands
         -- Envelope,
         Angle,
         Transformation,
         Command(..),
+
+        -- * Running
         imitatorRT,
         imitatorNRT,
-        startServer,
+
+        -- ** Control
         stopServer,
+        startServer,
         writeSynthDefs,
-        
         runImitatorRT,
         runImitatorNRT,
-        cmds,
+
+        -- ** Score
+        kMainScore,
   ) where
 
 {-
@@ -69,9 +75,9 @@ import qualified Sound.SC3.Server.FD        as S           -- TODO move
 import qualified Sound.SC3.UGen             as U           -- TODO move
 
 
--- ----------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 -- Audio commands
--- ----------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 
 
 type Angle    = Double
@@ -97,20 +103,18 @@ data Command
         Angle       -- angle in radians (0 front, tau/4 is left, tau/2 is back etc)
 
                                
--- ----------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 -- Audio generators
--- ----------------------------------------------------------------------
+-------------------------------------------------------------------------------------
 
 -- |
 -- Record to buffer.
 --
 recordG :: UGen
-recordG = recordBuf bx offset trig onOff (input an ax)
-    where                               
-        offset   = 0
-        trig     = 0
-        onOff    = 1
-        (ax, an)     = kInBus
+recordG = recordBuf bx 0 0 1 mainInput
+    where
+        mainInput    = (input an ax)
+        (ax, an)     = kMainInputBus
         (bx, bc, bf) = kMainBuffer
 
 -- |
@@ -152,10 +156,10 @@ playG = output sfx $ envelope $ spatialization $ getChannel 0 $ bufferOut
         spatialization  = foaPanB azimuth 0                
 
         bufferOut :: UGen
-        bufferOut    = (playBuf bc bx 0 1 (startPos*kSampleRate)) * volumeCtrl * kOutVol
+        bufferOut    = (playBuf bc bx 0 1 (startPos*kSampleRate)) * volumeCtrl * kGlobalBufferGain
 
         (bx, bc, bf) = kMainBuffer
-        (cx,  cn)    = kOutBus
+        (cx,  cn)    = kMainOutputBus
         (sfx, sfn)   = kSoundFieldBus
 
 -- |
@@ -165,24 +169,12 @@ decodeG :: UGen
 decodeG = output cx $ decode cn (input sfn sfx)
     where          
         (sfx, sfn) = kSoundFieldBus
-        (cx,  cn)  = kOutBus
+        (cx,  cn)  = kMainOutputBus
 
--- ----------------------------------------------------------------------
 
--- |
--- Write synthdefs where @scsynth@ can find them.
---
-writeSynthDefs :: IO ()
-writeSynthDefs = do
-    createDirectoryIfMissing True kSynthDefPath
-    writeGen "record" recordG
-    writeGen "decode" decodeG
-    writeGen "play"   playG
-    where                 
-        writeGen name gen = synthdefWrite def kSynthDefPath
-            where
-                def  = synthdef ("imitator-" ++ name) gen
-
+-------------------------------------------------------------------------------------
+-- Server messages
+-------------------------------------------------------------------------------------
 
 loadSynthDefs :: [OscMessage]
 loadSynthDefs = [
@@ -250,11 +242,15 @@ setupServer2 = mempty
 
 
 translateCommand :: Command -> [OscMessage]
-translateCommand StartRecord             = createRecorder
-translateCommand StopRecord              = freeRecorder
-translateCommand (ReadBuffer p)          = [readBuffer 0 p]
+translateCommand StartRecord                     = createRecorder
+translateCommand StopRecord                      = freeRecorder
+translateCommand (ReadBuffer p)                  = [readBuffer 0 p]
 translateCommand (PlayBuffer n t d vol curve az) = createPlaySynth n t d vol curve az
 
+
+-------------------------------------------------------------------------------------
+-- Control
+-------------------------------------------------------------------------------------
 
 -- |
 -- Play back commmands as messages to @scsynth@.
@@ -299,18 +295,43 @@ allocateNodes = Track . snd . List.mapAccumL g 0 . getTrack
 
 
 
+-------------------------------------------------------------------------------------
+-- Running
+-------------------------------------------------------------------------------------
 
+
+-- |
+-- Write synthdefs where @scsynth@ can find them.
+--
+writeSynthDefs :: IO ()
+writeSynthDefs = do
+    createDirectoryIfMissing True kSynthDefPath
+    writeGen "record" recordG
+    writeGen "decode" decodeG
+    writeGen "play"   playG
+    where                 
+        writeGen name gen = synthdefWrite def kSynthDefPath
+            where
+                def  = synthdef ("imitator-" ++ name) gen
+
+-- | 
+-- Run the imitator in realtime. Output is written to the main output bus.
+--
+-- Assumes that synthdefs have been written and the server started.
+--
 runImitatorRT :: IO ()
 runImitatorRT = do
-    runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT cmds time
+    runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT kMainScore time
     return ()
 
 -- |
 -- Run imitator in non-realtime. Output is written to @output.wav@.
 -- 
+-- Assumes that synthdefs have been written.
+-- 
 runImitatorNRT :: IO ()
 runImitatorNRT  = do
-    runServer (imitatorNRT cmds) (kPath++"/input.wav") (kPath++"/output.wav")
+    runServer (imitatorNRT kMainScore) (kPath++"/input.wav") (kPath++"/output.wav")
     return ()
     where
         kPath = "/Users/hans/Documents/Kod/hs/music-imitator"
@@ -318,10 +339,15 @@ runImitatorNRT  = do
 
 
 
+-------------------------------------------------------------------------------------
+-- The score
+-------------------------------------------------------------------------------------
+
+-- TODO this should *seriously* be factored out
 -- FIXME duration must be shorter than env start time
 
-cmds :: Track Command
-cmds = join $ Track [
+kMainScore :: Track Command
+kMainScore = join $ Track [
     -- (0,   return $ StartRecord)
     (0,     return $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff"),
     (0,     sp1),
@@ -372,18 +398,24 @@ main = do
 
 --------------------------------------------------------------------------------
 
-kOutVol         = 0.7
 kMainPath       = unsafePerformIO (getAppUserDataDirectory "Imitator")
 kSynthDefPath   = kMainPath ++ "/synthdefs"
+
+
+-- |
+-- All playback buffers are multiplied by this value.
+--
+kGlobalBufferGain :: (Num a, Fractional a) => a
+kGlobalBufferGain = 0.7
 
 -- |
 -- Channels to use on audio interface (index, numChan)
 -- 
-kInBus          :: (Num a, Num b) => (a, b)
-kOutBus         :: (Num a, Num b) => (a, b)
+kMainInputBus   :: (Num a, Num b) => (a, b)
+kMainOutputBus  :: (Num a, Num b) => (a, b)
 kSoundFieldBus  :: (Num a, Num b) => (a, b)
-kOutBus         = (                               0,  8)
-kInBus          = (fromIntegral kInputBuses     + 0,  2)
+kMainOutputBus  = (                               0,  8)
+kMainInputBus   = (fromIntegral kInputBuses     + 0,  2)
 kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
 
 -- |
@@ -393,6 +425,8 @@ kMainBuffer :: (Num a, Num b, Num c) => (a, b, c)
 kMainBuffer = (0, 2, 48000 * 60 * 35)
 
 --------------------------------------------------------------------------------
+
+
 
 -- sendS c   = sendStd c >> isServerRunning
 -- sendSS c  = mapM sendStd c >> isServerRunning
