@@ -20,6 +20,8 @@ module Music.Imitator (
         -- ** Commands
         -- Envelope,
         Angle,
+        Volume,
+        Curve,
         Transformation,
         Command(..),
 
@@ -455,10 +457,6 @@ select' n a b = f n a + g n b
         g n x = sin (n*(pi/2)) * x   
         
         
-getChannel :: Int -> UGen -> UGen
-getChannel n = (!! n) . mceChannels
-
-
 -- |
 -- Create a track in which all given values happen at time zero.
 -- 

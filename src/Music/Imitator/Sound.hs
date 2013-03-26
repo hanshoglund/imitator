@@ -89,6 +89,7 @@ module Music.Imitator.Sound (
         U.mce2,
         U.mce3,
         U.mceChannels,
+        getChannel,
         numChannels,
 
         -- ** Control
@@ -108,32 +109,33 @@ module Music.Imitator.Sound (
 
 
         -- * Server
-        -- ** Play and stop
-        play,
-        play',
-        abort,
-        sendStd,      
-        
-        -- -- ** Synthdefs
-        -- receive,
-        -- loadDir,
-        
-        -- ** Control
-        
-
-        -- ** Buffer allocation
+        -- ** Buffers
         newBuffer,
         readBuffer,
         readBuffer',
         freeBuffer,
 
+        -- -- ** Synthdefs
+        -- receive,
+        -- loadDir,
+        
+        -- ** Testing
+        play,
+        play',
+        abort,
+        sendStd,      
+        
+        -- ** Server control
         -- ** Non real-time
         NRT,
         runServer,
 
         -- ** Real-time
+        -- *** Start and stop
         startServer,
         stopServer,
+        
+        -- *** Server status
         isServerRunning,
         serverStatus,
         serverStatusData,
@@ -148,7 +150,7 @@ module Music.Imitator.Sound (
 
         printServerStatus,
         
-        -- ** Constants
+        -- * Constants
         kStdServer,
         kStdPort,
         kMasterVolume,
@@ -503,6 +505,15 @@ foaTumble angle input = U.mkFilter "FoaTumble" [w,x,y,z,angle] 4
 (!) :: UGen -> Int -> UGen
 g ! n = U.mce $ concat $ replicate n (U.mceChannels g)
 
+-- |
+-- Multichannel extraction.
+-- 
+getChannel :: Int -> UGen -> UGen
+getChannel n = (!! n) . U.mceChannels
+
+-- |
+-- Count number of channels.
+-- 
 numChannels :: UGen -> Int
 numChannels = length . U.mceChannels
 
@@ -561,7 +572,7 @@ freeBuffer = S.b_free
 --------------------------------------------------------------------------------
 
 -- |
--- Add a generator to the synthesis graph.
+-- Add a generator to the synthesis graph, wrapping it in standard output and gain.
 --
 play :: UGen -> IO ()
 play gen = do
@@ -571,6 +582,9 @@ play gen = do
             recvMsg         = S.d_recv $ S.synthdef "playGen" (U.out kOutputOffset $ gen * kMasterVolume)
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
 
+-- |
+-- Add a generator to the synthesis graph without wrapping. Use this function carefully.
+--
 play' :: UGen -> IO ()
 play' gen = do
     asyncStd $ recvMsg
@@ -580,7 +594,7 @@ play' gen = do
             addToTailMsg    = S.s_new "playGen" 111 S.AddToTail 0 []
 
 -- |
--- Abort all current synthesis (remove generators from the synthesis graph).
+-- Abort all current synthesis.
 --
 abort :: IO ()
 abort = do
