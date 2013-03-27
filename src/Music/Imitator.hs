@@ -321,9 +321,9 @@ writeSynthDefs = do
 --
 -- Assumes that synthdefs have been written and the server started.
 --
-runImitatorRT :: IO ()
-runImitatorRT = do
-    runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT kMainScore time
+runImitatorRT :: Track Command -> IO ()
+runImitatorRT track = do
+    runEvent $ oscOutUdp "127.0.0.1" 57110 $ imitatorRT track time
     return ()
 
 -- |
@@ -331,9 +331,9 @@ runImitatorRT = do
 -- 
 -- Assumes that synthdefs have been written.
 -- 
-runImitatorNRT :: IO ()
-runImitatorNRT  = do
-    runServer (imitatorNRT kMainScore) (kPath++"/input.wav") (kPath++"/output.wav")
+runImitatorNRT :: Track Command -> IO ()
+runImitatorNRT track  = do
+    runServer (imitatorNRT track) (kPath++"/input.wav") (kPath++"/output.wav")
     return ()
     where
         kPath = "/Users/hans/Documents/Kod/hs/music-imitator"
@@ -385,11 +385,11 @@ cmdsToSvg = undefined
 --- Testing
 main = do
     writeSynthDefs
-    runImitatorNRT
+    runImitatorNRT kMainScore
     
     -- startServer
     -- threadDelay 1000000
-    -- runImitatorRT
+    -- runImitatorRT kMainScore
 
 
 
