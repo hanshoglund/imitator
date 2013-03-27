@@ -157,14 +157,14 @@ instance Show NotePart where
     
 
 vl1, vl2, vla1, vla2, vc1, vc2, db1, db2 :: NotePart
-vl1  = undefined
-vl2  = undefined
-vla1 = undefined
-vla2 = undefined
-vc1  = undefined
-vc2  = undefined
-db1  = undefined
-db2  = undefined
+vl1  = Vl1
+vl2  = Vl2
+vla1 = Vla1
+vla2 = Vla2
+vc1  = Vc1
+vc2  = Vc2
+db1  = Db1
+db2  = Db2
 
 
 infixr 6 </>
@@ -172,6 +172,12 @@ infixr 6 </>
 a </> b = a <> modifyVoices (successor offset) b
     where
         offset = succ $ maximum $ fmap fromEnum $ (getVoices a ++ [toEnum 0])
+
+moveDown :: (Enum v, v ~ Voice a, Integral b, Functor s, HasVoice a) => b -> s a -> s a
+moveDown x = modifyVoices (successor x)
+
+moveTo :: (Enum v, v ~ Voice a, Functor s, HasVoice a) => v -> s a -> s a
+moveTo v = moveDown (fromEnum v)
 
 
 

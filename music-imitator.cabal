@@ -27,7 +27,9 @@ library
         semigroups,
         semigroupoids,
         vector-space,
-        music-score,
+        music-score, 
+        music-pitch-literal,
+        music-dynamics-literal,
         reverse-apply
 
     hs-source-dirs: src
