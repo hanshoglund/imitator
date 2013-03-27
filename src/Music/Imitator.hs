@@ -438,26 +438,6 @@ single :: a -> [a]
 single = return
 
 -- |
--- Crossfade between list elements.
---
--- > select n as  =  as !! 0
---
-select :: UGen -> [UGen] -> UGen
-select n []     = 0
-select n (a:as) = select' (limit 0 1 n) a (select (n-1) as)
-    where
-        limit m n x = m `max` (n `min` x)
-
--- select 0 a b = a
--- select 1 a b = b
-select' :: UGen -> UGen -> UGen -> UGen
-select' n a b = f n a + g n b
-    where
-        f n x = cos (n*(pi/2)) * x
-        g n x = sin (n*(pi/2)) * x   
-        
-        
--- |
 -- Create a track in which all given values happen at time zero.
 -- 
 listToTrack :: [a] -> Track a
