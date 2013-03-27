@@ -17,6 +17,8 @@
 -------------------------------------------------------------------------------------
 
 module Music.Imitator (
+        module Music.Score,
+    
         -- ** Commands
         -- Envelope,
         Angle,
@@ -35,9 +37,6 @@ module Music.Imitator (
         writeSynthDefs,
         runImitatorRT,
         runImitatorNRT,
-
-        -- ** Score
-        kMainScore,
   ) where
 
 {-
@@ -67,7 +66,6 @@ import Control.Reactive.Osc
 import Control.Concurrent (forkIO, threadDelay)
 
 import Music.Score
-
 import Music.Imitator.Sound
 import Music.Imitator.Util
 
@@ -340,69 +338,10 @@ runImitatorNRT track  = do
         -- TODO do we really need the input file here?
 
 
-
--------------------------------------------------------------------------------------
--- The score
--------------------------------------------------------------------------------------
-
--- TODO this should *seriously* be factored out
--- FIXME duration must be shorter than env start time
-
-kMainScore :: Track Command
-kMainScore = join $ Track [
-    -- (0,   return $ StartRecord)
-    (0,     return $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff"),
-    (0,     sp1),
-    (10,    sp1),
-    (19,    sp1),
-    (26,    sp2),
-    (34,    sp2)
-    -- (300,   return $ StopRecord)
-    ]
-
-sp1 = Track [
-    (0.0,   PlayBuffer nd 50 7 0.4 3 (0    * tau)),
-    (0.2,   PlayBuffer nd 50 7 0.4 3 (-0.2 * tau)),
-    (0.4,   PlayBuffer nd 50 7 0.4 3 (-0.2 * tau)),
-    (0.6,   PlayBuffer nd 50 7 0.4 3 (0    * tau))
-    ]
-
-sp2 = Track [
-    (0.0,   PlayBuffer nd 80 7 0.4 3 (0    * tau)),
-    (0.2,   PlayBuffer nd 80 7 0.4 3 (0.2  * tau)),
-    (0.4,   PlayBuffer nd 80 7 0.4 3 (-0.2 * tau)),
-    (0.6,   PlayBuffer nd 80 7 0.4 3 (0.4  * tau)),
-    (0.8,   PlayBuffer nd 80 7 0.4 3 (-0.4 * tau))
-    ]
-
-nd = 0
-
-type Diagram = ()
-cmdsToSvg :: Track Command -> Diagram
-cmdsToSvg = undefined
-
-
---- Testing
-main = do
-    writeSynthDefs
-    runImitatorNRT kMainScore
-    
-    -- startServer
-    -- threadDelay 1000000
-    -- runImitatorRT kMainScore
-
-
-
-
-
-
-
-
 --------------------------------------------------------------------------------
 
 kMainPath       = unsafePerformIO (getAppUserDataDirectory "Imitator")
 kSynthDefPath   = kMainPath ++ "/synthdefs"
-
 
 -- |
 -- All playback buffers are multiplied by this value.

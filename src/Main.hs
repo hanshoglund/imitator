@@ -6,20 +6,19 @@ module Main where
 import Data.Monoid
 import Control.Applicative
 import Control.Monad (join)
-
 import Control.Concurrent (forkIO, forkOS, threadDelay)
+import Control.Reactive
+import Control.Reactive.Chan
+import Control.Reactive.Midi
+import Control.Reactive.Osc
 import System.Exit
 
 import Graphics.UI.WX hiding (Event, Reactive)
 
 import Music.Score (Time(..))
-
 import Music.Imitator
 
-import Control.Reactive
-import Control.Reactive.Chan
-import Control.Reactive.Midi
-import Control.Reactive.Osc
+import Score
 
 addMenus :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addMenus frame = do
@@ -203,7 +202,7 @@ gui = do
         position  = transport control (pulse 0.1) ((Time . toRational <$> tempoR) * 10) / duration
 
         serverMessages :: Event OscMessage
-        serverMessages = imitatorRT kMainScore (position * 100)
+        serverMessages = imitatorRT mainScore (position * 100)
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
