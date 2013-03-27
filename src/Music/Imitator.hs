@@ -332,7 +332,7 @@ runImitatorRT track = do
 runImitatorNRT :: Track Command -> IO ()
 runImitatorNRT track  = do                                   
     cd <- getCurrentDirectory
-    runServer (imitatorNRT track) (cd ++ "/input.wav") (cd ++ "/output.wav")
+    runServer (imitatorNRT track) Nothing (Just $ cd ++ "/output.wav")
     return ()
 
 

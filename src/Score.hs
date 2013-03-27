@@ -10,11 +10,9 @@ import Music.Imitator
 import Control.Monad
 import Control.Concurrent (threadDelay)
 
--------------------------------------------------------------------------------------
--- The score
--------------------------------------------------------------------------------------
 
--- TODO this should *seriously* be factored out
+
+
 -- FIXME duration must be shorter than env start time
 
 mainScore :: Track Command
@@ -46,20 +44,37 @@ sp2 = Track [
 
 nd = 0
 
-type Diagram = ()
-cmdsToSvg :: Track Command -> Diagram
-cmdsToSvg = undefined
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 main :: IO ()
 main = do
-    -- writeSynthDefs
-    -- runImitatorNRT mainScore
+    writeSynthDefs
+    runImitatorNRT mainScore
     
-    startServer
-    threadDelay 1000000
-    runImitatorRT mainScore
-
-
+    -- startServer
+    -- threadDelay 1000000
+    -- runImitatorRT mainScore
 
 tau = pi * 2
+
+type Diagram = ()
+cmdsToSvg :: Track Command -> Diagram
+cmdsToSvg = undefined
+

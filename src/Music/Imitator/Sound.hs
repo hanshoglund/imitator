@@ -651,15 +651,15 @@ asyncStd msg = do
 -- |
 -- Run a non-realtime server.
 --
-runServer :: NRT -> FilePath -> FilePath -> IO ()
+runServer :: NRT -> Maybe FilePath -> Maybe FilePath -> IO ()
 runServer cmds input output = do
     cd <- getCurrentDirectory
     writeNRT (cd ++ "score.osc") cmds
     execute "scsynth" [
         "-v",   "1",
         "-N",   (cd ++ "score.osc"), 
-                input, 
-                output, 
+                maybe "_" id $ input, 
+                maybe "_" id $ output, 
                 show kStdOutputSampleRate, 
                 kStdOutputType, 
                 kStdOutputFormat,
