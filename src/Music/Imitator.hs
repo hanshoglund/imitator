@@ -22,6 +22,9 @@ module Music.Imitator (
         -- ** Commands
         -- Envelope,
         Angle,
+        Turns,
+        angleToTurns,
+        turnsToAngle,
         Volume,
         Curve(..),
         Transformation,
@@ -82,8 +85,13 @@ import qualified Sound.SC3.UGen             as U           -- TODO move
 
 -- Angle, in radians
 newtype Angle    = Angle { getAngle :: Double }
-    deriving (Eq, Ord, Show, Num, Real, Fractional, RealFrac,
-    Floating) -- for pi/tau
+    deriving (Eq, Ord, Show, Num, Real, Fractional, RealFrac, Floating)
+
+-- Angle in whole circles (1 circle = tau rad)
+newtype Turns    = Turns { getTurns :: Double }
+    deriving (Eq, Ord, Show, Num, Real, Fractional, RealFrac, Floating)
+turnsToAngle (Turns x) = Angle (x*tau)
+angleToTurns (Angle x) = Turns (x/tau)
 
 newtype Volume   = Volume { getVolume :: Double }
     deriving (Eq, Ord, Show, Num, Real, Fractional, RealFrac)
@@ -112,7 +120,7 @@ data Command
         Duration    -- end pos in seconds
         Volume      -- volume, 0 to 1
         Curve       -- envelope, 0..2
-        Angle       -- angle in radians (0 front, tau/4 is left, tau/2 is back etc)
+        Turns       -- angle in rotations (front is 0, left is 0.25, back is 0.5)
 
                                
 -------------------------------------------------------------------------------------
@@ -227,14 +235,14 @@ freeDecoder = [
         S.n_free [11]
     ]
 
-createPlaySynth :: Int -> Time -> Duration -> Volume -> Curve -> Angle -> [OscMessage]
+createPlaySynth :: Int -> Time -> Duration -> Volume -> Curve -> Turns -> [OscMessage]
 createPlaySynth node time duration volume curve azimuth = [
         S.s_new "imitator-play" (20 + node) S.AddToTail 6 
             [ ("time",      fromRational $ getTime $ time),
               ("duration",  fromRational $ getDuration $ duration),
               ("volume",    getVolume $ volume),
               ("curve",     fromIntegral $ fromEnum $ curve),
-              ("azimuth",   getAngle $ azimuth) ]
+              ("azimuth",   getAngle $ turnsToAngle $ azimuth) ]
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [

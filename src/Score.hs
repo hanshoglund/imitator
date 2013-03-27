@@ -20,24 +20,21 @@ import Data.AffineSpace
 mainScore :: Score Command
 mainScore = mempty
     |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
-    |> sp2^*10
-    |> sp2^*10
-    |> sp2^*8
     |> sp1^*8
     |> sp2^*8
 
 sp1 = mempty
-    |> rest^*0.0 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0    * tau))
-    |> rest^*0.2 |> (note $ PlayBuffer nd 50 7 0.4 Standard (-0.2 * tau))
-    |> rest^*0.4 |> (note $ PlayBuffer nd 50 7 0.4 Standard (-0.2 * tau))
-    |> rest^*0.6 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0    * tau))
+    |> rest^*0.0 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0.0 + 0  ))
+    |> rest^*0.2 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0.0 - 0.2))
+    |> rest^*0.4 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0.0 - 0.2))
+    |> rest^*0.6 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0.0 + 0  ))
 
 sp2 = mempty
-    |> rest^*0.0 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5      ) * tau))
-    |> rest^*0.2 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 + 0.2) * tau))
-    |> rest^*0.4 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 - 0.2) * tau))
-    |> rest^*0.6 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 + 0.3) * tau))
-    |> rest^*0.8 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 - 0.3) * tau))
+    |> rest^*0.0 |> (note $ PlayBuffer nd 80 7 0.4 Standard (0.5      ))
+    |> rest^*0.2 |> (note $ PlayBuffer nd 80 7 0.4 Standard (0.5 + 0.2))
+    |> rest^*0.4 |> (note $ PlayBuffer nd 80 7 0.4 Standard (0.5 - 0.2))
+    |> rest^*0.6 |> (note $ PlayBuffer nd 80 7 0.4 Standard (0.5 + 0.3))
+    |> rest^*0.8 |> (note $ PlayBuffer nd 80 7 0.4 Standard (0.5 - 0.3))
 
 
 nd = 0
