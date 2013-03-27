@@ -27,7 +27,8 @@ library
         semigroups,
         semigroupoids,
         vector-space,
-        music-score
+        music-score,
+        reverse-apply
 
     hs-source-dirs: src
     exposed-modules:
