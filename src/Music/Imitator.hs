@@ -1,5 +1,5 @@
 
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving #-}
 
 -------------------------------------------------------------------------------------
 -- |
@@ -23,7 +23,7 @@ module Music.Imitator (
         -- Envelope,
         Angle,
         Volume,
-        Curve,
+        Curve(..),
         Transformation,
         Command(..),
 
@@ -80,9 +80,21 @@ import qualified Sound.SC3.UGen             as U           -- TODO move
 -------------------------------------------------------------------------------------
 
 
-type Angle    = Double
-type Volume   = Double
-type Curve    = Int
+-- Angle, in radians
+newtype Angle    = Angle { getAngle :: Double }
+    deriving (Eq, Ord, Show, Num, Real, Fractional, RealFrac,
+    Floating) -- for pi/tau
+
+newtype Volume   = Volume { getVolume :: Double }
+    deriving (Eq, Ord, Show, Num, Real, Fractional, RealFrac)
+
+data Curve
+    = Sharp
+    | Short
+    | Standard
+    | Smooth
+    | Slow
+    deriving (Eq, Ord, Show, Enum)
 
 data Transformation
     = Rotate Angle
@@ -220,9 +232,9 @@ createPlaySynth node time duration volume curve azimuth = [
         S.s_new "imitator-play" (20 + node) S.AddToTail 6 
             [ ("time",      fromRational $ getTime $ time),
               ("duration",  fromRational $ getDuration $ duration),
-              ("volume",    volume),
-              ("curve",     fromIntegral $ curve),
-              ("azimuth",   azimuth) ]
+              ("volume",    getVolume $ volume),
+              ("curve",     fromIntegral $ fromEnum $ curve),
+              ("azimuth",   getAngle $ azimuth) ]
     ]
 freePlaySynth :: Int -> [OscMessage]
 freePlaySynth n = [

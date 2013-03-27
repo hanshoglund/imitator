@@ -27,17 +27,17 @@ mainScore = mempty
     |> sp2^*8
 
 sp1 = mempty
-    |> rest^*0.0 |> (note $ PlayBuffer nd 50 7 0.4 3 (0    * tau))
-    |> rest^*0.2 |> (note $ PlayBuffer nd 50 7 0.4 3 (-0.2 * tau))
-    |> rest^*0.4 |> (note $ PlayBuffer nd 50 7 0.4 3 (-0.2 * tau))
-    |> rest^*0.6 |> (note $ PlayBuffer nd 50 7 0.4 3 (0    * tau))
+    |> rest^*0.0 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0    * tau))
+    |> rest^*0.2 |> (note $ PlayBuffer nd 50 7 0.4 Standard (-0.2 * tau))
+    |> rest^*0.4 |> (note $ PlayBuffer nd 50 7 0.4 Standard (-0.2 * tau))
+    |> rest^*0.6 |> (note $ PlayBuffer nd 50 7 0.4 Standard (0    * tau))
 
 sp2 = mempty
-    |> rest^*0.0 |> (note $ PlayBuffer nd 80 7 0.4 3 ((1      ) * tau))
-    |> rest^*0.2 |> (note $ PlayBuffer nd 80 7 0.4 3 ((1 + 0.2) * tau))
-    |> rest^*0.4 |> (note $ PlayBuffer nd 80 7 0.4 3 ((1 - 0.2) * tau))
-    |> rest^*0.6 |> (note $ PlayBuffer nd 80 7 0.4 3 ((1 + 0.3) * tau))
-    |> rest^*0.8 |> (note $ PlayBuffer nd 80 7 0.4 3 ((1 - 0.3) * tau))
+    |> rest^*0.0 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5      ) * tau))
+    |> rest^*0.2 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 + 0.2) * tau))
+    |> rest^*0.4 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 - 0.2) * tau))
+    |> rest^*0.6 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 + 0.3) * tau))
+    |> rest^*0.8 |> (note $ PlayBuffer nd 80 7 0.4 Standard ((0.5 - 0.3) * tau))
 
 
 nd = 0
