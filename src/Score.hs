@@ -1,10 +1,14 @@
 
+{-# LANGUAGE OverloadedStrings #-}
+
 module Score (
         mainScore
   ) where
 
+import Music.Score
 import Music.Imitator
 import Control.Monad
+import Control.Concurrent (threadDelay)
 
 -------------------------------------------------------------------------------------
 -- The score
@@ -49,12 +53,12 @@ cmdsToSvg = undefined
 
 main :: IO ()
 main = do
-    writeSynthDefs
-    runImitatorNRT mainScore
+    -- writeSynthDefs
+    -- runImitatorNRT mainScore
     
-    -- startServer
-    -- threadDelay 1000000
-    -- runImitatorRT mainScore
+    startServer
+    threadDelay 1000000
+    runImitatorRT mainScore
 
 
 

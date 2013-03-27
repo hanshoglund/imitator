@@ -174,6 +174,7 @@ import Data.Functor.Apply
 import Control.Exception ( try, SomeException )
 import Control.Applicative
 import Control.Concurrent ( threadDelay )
+import System.Directory ( getCurrentDirectory )
 
 import Data.Bits
 import System.Random
@@ -652,10 +653,11 @@ asyncStd msg = do
 --
 runServer :: NRT -> FilePath -> FilePath -> IO ()
 runServer cmds input output = do
-    writeNRT scorePath cmds
+    cd <- getCurrentDirectory
+    writeNRT (cd ++ "score.osc") cmds
     execute "scsynth" [
         "-v",   "1",
-        "-N",   scorePath, 
+        "-N",   (cd ++ "score.osc"), 
                 input, 
                 output, 
                 show kStdOutputSampleRate, 
@@ -667,9 +669,6 @@ runServer cmds input output = do
         "-a",   show kAudioBuses,
         "-c",   show kControlBuses
         ]
-    where
-        scorePath = "/Users/hans/Documents/Kod/hs/music-imitator/score.osc"
-        -- FIXME hardcoded
 
 
 

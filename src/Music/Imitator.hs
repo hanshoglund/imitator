@@ -330,12 +330,10 @@ runImitatorRT track = do
 -- Assumes that synthdefs have been written.
 -- 
 runImitatorNRT :: Track Command -> IO ()
-runImitatorNRT track  = do
-    runServer (imitatorNRT track) (kPath++"/input.wav") (kPath++"/output.wav")
+runImitatorNRT track  = do                                   
+    cd <- getCurrentDirectory
+    runServer (imitatorNRT track) (cd ++ "/input.wav") (cd ++ "/output.wav")
     return ()
-    where
-        kPath = "/Users/hans/Documents/Kod/hs/music-imitator"
-        -- TODO do we really need the input file here?
 
 
 --------------------------------------------------------------------------------
