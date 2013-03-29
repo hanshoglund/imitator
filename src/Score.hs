@@ -99,6 +99,42 @@ sect4 = sect1
 sect5 = sect1
 
 
+
+
+mapParts :: (Ord v, v ~ Voice a, HasVoice a) => (Part (Maybe a) -> Part (Maybe a)) -> Score a -> Score a
+mapParts f = mapVoices (fmap $ mcatMaybes . partToScore . f . scoreToPart)
+
+applyDyn :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Part (Dyn Double) -> Score a -> Score a
+applyDyn ds = mapParts (applyDynPart ds)
+
+-- Dynamic action over a duration
+-- Steady on a level, crescendo from x to y, diminuendo from x to y
+data Dyn a
+    = Level  a
+    | Change a a
+
+applyDynPart :: HasDynamic a => Part (Dyn Double) -> Part (Maybe a) -> Part (Maybe a)
+applyDynPart ds = undefined
+
+-- |
+-- Get all notes that start during a given note.
+--
+samplePart :: Part a -> Part b -> Part (a, Part b)
+samplePart s = undefined
+
+-- |
+-- Get all notes that start during a given note.
+--
+sampleSingle :: Score a -> Score b -> Score (a, Score b)
+sampleSingle s = undefined
+
+
+-- | Filter out events that has its onset in the given time interval (inclusive start).
+--   For example, onset in 1 2 filters events such that (1 <= onset x < 3)
+onsetIn :: Time -> Duration -> Score a -> Score a
+onsetIn a b = Score . mfilter (\(t,d,x) -> a <= t && t < a .+^ b) . getScore
+
+
 -- To each voice add slur from first to last note
 -- slur :: Score Note -> Score Note
 
@@ -285,7 +321,7 @@ zipVoices xs ys = Prelude.foldr1 (</>) $ zipWith (</>) xs ys
 infixr 6 </>
 
 -- |
--- Similar to '<>', but offsets voices in the second part to prevent voice collision.
+-- Similar to '<>', but increases voices in the second part to prevent voice collision.
 --
 (</>) :: (Enum v, Ord v, v ~ Voice a, Alternative s, Foldable s, HasVoice a) => s a -> s a -> s a
 a </> b = a <|> moveParts offset b
@@ -371,3 +407,9 @@ maximum' z = option z getMax . foldMap (Option . Just . Max)
 minimum' :: (Ord a, Foldable t) => a -> t a -> a
 minimum' z = option z getMin . foldMap (Option . Just . Min)
 
+-- | 
+-- Pass through @Just@ occurrences.
+-- Generalizes the 'catMaybes' function.
+-- 
+mcatMaybes :: MonadPlus m => m (Maybe a) -> m a
+mcatMaybes = (>>= maybe mzero return)
