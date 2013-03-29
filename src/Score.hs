@@ -5,9 +5,10 @@ module Score (
         cmdScore
   ) where
 
-import Data.Foldable (Foldable(..))
+import Data.Foldable (Foldable(..), toList)
 import Data.String
 import Data.Ratio
+import qualified Data.List as List
 import Data.Semigroup
 import Control.Monad
 import Control.Concurrent (threadDelay)
@@ -101,32 +102,78 @@ sect5 = sect1
 
 
 
-mapParts :: (Ord v, v ~ Voice a, HasVoice a) => (Part (Maybe a) -> Part (Maybe a)) -> Score a -> Score a
-mapParts f = mapVoices (fmap $ mcatMaybes . partToScore . f . scoreToPart)
-
 applyDyn :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Part (Dyn Double) -> Score a -> Score a
-applyDyn ds = mapParts (applyDynPart ds)
+applyDyn ds = mapVoices (fmap $ applyDynSingle ds)
+
 
 -- Dynamic action over a duration
--- Steady on a level, crescendo from x to y, diminuendo from x to y
+-- Steady on a level, or change from x to y
 data Dyn a
     = Level  a
     | Change a a
 
-applyDynPart :: HasDynamic a => Part (Dyn Double) -> Part (Maybe a) -> Part (Maybe a)
-applyDynPart ds = undefined
+-- end cresc, end dim, level, begin cresc, begin dim
+type Dyn2 a = (Bool, Bool, Maybe a, Bool, Bool)
 
--- |
--- Get all notes that start during a given note.
---
-samplePart :: Part a -> Part b -> Part (a, Part b)
-samplePart s = undefined
+dyn2 :: Ord a => [Dyn a] -> [Dyn2 a]
+dyn2 = snd . List.mapAccumL g (Nothing, False, False) -- level, cresc, dim
+    where
+        g (Nothing, False, False) (Level b)     = ((Just b,  False, False), (False, False, Just b,  False, False))
+        g (Nothing, False, False) (Change b c)  = ((Just b,  b < c, b > c), (False, False, Just b,  b < c, b > c))
+
+        g (Just a , cr, dm) (Level b) 
+            | a == b                            = ((Just b,  False, False), (cr,    dm,    Nothing, False, False))
+            | a /= b                            = ((Just b,  False, False), (cr,    dm,    Just b,  False, False))
+        g (Just a , cr, dm) (Change b c) 
+            | a == b                            = ((Just b,  b < c, b > c), (cr,    dm,    Nothing, b < c, b > c))
+            | a /= b                            = ((Just b,  False, False), (cr,    dm,    Just b,  b < c, b > c))
+
+
+
+transf :: ([a] -> [b]) -> Part a -> Part b
+transf f = Part . uncurry zip . second f . unzip . getPart
+
+dyn :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
+dyn ds = applyDynSingle (fmap fromJust . scoreToPart $ ds)
+    where
+        fromJust (Just x) = x
+
+applyDynSingle :: HasDynamic a => Part (Dyn Double) -> Score a -> Score a
+applyDynSingle ds as = applySingle' ds3 as
+    where
+        -- ds2 :: Part (Dyn2 Double)
+        ds2 = transf dyn2 ds
+        -- ds3 :: Part (Score a -> Score a)
+        ds3 = (flip fmap) ds2 g
+        
+        g (ec,ed,l,bc,bd) = id
+                . (if ec then map1 (setEndCresc     True) else id)
+                . (if ed then map1 (setEndDim       True) else id)
+                . (if bc then map1 (setBeginCresc   True) else id)
+                . (if bd then map1 (setBeginDim     True) else id)
+                . (maybe id (\x -> map1 (setLevel x)) $ l)
+        map1 f = mapSepPart f id id
+
+
+-- applySingle :: Part (a -> b) -> Score a -> Score b
+-- applySingle fs = applySingle' (fmap fmap fs)
+
+-- FIXME work with infinite parts
+applySingle' :: Part (Score a -> Score b) -> Score a -> Score b
+applySingle' fs as = notJoin $ fmap (\(f,s) -> f s) $ sampled
+    where            
+        -- This is not join; we simply concatenate all inner scores in parallel
+        notJoin = mconcat . toList
+        sampled = sampleSingle (partToScore fs) as
 
 -- |
 -- Get all notes that start during a given note.
 --
 sampleSingle :: Score a -> Score b -> Score (a, Score b)
-sampleSingle s = undefined
+sampleSingle as bs = Score . fmap (\(t,d,a) -> (t,d,g a (onsetIn t d bs))) . getScore $ as
+    where
+        g Nothing  z = Nothing
+        g (Just a) z = Just (a,z)
 
 
 -- | Filter out events that has its onset in the given time interval (inclusive start).
@@ -413,3 +460,20 @@ minimum' z = option z getMin . foldMap (Option . Just . Min)
 -- 
 mcatMaybes :: MonadPlus m => m (Maybe a) -> m a
 mcatMaybes = (>>= maybe mzero return)
+
+second f (a,b) = (a,f b)
+
+partToScore' = mcatMaybes . partToScore
+
+-- -- |
+-- -- Get all notes that start during a given note.
+-- --
+-- samplePart :: Part (Maybe a) -> Part (Maybe b) -> Part (Maybe (a, Part (Maybe b)))
+-- samplePart as bs = 
+--     scoreToPart $ fmap (second (scoreToPart)) $ 
+--     sampleSingle (partToScore' as) (partToScore' bs)
+--     where
+-- 
+
+-- mapParts :: (Ord v, v ~ Voice a, HasVoice a) => (Part (Maybe a) -> Part (Maybe a)) -> Score a -> Score a
+-- mapParts f = mapVoices (fmap $ mcatMaybes . partToScore . f . scoreToPart)
