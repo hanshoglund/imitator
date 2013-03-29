@@ -30,7 +30,7 @@ library
         music-score, 
         music-pitch-literal,
         music-dynamics-literal,
-        reverse-apply
+        reverse-apply >= 2.0
 
     hs-source-dirs: src
     exposed-modules:
