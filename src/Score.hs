@@ -5,19 +5,20 @@ module Score (
         cmdScore
   ) where
 
--- import Control.Apply.Reverse
 import Data.Foldable (Foldable(..))
 import Data.String
 import Data.Ratio
+import Data.Semigroup
+import Control.Monad
+import Control.Concurrent (threadDelay)
+import Control.Applicative
+import Control.Apply.Reverse
+import Data.VectorSpace
+import Data.AffineSpace
 import Music.Score
 import Music.Imitator
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
-import Data.Semigroup
-import Control.Monad
-import Control.Concurrent (threadDelay)
-import Data.VectorSpace
-import Data.AffineSpace
 
 
 
@@ -30,7 +31,7 @@ import Data.AffineSpace
 cmdScore :: Score Command
 cmdScore = mempty
 --    |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
-    |> (note $ ReadBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/short2.aiff")
+    |> (note $ ReadBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/low3.aiff")
     |> sp1 |> rest^*3
     |> sp1 |> rest^*3
     |> sp1 |> rest^*5
@@ -76,7 +77,7 @@ short2 =
 
 
 short1 :: Score Note
-short1 = staccato $ dyn ppp $ mempty
+short1 = staccato $ dynamic ppp $ mempty
     <>  rep 30 (legato $ grp 5 c |> grp 4 db |> grp 3 c)
     </> rep 30 (legato $ grp 5 c |> grp 4 c  |> grp 4 c)
     </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 4 db)
@@ -86,7 +87,7 @@ short1 = staccato $ dyn ppp $ mempty
 
 
 sect1 :: Score Note
-sect1 = (^*2) $ dyn _f $ mempty
+sect1 = (^*2) $ dynamic _f $ mempty
     <>  (melody [c,d] |> f^*(3/2) |> e & legato & rep (10) & modifyPitches (+ 12))          ^*(4/3)
     </> (melody [c,d]                  & legato & rep (15) & modifyPitches (+ 5))           ^*1
     </> (melody [c,d] |> f^*(3/2) |> e & legato & rep (20))                                 ^*2
@@ -101,29 +102,54 @@ sect5 = sect1
 -- To each voice add slur from first to last note
 -- slur :: Score Note -> Score Note
 
-acc :: (HasArticulation a, HasVoice a, Eq v, v ~ Voice a) => Score a -> Score a
-acc = mapSep (setAccLevel 1) (setAccLevel 0) (setAccLevel 0)
+accent :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+accent = mapSep (setAccLevel 1) id id
 
-staccato :: (HasArticulation a, HasVoice a, Eq v, v ~ Voice a) => Score a -> Score a
+marcato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+marcato = mapSep (setAccLevel 2) id id
+
+accentLast :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+accentLast = mapSep id id (setAccLevel 1)
+
+marcatoLast :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+marcatoLast = mapSep id id (setAccLevel 2)
+
+
+tenuto :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+tenuto = mapSep (setStaccLevel (-2)) (setStaccLevel (-2)) (setStaccLevel (-2)) 
+
+separated :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+separated = mapSep (setStaccLevel (-1)) (setStaccLevel (-1)) (setStaccLevel (-1)) 
+
+staccato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
 staccato = mapSep (setStaccLevel 1) (setStaccLevel 1) (setStaccLevel 1) 
 
-legato :: (HasArticulation a, HasVoice a, Eq v, v ~ Voice a) => Score a -> Score a
+portato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+portato = staccato . legato 
+
+legato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
 legato = mapSep (setBeginSlur True) id (setEndSlur True) 
 
-portato :: (HasArticulation a, HasVoice a, Eq v, v ~ Voice a) => Score a -> Score a
-portato = mapSep (setBeginSlur True . setStaccLevel 1) (setStaccLevel 1) (setEndSlur True . setStaccLevel 1) 
+spiccato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+spiccato = mapSep (setStaccLevel 2) (setStaccLevel 2) (setStaccLevel 2) 
 
-dyn :: (HasDynamic a, HasVoice a, Eq v, v ~ Voice a) => Double -> Score a -> Score a
-dyn n = mapSep (setLevel n) id id
-
--- trem :: Int -> Score a -> Score a
-trem :: (Functor f, HasTremolo b) => Int -> f b -> f b
-trem n = fmap (setTrem n)
+dynamic :: (HasDynamic a, HasVoice a, Ord v, v ~ Voice a) => Double -> Score a -> Score a
+dynamic n = mapSep (setLevel n) id id 
 
 
--- modifyPitch 
+-- TODO cresc/dim
+-- TODO zipper-based dynamics
+
+-- tremolo :: Int -> Score a -> Score a
+tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
+tremolo n = fmap (setTrem n)
 
 
+-- TODO better transposition etc
+-- TODO interval literals (Music.Pitch.Interval.Literal)
+-- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
+-- TODO split score (note: do recursive split, for Score (Score a) etc)
+-- TODO invert/retrograde etc
 
 
 
@@ -164,14 +190,6 @@ rt = do
 
 
 
-
-
-tau = pi * 2
-
--- type Diagram = ()
--- cmdsToSvg :: Track Command -> Diagram
--- cmdsToSvg = undefined
-
 instance Monoid Command where
     mempty = PlayBuffer 0 0 1 0.5 Standard 0
     x `mappend` y = x
@@ -199,7 +217,9 @@ setCurve' _ x                          = x
 setAzim'  az (PlayBuffer n t d v c _)  = PlayBuffer n t d v c az
 setAzim'  _ x                          = x
 
-type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT Double)))))
+type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT Integer)))))
+
+sc x = (x::Score Note)
 
 open :: Score Note -> IO ()
 open = openXml . (^/4)            
@@ -212,8 +232,10 @@ rep n x = x |> rep (n-1) x
 
 data NotePart = Vl1 | Vl2 | Vla1 | Vla2 | Vc1 | Vc2 | Db1 | Db2
     deriving (Eq, Ord, Enum)
+
 instance IsString NotePart where
     fromString _ = Vl1
+
 instance Show NotePart where
     show Vl1  = "Violin 1"
     show Vl2  = "Violin 2"
@@ -223,7 +245,6 @@ instance Show NotePart where
     show Vc2  = "Violoncello 2"
     show Db1  = "Contrabass 1"
     show Db2  = "Contrabass 2"
-    
 
 vl1, vl2, vla1, vla2, vc1, vc2, db1, db2 :: NotePart
 vl1  = Vl1
@@ -236,10 +257,12 @@ db1  = Db1
 db2  = Db2
 
 
--- Voice catenation
 
-infixr 6 </>
 
+
+
+{-
+-- FIXME
 vzip xs = Prelude.foldr1 (</>) $ fmap (setVoices $ toEnum 0) $ (odds $ voices xs) ++ (evens $ voices xs)
     where                     
         
@@ -252,36 +275,81 @@ vzip xs = Prelude.foldr1 (</>) $ fmap (setVoices $ toEnum 0) $ (odds $ voices xs
 
 zipVoices xs ys = Prelude.foldr1 (</>) $ zipWith (</>) xs ys
 
+-}
+
+
+
+
+-- Voice catenation
+
+infixr 6 </>
+
 -- |
 -- Similar to '<>', but offsets voices in the second part to prevent voice collision.
 --
-(</>) :: (Enum v, Eq v, v ~ Voice a, Functor s, Foldable s, Semigroup (s a), HasVoice a) => s a -> s a -> s a
-a </> b = a <> modifyVoices (successor offset) b
-    where
-        offset = succ $ maximum $ fmap fromEnum $ (getVoices a ++ [toEnum 0])
+(</>) :: (Enum v, Ord v, v ~ Voice a, Alternative s, Foldable s, HasVoice a) => s a -> s a -> s a
+a </> b = a <|> moveParts offset b
+    where               
+        -- max voice in a + 1
+        offset = succ $ maximum' 0 $ fmap fromEnum $ getVoices a
+
 
 -- |
 -- Move down one voice (all parts).
 --
-moveDown :: (Enum v, v ~ Voice a, Integral b, Functor s, HasVoice a) => b -> s a -> s a
-moveDown x = modifyVoices (successor x)
+moveParts :: (Enum v, v ~ Voice a, Integral b, Functor s, HasVoice a) => b -> s a -> s a
+moveParts x = modifyVoices (successor x)
 
 -- |
--- Move top-parrt to the specific voice (other parts follow).
+-- Move top-part to the specific voice (other parts follow).
 --
-moveTo :: (Enum v, v ~ Voice a, Functor s, HasVoice a) => v -> s a -> s a
-moveTo v = moveDown (fromEnum v)
+toPart :: (Enum v, v ~ Voice a, Functor s, HasVoice a) => v -> s a -> s a
+toPart v = moveParts (fromEnum v)
 
--- successor 0 = id
--- successor 1 = succ
--- successor 2 = succ . succ 
--- etc
-successor :: (Enum c, Integral a) => a -> c -> c
-successor n = (!! fromIntegral n) . iterate succ
+successor :: (Integral b, Enum a) => b -> a -> a
+successor n | n <  0 = (!! fromIntegral (abs n)) . iterate pred
+            | n >= 0 = (!! fromIntegral n)       . iterate succ
 
 
-{-
-instance IsPitch Double where
+
+up x = fmap (modifyPitch (+ x))
+down x = fmap (modifyPitch (subtract x))
+
+-- TODO move to Music.Pitch.Interval.Literal
+octave     = 12
+tritone    = 6
+fifth      = 7
+minorThird = 3
+majorThird = 4
+
+-- infixl 1 &
+-- (&) = flip ($)
+
+
+
+
+
+-- | Map over first, middle and last elements of list.
+--   Biased on first, then on first and last for short lists.
+mapSepL :: (a -> b) -> (a -> b) -> (a -> b) -> [a] -> [b]
+mapSepL f g h []      = []
+mapSepL f g h [a]     = [f a]
+mapSepL f g h [a,b]   = [f a, h b]
+mapSepL f g h xs      = [f $ head xs] ++ (map g $ tail $ init xs) ++ [h $ last xs]
+
+mapSep :: (HasVoice a, Ord v, v ~ Voice a) => (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
+mapSep f g h = mapVoices (fmap $ mapSepPart f g h)
+
+mapSepPart :: (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
+mapSepPart f g h = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc . perform
+    where                
+        toSc (t,d,x) = delay (t .-. 0) . stretch d $ note x
+        third f (a,b,c) = (a,b,f c)
+
+
+
+
+instance IsPitch Integer where
     fromPitch (PitchL (pc, sem, oct)) = fromIntegral $ semitones sem + diatonic pc + (oct+1) * 12
         where
             semitones = maybe 0 round
@@ -293,28 +361,13 @@ instance IsPitch Double where
                 4 -> 7
                 5 -> 9
                 6 -> 11
-instance IsDynamics Double where
-    fromDynamics (DynamicsL (Just x, _)) = x
-    fromDynamics (DynamicsL (Nothing, _)) = error "IsDynamics Double: No dynamics"
--}
+-- instance IsDynamics Integer where
+    -- fromDynamics (DynamicsL (Just x, _)) = x
+    -- fromDynamics (DynamicsL (Nothing, _)) = error "IsDynamics Integer: No dynamics"
 
-infixl 1 &
-(&) = flip ($)
+maximum' :: (Ord a, Foldable t) => a -> t a -> a
+maximum' z = option z getMax . foldMap (Option . Just . Max)
 
+minimum' :: (Ord a, Foldable t) => a -> t a -> a
+minimum' z = option z getMin . foldMap (Option . Just . Min)
 
--- | Map over first, middle and last elements of list.
---   Biased on first, then on first and last for short lists.
-mapSepL :: (a -> b) -> (a -> b) -> (a -> b) -> [a] -> [b]
-mapSepL f g h []      = []
-mapSepL f g h [a]     = [f a]
-mapSepL f g h [a,b]   = [f a, h b]
-mapSepL f g h xs      = [f $ head xs] ++ (map g $ tail $ init xs) ++ [h $ last xs]
-
-mapSep :: (HasVoice a, Eq v, v ~ Voice a) => (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
-mapSep f g h = mapVoices (fmap $ mapSepPart f g h)
-
-mapSepPart :: (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
-mapSepPart f g h = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc . perform
-    where                
-        third f (a,b,c) = (a,b,f c)
-        toSc (t,d,x) = delay (t .-. 0) . stretch d $ note x
