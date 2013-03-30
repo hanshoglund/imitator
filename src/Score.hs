@@ -61,6 +61,10 @@ sp2 = setCurve Smooth $ mempty
 
 
 
+
+
+
+
 noteScore :: Score Note
 noteScore = mempty
     |> (sect1 </> modifyPitches (subtract 12) sect1^*2)
@@ -100,6 +104,21 @@ sect4 = sect1
 sect5 = sect1
 
 
+makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
+makeCanon1 dn subj = 
+        (dyn dn $ rep 100 $ legato $ up 7 $ subj ^* (2/3) )
+    </> (dyn dn $ rep 100 $ legato $ up 7 $ subj ^* 1     ) 
+    </> (dyn dn $ rep 100 $ legato $ up 0 $ subj ^* (3/2) ) 
+    </> (dyn dn $ rep 100 $ legato $ up 0 $ subj ^* 2     ) 
+
+canon1 :: Score Note
+canon1 = up 12 $ makeCanon1 dn subj
+    where
+        subj = (e^*2 |> melody [e,f,e,c] |> d^*4)^/1
+        dn   = (rep 10 $ (cresc ppp mf)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
+
+
+
 
 
 applyDyn :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Part (Dyn Double) -> Score a -> Score a
@@ -111,6 +130,18 @@ applyDyn ds = mapVoices (fmap $ applyDynSingle ds)
 data Dyn a
     = Level  a
     | Change a a
+
+instance Fractional a => IsDynamics (Dyn a) where
+    fromDynamics (DynamicsL (Just a, Nothing)) = Level (toFrac a)
+    fromDynamics (DynamicsL (Just a, Just b))  = Change (toFrac a) (toFrac b)
+    fromDynamics x = error $ "fromDynamics: Invalid dynamics literal " {- ++ show x-}
+
+cresc :: IsDynamics a => Double -> Double -> a
+cresc a b = fromDynamics $ DynamicsL ((Just a), (Just b))
+
+dim :: IsDynamics a => Double -> Double -> a
+dim a b = fromDynamics $ DynamicsL ((Just a), (Just b))
+
 
 -- end cresc, end dim, level, begin cresc, begin dim
 type Dyn2 a = (Bool, Bool, Maybe a, Bool, Bool)
@@ -219,9 +250,6 @@ spiccato = mapSep (setStaccLevel 2) (setStaccLevel 2) (setStaccLevel 2)
 dynamic :: (HasDynamic a, HasVoice a, Ord v, v ~ Voice a) => Double -> Score a -> Score a
 dynamic n = mapSep (setLevel n) id id 
 
-
--- TODO cresc/dim
--- TODO zipper-based dynamics
 
 -- tremolo :: Int -> Score a -> Score a
 tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
@@ -477,3 +505,6 @@ partToScore' = mcatMaybes . partToScore
 
 -- mapParts :: (Ord v, v ~ Voice a, HasVoice a) => (Part (Maybe a) -> Part (Maybe a)) -> Score a -> Score a
 -- mapParts f = mapVoices (fmap $ mcatMaybes . partToScore . f . scoreToPart)
+
+toFrac :: (Real a, Fractional b) => a -> b
+toFrac = fromRational . toRational
