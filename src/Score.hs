@@ -77,7 +77,7 @@ noteScore = (short1 |> rest^*4 |> canon1)
     -- |> sect5
 
 short1 :: Score Note
-short1 = staccato $ dynamic ppp $
+short1 = staccato $ dynamic ppp $ text "pizz" $
         rep 30 (legato $ grp 5 c |> grp 4 db |> grp 4 c)
     </> rep 30 (legato $ grp 5 c |> grp 4 c  |> grp 4 c)
     </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 4 db)
@@ -93,7 +93,7 @@ short2 =
     -- </> (rep 1 $ delay 55 $ rep 2 $ modifyPitches (+ 6) $ short1)
 
 
-
+text s = mapSep (setText s) id id
 
 -- sect1 :: Score Note
 -- sect1 = (^*2) $ dynamic _f $ mempty
@@ -116,7 +116,7 @@ makeCanon1 dn subj =
     </> (dyn dn $ rep 100 $ legato $ up 0 $ subj ^* 2     ) 
 
 canon1 :: Score Note
-canon1 = up 12 $ makeCanon1 dn subj
+canon1 = up 12 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (e^*2 |> melody [e,f,e,c] |> d^*4)^/1
         dn   = (rep 10 $ (cresc ppp mf)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
@@ -348,7 +348,7 @@ setCurve' _ x                          = x
 setAzim'  az (PlayBuffer n t d v c _)  = PlayBuffer n t d v c az
 setAzim'  _ x                          = x
 
-type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT Integer)))))
+type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
 
 score x = (x::Score Note)
 
