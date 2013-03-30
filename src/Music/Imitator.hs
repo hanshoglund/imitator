@@ -366,7 +366,7 @@ kSynthDefPath   = kMainPath ++ "/synthdefs"
 -- All playback buffers are multiplied by this value.
 --
 kGlobalBufferGain :: (Num a, Fractional a) => a
-kGlobalBufferGain = 0.7
+kGlobalBufferGain = 0.9
 
 -- |
 -- Channels to use on audio interface (index, numChan)

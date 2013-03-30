@@ -28,45 +28,72 @@ import Music.Pitch.Literal
 import Music.Dynamics.Literal
 
 import Diagrams.Prelude hiding (open, duration, stretch, Time, (|>), Duration, (&), text, e, tau)
-import Diagrams.Backend.SVG (SVG)
+import Diagrams.Backend.SVG (SVG(..), Options(..))
 import Diagrams.Backend.SVG.CmdLine
-
+import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
+import qualified Data.ByteString.Lazy as ByteString
 
 --------------------------------------------------------------------------------
 
 -- FIXME duration must be shorter than env start time
 
 cmdScore :: Score Command
-cmdScore = (delay (duration noteScore) (note StopRecord)) <> mempty
---    |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
-    |> (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
-    |> (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
+cmdScore = mempty
+    <> delay 0          (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
+    <> delay 0          (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
 
+    <> delay 30         echoShort1
+    <> delay (3 *60+20) echoShort2
 
-    |> rest^*30
+    <> delay (10 *60+30) (playOnce (10*60+10)  0 & setCurve Smooth)
+    <> delay (10 *60+40) (playOnce (10*60+20) 10 & setCurve Smooth)
+    <> delay (10 *60+50) (playOnce (10*60+30) 20 & setCurve Smooth)
 
+    <> delay (duration noteScore) (note StopRecord) -- mark end
+
+echoShort1 = mempty
     |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
-    |> rest^*20
+    |> rest^*10
+    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
     |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
-    |> rest^*20
+    |> rest^*10
+    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
     |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
-    |> rest^*20
+    |> rest^*10
+    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
+
+echoShort2 = mempty
+    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
+    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
+    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
+    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
+    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
+    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*10
 
 
 
 
-sp1 = setCurve Smooth $ mempty
-    <> rest^*0.0 |> (playOnce 4 14 & setAzim (0.0 + 0))
-    <> rest^*1.2 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
-    <> rest^*2.4 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
-    <> rest^*3.6 |> (playOnce 4 14 & setAzim (0.0 + 0  ))
-
-sp2 = setCurve Smooth $ mempty
-    <> rest^*0.0 |> (playOnce 50 14 & setAzim (0.5      ))
-    <> rest^*1.2 |> (playOnce 50 14 & setAzim (0.5 + 0.2))
-    <> rest^*2.4 |> (playOnce 50 14 & setAzim (0.5 - 0.2))
-    <> rest^*3.6 |> (playOnce 50 14 & setAzim (0.5 + 0.3))
-    <> rest^*4.8 |> (playOnce 50 14 & setAzim (0.5 - 0.3))
+-- sp1 = setCurve Smooth $ mempty
+--     <> rest^*0.0 |> (playOnce 4 14 & setAzim (0.0 + 0))
+--     <> rest^*1.2 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
+--     <> rest^*2.4 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
+--     <> rest^*3.6 |> (playOnce 4 14 & setAzim (0.0 + 0  ))
+-- 
+-- sp2 = setCurve Smooth $ mempty
+--     <> rest^*0.0 |> (playOnce 50 14 & setAzim (0.5      ))
+--     <> rest^*1.2 |> (playOnce 50 14 & setAzim (0.5 + 0.2))
+--     <> rest^*2.4 |> (playOnce 50 14 & setAzim (0.5 - 0.2))
+--     <> rest^*3.6 |> (playOnce 50 14 & setAzim (0.5 + 0.3))
+--     <> rest^*4.8 |> (playOnce 50 14 & setAzim (0.5 - 0.3))
 
 
 --------------------------------------------------------------------------------
@@ -88,7 +115,7 @@ noteScore =
     |> rest^*8 
 
     |> rest^*(4*(60-30))
-    |> (canon1 </> down octave canon1) 
+    |> (canon1) 
     |> rest^*7 
 
     |> rest^*(4*(90-40))
@@ -99,7 +126,7 @@ noteScore =
 
 
 short1 :: Score Note
-short1 = staccato $ down 5 $ dynamic ppp $ text "pizz" $
+short1 = staccato $ down 5 $ dynamic ppp $ text "col legno battuto"  $
         (delay 0 $ rep 20 $ legato $ grp 4 c |> grp 4 db |> grp 5 c  |> rest^*2)
     </> (delay 1 $ rep 20 $ legato $ grp 4 c |> grp 4 c  |> grp 4 c  |> rest^*2)
     </> (delay 3 $ rep 20 $ legato $ grp 3 c |> grp 5 c  |> grp 5 db |> rest^*2)
@@ -118,14 +145,14 @@ makeCanon1 dn subj =
         (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* (2/3) )
     </> (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* 1     ) 
     </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* (3/2) ) 
-    </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* 2     ) 
+    -- </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* 2     ) 
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = (^*2) $ dynamic _p $ mempty
     <>  (subj1                         & legato & rep 5) ^*(4/3)
     </> (subj2                         & legato & rep 5) ^*1
     </> (subj1                         & legato & rep 3) ^*2
-    </> (subj2                         & legato & rep 2) ^*3
+    -- </> (subj2                         & legato & rep 2) ^*3
 
 canon0 :: Score Note
 canon0 = text "arco" $ makeCanon0 dn subj1 subj2
@@ -219,6 +246,15 @@ vc2  = Vc2
 db1  = Db1
 db2  = Db2
 
+-- 1 or 2
+getPartGroup :: NotePart -> Int 
+getPartGroup p = case p of
+    Vl1    -> 1
+    Vla1   -> 1
+    Vc1    -> 1
+    Db1    -> 1
+    _      -> 2
+
 type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
 
 score x = (x::Score Note)
@@ -235,19 +271,27 @@ main :: IO ()
 main = dr
 
 
-drawScores :: (Integral p, p ~ Pitch b, HasPitch b) => Score b -> Score c -> Diagram SVG R2
-drawScores notes cmds = notesD <> cmdsD <> middleLines <> crossLines
-    where
-        notesD     = mconcat $ fmap drawNote $ perform notes
-        cmdsD      = mconcat $ fmap drawCmd $ perform cmds
+drawScores :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b) => Score b -> Score c -> Diagram SVG R2
+drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
+    where                                
+        notes1 = mfilter (\x -> getPartGroup (getVoice x) == 1) notes
+        notes2 = mfilter (\x -> getPartGroup (getVoice x) == 2) notes
+        
+        notes1D     = mconcat $ fmap (drawNote 1) $ perform notes1
+        notes2D     = mconcat $ fmap (drawNote 2) $ perform notes2
+        cmdsD       = mconcat $ fmap drawCmd $ perform cmds
         middleLines = translateX ((/ 2) $ totalDur) (hrule $ totalDur)
-        crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 60)) $ [0..5]
+        crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 100)) $ [0..5]
 
-        drawNote (t,d,x) = translateY (getP x) $ translateX (getT t) $ scaleX (getD d) $ noteShape
+        drawNote n (t,d,x) = translateY (getP x + off n) $ translateX (getT t) $ scaleX (getD d) $ noteShape n
+        off 1 = 50
+        off 2 = (-50)
         drawCmd (t,d,x) = translateY 0 $ translateX (getT t) $ cmdShape
 
-        noteShape = lcA transparent $ fcA (blue `withOpacity` 0.3) $ circle 1
-        cmdShape = lcA (red `withOpacity` 0.3) $ vrule (90)
+        
+        noteShape 1 = lcA transparent $ fcA (blue  `withOpacity` 0.3) $ circle 1
+        noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ circle 1
+        cmdShape = lcA (red `withOpacity` 0.3) $ vrule (200)
 
         
         totalDur = getD $ duration notes
@@ -256,7 +300,11 @@ drawScores notes cmds = notesD <> cmdsD <> middleLines <> crossLines
         getP = (subtract 60) . fromIntegral . getPitch
 
 
-dr = defaultMain (drawScores noteScore cmdScore)
+dr = do                                             
+    let sc  = drawScores noteScore cmdScore
+    let svg = renderDia SVG (SVGOptions (Dims 1800 800)) sc
+    let bs  = renderSvg svg
+    ByteString.writeFile "score.svg" bs
 
 nrt = do
     writeSynthDefs
