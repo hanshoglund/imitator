@@ -35,13 +35,14 @@ import Music.Dynamics.Literal
 cmdScore :: Score Command
 cmdScore = mempty
 --    |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
-    |> (note $ ReadBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/canon1.aiff")
-    |> sp1 |> rest^*3
-    |> sp1 |> rest^*3
-    |> sp1 |> rest^*5
-    |> sp2 |> rest^*3
-    |> sp2 |> rest^*3
-    |> sp2 |> rest^*5
+    |> (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/canon15d.aiff")
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+    -- |> sp1 |> rest^*3
+    -- |> sp1 |> rest^*3
+    -- |> sp1 |> rest^*5
+    -- |> sp2 |> rest^*3
+    -- |> sp2 |> rest^*3
+    -- |> sp2 |> rest^*5
     -- |> sp1 |> rest^*3
     -- |> sp1 |> rest^*3
     -- |> sp1 |> rest^*5
@@ -50,17 +51,17 @@ cmdScore = mempty
     -- |> sp2 |> rest^*5
 
 sp1 = setCurve Smooth $ mempty
-    <> rest^*0.0 |> (playFromDuring 4 14 & setAzim (0.0 + 0))
-    <> rest^*1.2 |> (playFromDuring 4 14 & setAzim (0.0 - 0.2))
-    <> rest^*2.4 |> (playFromDuring 4 14 & setAzim (0.0 - 0.2))
-    <> rest^*3.6 |> (playFromDuring 4 14 & setAzim (0.0 + 0  ))
+    <> rest^*0.0 |> (playOnce 4 14 & setAzim (0.0 + 0))
+    <> rest^*1.2 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
+    <> rest^*2.4 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
+    <> rest^*3.6 |> (playOnce 4 14 & setAzim (0.0 + 0  ))
 
 sp2 = setCurve Smooth $ mempty
-    <> rest^*0.0 |> (playFromDuring 50 14 & setAzim (0.5      ))
-    <> rest^*1.2 |> (playFromDuring 50 14 & setAzim (0.5 + 0.2))
-    <> rest^*2.4 |> (playFromDuring 50 14 & setAzim (0.5 - 0.2))
-    <> rest^*3.6 |> (playFromDuring 50 14 & setAzim (0.5 + 0.3))
-    <> rest^*4.8 |> (playFromDuring 50 14 & setAzim (0.5 - 0.3))
+    <> rest^*0.0 |> (playOnce 50 14 & setAzim (0.5      ))
+    <> rest^*1.2 |> (playOnce 50 14 & setAzim (0.5 + 0.2))
+    <> rest^*2.4 |> (playOnce 50 14 & setAzim (0.5 - 0.2))
+    <> rest^*3.6 |> (playOnce 50 14 & setAzim (0.5 + 0.3))
+    <> rest^*4.8 |> (playOnce 50 14 & setAzim (0.5 - 0.3))
 
 
 --------------------------------------------------------------------------------
@@ -138,6 +139,86 @@ canon15 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
 
 
 --------------------------------------------------------------------------------
+-- Commands
+--------------------------------------------------------------------------------
+
+instance Monoid Command where
+    mempty = PlayBuffer 0 0 1 0.5 Standard 0
+    x `mappend` y = x
+
+readBuffer = note . ReadBuffer
+playOnce t d = setTime t $ setDur d $ note mempty
+
+setTime  :: Time -> Score Command -> Score Command
+setTime  = \x -> fmap (setTime' x)
+setDur   :: Duration -> Score Command -> Score Command
+setDur   = \x -> fmap (setDur' x)
+setVol   :: Volume -> Score Command -> Score Command
+setVol   = \x -> fmap (setVol' x)
+setCurve :: Curve -> Score Command -> Score Command
+setCurve = \x -> fmap (setCurve' x)
+setAzim  :: Turns -> Score Command -> Score Command
+setAzim  = \x -> fmap (setAzim' x)
+setTime'  t (PlayBuffer n _ d v c az)  = PlayBuffer n t d v c az
+setTime'  _ x                          = x
+setDur'   d (PlayBuffer n t _ v c az)  = PlayBuffer n t d v c az
+setDur'   _ x                          = x
+setVol'   v (PlayBuffer n t d _ c az)  = PlayBuffer n t d v c az
+setVol'   _ x                          = x
+setCurve' c (PlayBuffer n t d v _ az)  = PlayBuffer n t d v c az
+setCurve' _ x                          = x
+setAzim'  az (PlayBuffer n t d v c _)  = PlayBuffer n t d v c az
+setAzim'  _ x                          = x
+
+--------------------------------------------------------------------------------
+-- Notes
+--------------------------------------------------------------------------------
+
+data NotePart 
+    = Vl1 
+    | Vla1 
+    | Vc1 
+    | Db1 
+    | Vl2 
+    | Vla2 
+    | Vc2 
+    | Db2
+    deriving (Eq, Ord, Enum)
+
+instance IsString NotePart where
+    fromString _ = Vl1
+
+instance Show NotePart where
+    show Vl1  = "Violin 1"
+    show Vl2  = "Violin 2"
+    show Vla1 = "Viola 1"
+    show Vla2 = "Viola 2"
+    show Vc1  = "Violoncello 1"
+    show Vc2  = "Violoncello 2"
+    show Db1  = "Double Bass 1"
+    show Db2  = "Double Bass 2"
+
+vl1, vl2, vla1, vla2, vc1, vc2, db1, db2 :: NotePart
+vl1  = Vl1
+vl2  = Vl2
+vla1 = Vla1
+vla2 = Vla2
+vc1  = Vc1
+vc2  = Vc2
+db1  = Db1
+db2  = Db2
+
+type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
+
+score x = (x::Score Note)
+
+open :: Score Note -> IO ()
+open = openXml . (^/4)            
+
+play :: Score Note -> IO ()
+play = playMidiIO            
+
+--------------------------------------------------------------------------------
 
 main :: IO ()
 main = rt
@@ -150,6 +231,28 @@ rt = do
     startServer
     threadDelay 1000000
     runImitatorRT (scoreToTrack cmdScore)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -328,110 +431,10 @@ rep n x = x |> rep (n-1) x
 -- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
 -- TODO split score (note: do recursive split, for Score (Score a) etc)
 -- TODO invert/retrograde etc
-
-
-
-
-
-
-
-instance Monoid Command where
-    mempty = PlayBuffer 0 0 1 0.5 Standard 0
-    x `mappend` y = x
-
-playFromDuring t d = setTime t $ setDur d $ note mempty
-
-setTime  :: Time -> Score Command -> Score Command
-setTime  = \x -> fmap (setTime' x)
-setDur   :: Duration -> Score Command -> Score Command
-setDur   = \x -> fmap (setDur' x)
-setVol   :: Volume -> Score Command -> Score Command
-setVol   = \x -> fmap (setVol' x)
-setCurve :: Curve -> Score Command -> Score Command
-setCurve = \x -> fmap (setCurve' x)
-setAzim  :: Turns -> Score Command -> Score Command
-setAzim  = \x -> fmap (setAzim' x)
-setTime'  t (PlayBuffer n _ d v c az)  = PlayBuffer n t d v c az
-setTime'  _ x                          = x
-setDur'   d (PlayBuffer n t _ v c az)  = PlayBuffer n t d v c az
-setDur'   _ x                          = x
-setVol'   v (PlayBuffer n t d _ c az)  = PlayBuffer n t d v c az
-setVol'   _ x                          = x
-setCurve' c (PlayBuffer n t d v _ az)  = PlayBuffer n t d v c az
-setCurve' _ x                          = x
-setAzim'  az (PlayBuffer n t d v c _)  = PlayBuffer n t d v c az
-setAzim'  _ x                          = x
-
-type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
-
-score x = (x::Score Note)
-
-open :: Score Note -> IO ()
-open = openXml . (^/4)            
-
-play :: Score Note -> IO ()
-play = playMidiIO            
-
-
-data NotePart 
-    = Vl1 
-    | Vla1 
-    | Vc1 
-    | Db1 
-    | Vl2 
-    | Vla2 
-    | Vc2 
-    | Db2
-    deriving (Eq, Ord, Enum)
-
-instance IsString NotePart where
-    fromString _ = Vl1
-
-instance Show NotePart where
-    show Vl1  = "Violin 1"
-    show Vl2  = "Violin 2"
-    show Vla1 = "Viola 1"
-    show Vla2 = "Viola 2"
-    show Vc1  = "Violoncello 1"
-    show Vc2  = "Violoncello 2"
-    show Db1  = "Double Bass 1"
-    show Db2  = "Double Bass 2"
-
-vl1, vl2, vla1, vla2, vc1, vc2, db1, db2 :: NotePart
-vl1  = Vl1
-vl2  = Vl2
-vla1 = Vla1
-vla2 = Vla2
-vc1  = Vc1
-vc2  = Vc2
-db1  = Db1
-db2  = Db2
-
-
-
-
-
-
-{-
--- FIXME
-vzip xs = Prelude.foldr1 (</>) $ fmap (setVoices $ toEnum 0) $ (odds $ voices xs) ++ (evens $ voices xs)
-    where                     
-        
-        odds []  = []
-        odds [x] = [x]
-        odds (a:_:as) = a:(odds as)
-        evens []  = []
-        evens [_] = []
-        evens (_:a:as) = a:(evens as)
-
-zipVoices xs ys = Prelude.foldr1 (</>) $ zipWith (</>) xs ys
-
--}
-
-
-
-
--- Voice catenation
+                                                   
+--------------------------------------------------------------------------------
+-- Voice composition
+--------------------------------------------------------------------------------
 
 infixr 6 </>
 
@@ -457,11 +460,14 @@ moveParts x = modifyVoices (successor x)
 toPart :: (Enum v, v ~ Voice a, Functor s, HasVoice a) => v -> s a -> s a
 toPart v = moveParts (fromEnum v)
 
+
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+
 successor :: (Integral b, Enum a) => b -> a -> a
 successor n | n <  0 = (!! fromIntegral (abs n)) . iterate pred
             | n >= 0 = (!! fromIntegral n)       . iterate succ
-
-
 
 -- | 
 -- Map over first, middle and last elements of list.
@@ -488,19 +494,6 @@ mapSepPart f g h sc = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc .
 
 padAfter :: Duration -> Score a -> Score a
 padAfter d a = a |> (rest^*d)
-
-instance IsPitch Integer where
-    fromPitch (PitchL (pc, sem, oct)) = fromIntegral $ semitones sem + diatonic pc + (oct+1) * 12
-        where
-            semitones = maybe 0 round
-            diatonic pc = case pc of
-                0 -> 0
-                1 -> 2
-                2 -> 4
-                3 -> 5
-                4 -> 7
-                5 -> 9
-                6 -> 11
 
 maximum' :: (Ord a, Foldable t) => a -> t a -> a
 maximum' z = option z getMax . foldMap (Option . Just . Max)
