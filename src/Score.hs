@@ -310,7 +310,7 @@ majorThird = 4
 --------------------------------------------------------------------------------
 
 rep 0 x = mempty
-rep 1 x = x
+-- rep 1 x = x
 rep n x = x |> rep (n-1) x
 
 
@@ -455,14 +455,20 @@ mapSepL f g h [a,b]   = [f a, h b]
 mapSepL f g h xs      = [f $ head xs] ++ (map g $ tail $ init xs) ++ [h $ last xs]
 
 mapSep :: (HasVoice a, Ord v, v ~ Voice a) => (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
-mapSep f g h = mapVoices (fmap $ mapSepPart f g h)
+mapSep f g h sc = fixDur . mapVoices (fmap $ mapSepPart f g h) $ sc
+    where
+        fixDur a = padAfter (duration sc - duration a) a
+
 
 mapSepPart :: (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
-mapSepPart f g h = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc . perform
-    where                
+mapSepPart f g h sc = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc . perform $ sc
+    where             
+        fixDur a = padAfter (duration sc - duration a) a
         toSc (t,d,x) = delay (t .-. 0) . stretch d $ note x
         third f (a,b,c) = (a,b,f c)
 
+padAfter :: Duration -> Score a -> Score a
+padAfter d a = a |> (rest^*d)
 
 instance IsPitch Integer where
     fromPitch (PitchL (pc, sem, oct)) = fromIntegral $ semitones sem + diatonic pc + (oct+1) * 12
