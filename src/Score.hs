@@ -69,7 +69,13 @@ sp2 = setCurve Smooth $ mempty
 -- TODO harmonics (nat + art)
 
 noteScore :: Score Note
-noteScore = (short1 </> delay 4 short1) |> rest^*6 |> (canon1 </> down octave canon1) |> rest^*7 |> (canon15 </> down octave canon15)
+noteScore = 
+       (short1 </> delay 4 short1) 
+    |> rest^*6 
+    |> (canon1 </> down octave canon1) 
+    |> rest^*7 
+    |> (canon15 </> down octave canon15)
+
     -- |> short2
     -- |> sect2
     -- |> sect3
