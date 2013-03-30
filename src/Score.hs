@@ -37,31 +37,22 @@ import Diagrams.Backend.SVG.CmdLine
 -- FIXME duration must be shorter than env start time
 
 cmdScore :: Score Command
-cmdScore = mempty
+cmdScore = (delay (duration noteScore) (note StopRecord)) <> mempty
 --    |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
-    |> (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/canon15d.aiff")
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
+    |> (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
+    |> (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
 
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
 
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
+    |> rest^*30
 
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
+    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*20
+    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*20
+    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> rest^*20
 
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
 
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
-
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
-
-    |> rest^*100
-    |> (playOnce 4 14 & setAzim (0.0 + 0))
 
 
 sp1 = setCurve Smooth $ mempty
@@ -96,14 +87,14 @@ noteScore =
     |> canon0
     |> rest^*8 
 
-    |> rest^*(4*60)
+    |> rest^*(4*(60-30))
     |> (canon1 </> down octave canon1) 
     |> rest^*7 
 
-    |> rest^*(4*90)
+    |> rest^*(4*(90-40))
     |> (canon15 </> down octave canon15)
-    |> rest^*(4*90) 
-    
+
+    |> rest^*(4*(90+30+40))     
     |> c' -- mark ending!
 
 
