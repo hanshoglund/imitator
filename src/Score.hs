@@ -101,17 +101,7 @@ short2 =
     -- </> (rep 1 $ delay 55 $ rep 2 $ modifyPitches (+ 6) $ short1)
 
 
--- sect1 :: Score Note
--- sect1 = (^*2) $ dynamic _f $ mempty
---     <>  (melody [c,d] |> f^*(3/2) |> e & legato & rep (10) & modifyPitches (+ 12))          ^*(4/3)
---     </> (melody [c,d]                  & legato & rep (15) & modifyPitches (+ 5))           ^*1
---     </> (melody [c,d] |> f^*(3/2) |> e & legato & rep (20))                                 ^*2
---     </> (melody [c,d]                  & legato & rep (10) & modifyPitches (subtract 12))   ^*3
--- 
--- sect2 = sect1
--- sect3 = sect1
--- sect4 = sect1
--- sect5 = sect1
+
 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
@@ -121,14 +111,28 @@ makeCanon1 dn subj =
     </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* (3/2) ) 
     </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* 2     ) 
 
+makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
+makeCanon0 dn subj1 subj2 = (^*2) $ dynamic _p $ mempty
+    <>  (subj1                         & legato & rep 4) ^*(4/3)
+    </> (subj2                         & legato & rep 4) ^*1
+    </> (subj1                         & legato & rep 4) ^*2
+    </> (subj2                         & legato & rep 4) ^*3
+
+canon0 :: Score Note
+canon0 = makeCanon0 dn subj1 subj2
+    where
+        subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
+        subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
+        dn    = mempty
+
 canon1 :: Score Note
-canon1 = up 12 $ text "arco" $ makeCanon1 dn subj
+canon1 = up 12 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (e^*2 |> melody [e,f,e,c] |> d^*4)^/1
         dn   = (rep 10 $ (cresc ppp mp)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
 
 canon15 :: Score Note
-canon15 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
+canon15 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> a^*4)^/1
         dn   = (rep 10 $ (cresc _p _f)^*5 |> _f |> (dim _f _p)^*5 |> ppp )
