@@ -28,6 +28,8 @@ library
         diagrams,
         diagrams-lib,
         diagrams-svg,
+        bytestring,
+        blaze-svg,
         semigroups,
         semigroupoids,
         vector-space,

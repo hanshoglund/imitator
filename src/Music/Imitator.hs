@@ -187,7 +187,7 @@ playG = output sfx $ envelope $ spatialization $ getChannel 0 $ bufferOut
 -- Read from output B-format bus, write to output buffers
 --
 decodeG :: UGen
-decodeG = output cx $ decode cn (input sfn sfx)
+decodeG = output cx $ (* kMaster) $ decode cn (input sfn sfx)
     where          
         (sfx, sfn) = kSoundFieldBus
         (cx,  cn)  = kMainOutputBus
@@ -366,7 +366,9 @@ kSynthDefPath   = kMainPath ++ "/synthdefs"
 -- All playback buffers are multiplied by this value.
 --
 kGlobalBufferGain :: (Num a, Fractional a) => a
-kGlobalBufferGain = 0.9
+kGlobalBufferGain = 0.8
+
+kMaster = 1.0
 
 -- |
 -- Channels to use on audio interface (index, numChan)

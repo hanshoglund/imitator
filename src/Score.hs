@@ -104,11 +104,11 @@ echoShort2 = mempty
 noteScore :: Score Note
 noteScore = 
 
-       (short1 </> delay 4 short1) 
+       (short1 </> delay (4*1) short1) 
     |> rest^*6 
     |> canon0
     |> rest^*8 
-    |> (short1 </> delay 4 short1) 
+    |> (short1 </> delay (4*3) short1) 
 
     |> rest^*6 
     |> canon0
@@ -119,7 +119,7 @@ noteScore =
     |> rest^*7 
 
     |> rest^*(4*(90-40))
-    |> (canon15 </> down octave canon15)
+    |> (canon1_5 <> (delay (4*3) $ moveToPart vl2 $ down octave $ canon1_5))
 
     |> rest^*(4*(90+30+40))     
     |> c' -- mark ending!
@@ -138,15 +138,6 @@ grp n p = rep n p^/n
 
 
 
-
-
-makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
-makeCanon1 dn subj = 
-        (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* 1     ) 
-    </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* (3/2) ) 
-    -- </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* 2     ) 
-
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = (^*2) $ dynamic _p $ mempty
     <>  (subj1                         & legato & rep 5) ^*(4/3)
@@ -161,14 +152,23 @@ canon0 = text "arco" $ makeCanon0 dn subj1 subj2
         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
         dn    = mempty
 
+
+
+makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
+makeCanon1 dn subj = 
+        (dyn dn $ rep 100 $ legato $ up octave  $ subj ^* (2/3) )
+    </> (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* 1     ) 
+    </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* (3/2) ) 
+    -- </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* 2     ) 
+
 canon1 :: Score Note
 canon1 = up 12 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (e^*2 |> melody [e,f,e,c] |> d^*4)^/1
         dn   = (rep 10 $ (cresc ppp mp)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
 
-canon15 :: Score Note
-canon15 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
+canon1_5 :: Score Note
+canon1_5 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> a^*4)^/1
         dn   = (rep 10 $ (cresc _p _f)^*5 |> _f |> (dim _f _p)^*5 |> ppp )
@@ -314,18 +314,6 @@ rt = do
     startServer
     threadDelay 1000000
     runImitatorRT (scoreToTrack cmdScore)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -542,8 +530,8 @@ moveParts x = modifyVoices (successor x)
 -- |
 -- Move top-part to the specific voice (other parts follow).
 --
-toPart :: (Enum v, v ~ Voice a, Functor s, HasVoice a) => v -> s a -> s a
-toPart v = moveParts (fromEnum v)
+moveToPart :: (Enum v, v ~ Voice a, Functor s, HasVoice a) => v -> s a -> s a
+moveToPart v = moveParts (fromEnum v)
 
 
 --------------------------------------------------------------------------------
