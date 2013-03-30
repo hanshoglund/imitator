@@ -73,8 +73,14 @@ noteScore :: Score Note
 noteScore = 
        (short1 </> delay 4 short1) 
     |> rest^*6 
+    |> canon0
+    |> rest^*8 
+    |> (short1 </> delay 4 short1) 
+    |> rest^*6 
+    |> rest^*(4*100)
     |> (canon1 </> down octave canon1) 
     |> rest^*7 
+    |> rest^*(4*100)
     |> (canon15 </> down octave canon15)
 
     -- |> short2
@@ -84,7 +90,7 @@ noteScore =
     -- |> sect5
 
 short1 :: Score Note
-short1 = staccato $ dynamic ppp $ text "pizz" $
+short1 = staccato $ down 5 $ dynamic ppp $ text "pizz" $
         (delay 0 $ rep 20 $ legato $ grp 4 c |> grp 4 db |> grp 5 c  |> rest^*2)
     </> (delay 1 $ rep 20 $ legato $ grp 4 c |> grp 4 c  |> grp 4 c  |> rest^*2)
     </> (delay 3 $ rep 20 $ legato $ grp 3 c |> grp 5 c  |> grp 5 db |> rest^*2)
@@ -93,12 +99,6 @@ short1 = staccato $ dynamic ppp $ text "pizz" $
 
 grp n p = rep n p^/n
 
-short2 :: Score Note
-short2 = 
-    short1
-    </> 
-    (rep 2 $ delay 30 $ rep 2 $ modifyPitches (+ 3) $ short1)
-    -- </> (rep 1 $ delay 55 $ rep 2 $ modifyPitches (+ 6) $ short1)
 
 
 
@@ -113,13 +113,13 @@ makeCanon1 dn subj =
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = (^*2) $ dynamic _p $ mempty
-    <>  (subj1                         & legato & rep 4) ^*(4/3)
-    </> (subj2                         & legato & rep 4) ^*1
-    </> (subj1                         & legato & rep 4) ^*2
-    </> (subj2                         & legato & rep 4) ^*3
+    <>  (subj1                         & legato & rep 5) ^*(4/3)
+    </> (subj2                         & legato & rep 5) ^*1
+    </> (subj1                         & legato & rep 3) ^*2
+    </> (subj2                         & legato & rep 2) ^*3
 
 canon0 :: Score Note
-canon0 = makeCanon0 dn subj1 subj2
+canon0 = text "arco" $ makeCanon0 dn subj1 subj2
     where
         subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
