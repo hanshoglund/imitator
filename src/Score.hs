@@ -27,6 +27,10 @@ import Music.Imitator
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
 
+import Diagrams.Prelude hiding (open, duration, stretch, Time, (|>), Duration, (&), text, e, tau)
+import Diagrams.Backend.SVG (SVG)
+import Diagrams.Backend.SVG.CmdLine
+
 
 --------------------------------------------------------------------------------
 
@@ -223,7 +227,26 @@ play = playMidiIO
 --------------------------------------------------------------------------------
 
 main :: IO ()
-main = rt
+main = dr
+
+
+drawScores :: (Integral p, p ~ Pitch b, HasPitch b) => Score b -> Diagram SVG R2
+drawScores notes = pitches <> middleLines <> crossLines
+    where
+        pitches     = mconcat $ fmap drawPitch $ perform notes
+        middleLines = translateX ((/ 2) $ totalDur) (hrule $ totalDur)
+        crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 60)) $ [0..5]
+
+        drawPitch (t,d,x) = translateY (getP x) $ translateX (getT t) $ scaleX (getD d) $ noteShape
+        noteShape = lcA transparent $ fcA (black `withOpacity` 0.3) $ circle 1
+        
+        totalDur = getD $ duration notes
+        getT = fromRational . toRational
+        getD = fromRational . toRational
+        getP = (subtract 60) . fromIntegral . getPitch
+
+
+dr = defaultMain (drawScores noteScore)
 
 nrt = do
     writeSynthDefs
