@@ -69,8 +69,7 @@ sp2 = setCurve Smooth $ mempty
 -- TODO harmonics (nat + art)
 
 noteScore :: Score Note
-noteScore = (short1 |> rest^*4 |> canon1)
-        </> (delay 4 $ down 12 $ short1 |> rest^*4 |> canon1)
+noteScore = (short1 </> delay 4 short1) |> rest^*6 |> (canon1 </> down octave canon1) |> rest^*7 |> (canon15 </> down octave canon15)
     -- |> short2
     -- |> sect2
     -- |> sect3
@@ -112,16 +111,22 @@ text s = mapSep (setText s) id id
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
-        (dyn dn $ rep 100 $ legato $ up 7 $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up 7 $ subj ^* 1     ) 
-    </> (dyn dn $ rep 100 $ legato $ up 0 $ subj ^* (3/2) ) 
-    </> (dyn dn $ rep 100 $ legato $ up 0 $ subj ^* 2     ) 
+        (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* (2/3) )
+    </> (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* 1     ) 
+    </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* (3/2) ) 
+    </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* 2     ) 
 
 canon1 :: Score Note
 canon1 = up 12 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (e^*2 |> melody [e,f,e,c] |> d^*4)^/1
-        dn   = (rep 10 $ (cresc ppp mf)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
+        dn   = (rep 10 $ (cresc ppp mp)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
+
+canon15 :: Score Note
+canon15 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
+    where
+        subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> a^*4)^/1
+        dn   = (rep 10 $ (cresc _p _f)^*5 |> _f |> (dim _f _p)^*5 |> ppp )
 
 
 
@@ -298,6 +303,7 @@ up x = fmap (modifyPitch (+ x))
 down x = fmap (modifyPitch (subtract x))
 
 -- TODO move to Music.Pitch.Interval.Literal
+unison     = 0
 octave     = 12
 tritone    = 6
 fifth      = 7
