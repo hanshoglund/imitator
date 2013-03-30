@@ -1,5 +1,10 @@
 
-{-# LANGUAGE OverloadedStrings, TypeFamilies, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE 
+    TypeFamilies, 
+    DeriveFunctor, 
+    DeriveFoldable, 
+    GeneralizedNewtypeDeriving,
+    OverloadedStrings #-}
 
 module Score (
         cmdScore
@@ -23,17 +28,14 @@ import Music.Pitch.Literal
 import Music.Dynamics.Literal
 
 
-
-
-
-
+--------------------------------------------------------------------------------
 
 -- FIXME duration must be shorter than env start time
 
 cmdScore :: Score Command
 cmdScore = mempty
 --    |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
-    |> (note $ ReadBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/low3.aiff")
+    |> (note $ ReadBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/canon1.aiff")
     |> sp1 |> rest^*3
     |> sp1 |> rest^*3
     |> sp1 |> rest^*5
@@ -61,18 +63,27 @@ sp2 = setCurve Smooth $ mempty
     <> rest^*4.8 |> (playFromDuring 50 14 & setAzim (0.5 - 0.3))
 
 
+--------------------------------------------------------------------------------
 
-
-
-
+-- TODO reorder parts?
 
 noteScore :: Score Note
-noteScore = mempty
-    |> (sect1 </> modifyPitches (subtract 12) sect1^*2)
+noteScore = (short1 |> rest^*4 |> canon1)
+        </> (delay 4 $ down 12 $ short1 |> rest^*4 |> canon1)
+    -- |> short2
     -- |> sect2
     -- |> sect3
     -- |> sect4
     -- |> sect5
+
+short1 :: Score Note
+short1 = staccato $ dynamic ppp $
+        rep 30 (legato $ grp 5 c |> grp 4 db |> grp 4 c)
+    </> rep 30 (legato $ grp 5 c |> grp 4 c  |> grp 4 c)
+    </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 4 db)
+    </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 5 c |> grp 4 b_)
+    where
+        grp n p = rep n p^/n
 
 short2 :: Score Note
 short2 = 
@@ -82,27 +93,19 @@ short2 =
     -- </> (rep 1 $ delay 55 $ rep 2 $ modifyPitches (+ 6) $ short1)
 
 
-short1 :: Score Note
-short1 = staccato $ dynamic ppp $ mempty
-    <>  rep 30 (legato $ grp 5 c |> grp 4 db |> grp 3 c)
-    </> rep 30 (legato $ grp 5 c |> grp 4 c  |> grp 4 c)
-    </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 4 db)
-    </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 5 c |> grp 4 b_)
-    where
-        grp n p = rep n p^/n
 
 
-sect1 :: Score Note
-sect1 = (^*2) $ dynamic _f $ mempty
-    <>  (melody [c,d] |> f^*(3/2) |> e & legato & rep (10) & modifyPitches (+ 12))          ^*(4/3)
-    </> (melody [c,d]                  & legato & rep (15) & modifyPitches (+ 5))           ^*1
-    </> (melody [c,d] |> f^*(3/2) |> e & legato & rep (20))                                 ^*2
-    </> (melody [c,d]                  & legato & rep (10) & modifyPitches (subtract 12))   ^*3
-
-sect2 = sect1
-sect3 = sect1
-sect4 = sect1
-sect5 = sect1
+-- sect1 :: Score Note
+-- sect1 = (^*2) $ dynamic _f $ mempty
+--     <>  (melody [c,d] |> f^*(3/2) |> e & legato & rep (10) & modifyPitches (+ 12))          ^*(4/3)
+--     </> (melody [c,d]                  & legato & rep (15) & modifyPitches (+ 5))           ^*1
+--     </> (melody [c,d] |> f^*(3/2) |> e & legato & rep (20))                                 ^*2
+--     </> (melody [c,d]                  & legato & rep (10) & modifyPitches (subtract 12))   ^*3
+-- 
+-- sect2 = sect1
+-- sect3 = sect1
+-- sect4 = sect1
+-- sect5 = sect1
 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
@@ -120,6 +123,20 @@ canon1 = up 12 $ makeCanon1 dn subj
 
 
 
+
+--------------------------------------------------------------------------------
+
+main :: IO ()
+main = rt
+
+nrt = do
+    writeSynthDefs
+    runImitatorNRT (scoreToTrack cmdScore)
+
+rt = do 
+    startServer
+    threadDelay 1000000
+    runImitatorRT (scoreToTrack cmdScore)
 
 
 
@@ -261,7 +278,7 @@ onsetIn a b = Score . mfilter (\(t,d,x) -> a <= t && t < a .+^ b) . getScore
 
 
 --------------------------------------------------------------------------------
--- Ornaments
+-- Ornaments etc
 --------------------------------------------------------------------------------
 
 tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
@@ -269,46 +286,36 @@ tremolo n = fmap (setTrem n)
 
 
 
+--------------------------------------------------------------------------------
+-- Pitch
+--------------------------------------------------------------------------------
+
 -- TODO better transposition etc
 -- TODO interval literals (Music.Pitch.Interval.Literal)
+up x = fmap (modifyPitch (+ x))
+down x = fmap (modifyPitch (subtract x))
+
+-- TODO move to Music.Pitch.Interval.Literal
+octave     = 12
+tritone    = 6
+fifth      = 7
+minorThird = 3
+majorThird = 4
+
+
+--------------------------------------------------------------------------------
+-- Structure
+--------------------------------------------------------------------------------
+
+rep 0 x = mempty
+rep n x = x |> rep (n-1) x
+
+
 -- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
 -- TODO split score (note: do recursive split, for Score (Score a) etc)
 -- TODO invert/retrograde etc
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-main :: IO ()
-main = rt
-
-nrt = do
-    writeSynthDefs
-    runImitatorNRT (scoreToTrack cmdScore)
-
-rt = do 
-    startServer
-    threadDelay 1000000
-    runImitatorRT (scoreToTrack cmdScore)
 
 
 
@@ -343,7 +350,7 @@ setAzim'  _ x                          = x
 
 type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT Integer)))))
 
-sc x = (x::Score Note)
+score x = (x::Score Note)
 
 open :: Score Note -> IO ()
 open = openXml . (^/4)            
@@ -351,8 +358,6 @@ open = openXml . (^/4)
 play :: Score Note -> IO ()
 play = playMidiIO            
 
-rep 0 x = mempty
-rep n x = x |> rep (n-1) x
 
 data NotePart = Vl1 | Vl2 | Vla1 | Vla2 | Vc1 | Vc2 | Db1 | Db2
     deriving (Eq, Ord, Enum)
@@ -434,17 +439,6 @@ successor :: (Integral b, Enum a) => b -> a -> a
 successor n | n <  0 = (!! fromIntegral (abs n)) . iterate pred
             | n >= 0 = (!! fromIntegral n)       . iterate succ
 
-
-
-up x = fmap (modifyPitch (+ x))
-down x = fmap (modifyPitch (subtract x))
-
--- TODO move to Music.Pitch.Interval.Literal
-octave     = 12
-tritone    = 6
-fifth      = 7
-minorThird = 3
-majorThird = 4
 
 
 -- | 
