@@ -101,8 +101,6 @@ short2 =
     -- </> (rep 1 $ delay 55 $ rep 2 $ modifyPitches (+ 6) $ short1)
 
 
-text s = mapSep (setText s) id id
-
 -- sect1 :: Score Note
 -- sect1 = (^*2) $ dynamic _f $ mempty
 --     <>  (melody [c,d] |> f^*(3/2) |> e & legato & rep (10) & modifyPitches (+ 12))          ^*(4/3)
@@ -400,6 +398,8 @@ onsetIn a b = Score . mfilter (\(t,d,x) -> a <= t && t < a .+^ b) . getScore
 tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
 tremolo n = fmap (setTrem n)
 
+text :: (Ord v, v ~ Voice b, HasVoice b, HasText b) => String -> Score b -> Score b
+text s = mapSep (setText s) id id
 
 
 --------------------------------------------------------------------------------
