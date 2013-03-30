@@ -75,23 +75,27 @@ sp2 = setCurve Smooth $ mempty
 
 noteScore :: Score Note
 noteScore = 
+
        (short1 </> delay 4 short1) 
     |> rest^*6 
     |> canon0
     |> rest^*8 
     |> (short1 </> delay 4 short1) 
+
     |> rest^*6 
-    |> rest^*(4*100)
+    |> canon0
+    |> rest^*8 
+
+    |> rest^*(4*60)
     |> (canon1 </> down octave canon1) 
     |> rest^*7 
-    |> rest^*(4*100)
-    |> (canon15 </> down octave canon15)
 
-    -- |> short2
-    -- |> sect2
-    -- |> sect3
-    -- |> sect4
-    -- |> sect5
+    |> rest^*(4*90)
+    |> (canon15 </> down octave canon15)
+    |> rest^*(4*90) 
+    
+    |> c' -- mark ending!
+
 
 short1 :: Score Note
 short1 = staccato $ down 5 $ dynamic ppp $ text "pizz" $
