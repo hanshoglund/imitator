@@ -79,10 +79,10 @@ noteScore = (short1 |> rest^*4 |> canon1)
 
 short1 :: Score Note
 short1 = staccato $ dynamic ppp $ text "pizz" $
-        rep 30 (legato $ rest^*4 |> grp 5 c |> grp 4 db |> grp 4 c)
-    </> rep 30 (legato $ rest^*4 |> grp 5 c |> grp 4 c  |> grp 4 c)
-    </> rep 30 (legato $ rest^*4 |> grp 5 c |> grp 5 c  |> grp 4 db)
-    </> rep 30 (legato $ rest^*4 |> grp 5 c |> grp 5 c  |> grp 5 c |> grp 4 b_)
+        (delay 0 $ rep 20 $ legato $ grp 4 c |> grp 4 db |> grp 5 c  |> rest^*2)
+    </> (delay 1 $ rep 20 $ legato $ grp 4 c |> grp 4 c  |> grp 4 c  |> rest^*2)
+    </> (delay 3 $ rep 20 $ legato $ grp 3 c |> grp 5 c  |> grp 5 db |> rest^*2)
+    </> (delay 6 $ rep 20 $ legato $ grp 5 c |> grp 5 c  |> grp 5 c  |> grp 4 b_ |> rest^*2)
     where
 
 grp n p = rep n p^/n
@@ -310,7 +310,6 @@ majorThird = 4
 --------------------------------------------------------------------------------
 
 rep 0 x = mempty
--- rep 1 x = x
 rep n x = x |> rep (n-1) x
 
 
@@ -362,7 +361,15 @@ play :: Score Note -> IO ()
 play = playMidiIO            
 
 
-data NotePart = Vl1 | Vl2 | Vla1 | Vla2 | Vc1 | Vc2 | Db1 | Db2
+data NotePart 
+    = Vl1 
+    | Vla1 
+    | Vc1 
+    | Db1 
+    | Vl2 
+    | Vla2 
+    | Vc2 
+    | Db2
     deriving (Eq, Ord, Enum)
 
 instance IsString NotePart where
@@ -375,8 +382,8 @@ instance Show NotePart where
     show Vla2 = "Viola 2"
     show Vc1  = "Violoncello 1"
     show Vc2  = "Violoncello 2"
-    show Db1  = "Contrabass 1"
-    show Db2  = "Contrabass 2"
+    show Db1  = "Double Bass 1"
+    show Db2  = "Double Bass 2"
 
 vl1, vl2, vla1, vla2, vc1, vc2, db1, db2 :: NotePart
 vl1  = Vl1
