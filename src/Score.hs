@@ -66,6 +66,7 @@ sp2 = setCurve Smooth $ mempty
 --------------------------------------------------------------------------------
 
 -- TODO reorder parts?
+-- TODO harmonics (nat + art)
 
 noteScore :: Score Note
 noteScore = (short1 |> rest^*4 |> canon1)
@@ -78,12 +79,13 @@ noteScore = (short1 |> rest^*4 |> canon1)
 
 short1 :: Score Note
 short1 = staccato $ dynamic ppp $ text "pizz" $
-        rep 30 (legato $ grp 5 c |> grp 4 db |> grp 4 c)
-    </> rep 30 (legato $ grp 5 c |> grp 4 c  |> grp 4 c)
-    </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 4 db)
-    </> rep 30 (legato $ grp 5 c |> grp 5 c  |> grp 5 c |> grp 4 b_)
+        rep 30 (legato $ rest^*4 |> grp 5 c |> grp 4 db |> grp 4 c)
+    </> rep 30 (legato $ rest^*4 |> grp 5 c |> grp 4 c  |> grp 4 c)
+    </> rep 30 (legato $ rest^*4 |> grp 5 c |> grp 5 c  |> grp 4 db)
+    </> rep 30 (legato $ rest^*4 |> grp 5 c |> grp 5 c  |> grp 5 c |> grp 4 b_)
     where
-        grp n p = rep n p^/n
+
+grp n p = rep n p^/n
 
 short2 :: Score Note
 short2 = 
@@ -308,6 +310,7 @@ majorThird = 4
 --------------------------------------------------------------------------------
 
 rep 0 x = mempty
+rep 1 x = x
 rep n x = x |> rep (n-1) x
 
 
