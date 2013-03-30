@@ -6,6 +6,7 @@ module Score (
   ) where
 
 import Data.Foldable (Foldable(..), toList)
+import Math.Tau
 import Data.String
 import Data.Ratio
 import qualified Data.List as List
@@ -121,12 +122,63 @@ canon1 = up 12 $ makeCanon1 dn subj
 
 
 
+
+
+--------------------------------------------------------------------------------
+-- Articulation
+--------------------------------------------------------------------------------
+
+-- Accents
+
+accent :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+accent = mapSep (setAccLevel 1) id id
+
+marcato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+marcato = mapSep (setAccLevel 2) id id
+
+accentLast :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+accentLast = mapSep id id (setAccLevel 1)
+
+marcatoLast :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+marcatoLast = mapSep id id (setAccLevel 2)
+
+-- Phrasing
+
+tenuto :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+tenuto = mapSep (setStaccLevel (-2)) (setStaccLevel (-2)) (setStaccLevel (-2)) 
+
+separated :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+separated = mapSep (setStaccLevel (-1)) (setStaccLevel (-1)) (setStaccLevel (-1)) 
+
+staccato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+staccato = mapSep (setStaccLevel 1) (setStaccLevel 1) (setStaccLevel 1) 
+
+portato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+portato = staccato . legato 
+
+legato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+legato = mapSep (setBeginSlur True) id (setEndSlur True) 
+
+spiccato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
+spiccato = mapSep (setStaccLevel 2) (setStaccLevel 2) (setStaccLevel 2) 
+
+
+--------------------------------------------------------------------------------
+-- Dynamics
+--------------------------------------------------------------------------------
+
+-- | Apply a constant level over the whole score.
+dynamic :: (HasDynamic a, HasVoice a, Ord v, v ~ Voice a) => Double -> Score a -> Score a
+dynamic n = mapSep (setLevel n) id id 
+
+-- | Apply a variable level over the score.
+dyn :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
+dyn ds = applyDynSingle (fmap fromJust . scoreToPart $ ds)
+
 applyDyn :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Part (Dyn Double) -> Score a -> Score a
 applyDyn ds = mapVoices (fmap $ applyDynSingle ds)
 
-
 -- Dynamic action over a duration
--- Steady on a level, or change from x to y
 data Dyn a
     = Level  a
     | Change a a
@@ -163,11 +215,6 @@ dyn2 = snd . List.mapAccumL g (Nothing, False, False) -- level, cresc, dim
 
 transf :: ([a] -> [b]) -> Part a -> Part b
 transf f = Part . uncurry zip . second f . unzip . getPart
-
-dyn :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
-dyn ds = applyDynSingle (fmap fromJust . scoreToPart $ ds)
-    where
-        fromJust (Just x) = x
 
 applyDynSingle :: HasDynamic a => Part (Dyn Double) -> Score a -> Score a
 applyDynSingle ds as = applySingle' ds3 as
@@ -210,50 +257,16 @@ sampleSingle as bs = Score . fmap (\(t,d,a) -> (t,d,g a (onsetIn t d bs))) . get
 -- | Filter out events that has its onset in the given time interval (inclusive start).
 --   For example, onset in 1 2 filters events such that (1 <= onset x < 3)
 onsetIn :: Time -> Duration -> Score a -> Score a
-onsetIn a b = Score . mfilter (\(t,d,x) -> a <= t && t < a .+^ b) . getScore
+onsetIn a b = Score . mfilter (\(t,d,x) -> a <= t && t < a .+^ b) . getScore 
 
 
--- To each voice add slur from first to last note
--- slur :: Score Note -> Score Note
+--------------------------------------------------------------------------------
+-- Ornaments
+--------------------------------------------------------------------------------
 
-accent :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-accent = mapSep (setAccLevel 1) id id
-
-marcato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-marcato = mapSep (setAccLevel 2) id id
-
-accentLast :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-accentLast = mapSep id id (setAccLevel 1)
-
-marcatoLast :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-marcatoLast = mapSep id id (setAccLevel 2)
-
-
-tenuto :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-tenuto = mapSep (setStaccLevel (-2)) (setStaccLevel (-2)) (setStaccLevel (-2)) 
-
-separated :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-separated = mapSep (setStaccLevel (-1)) (setStaccLevel (-1)) (setStaccLevel (-1)) 
-
-staccato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-staccato = mapSep (setStaccLevel 1) (setStaccLevel 1) (setStaccLevel 1) 
-
-portato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-portato = staccato . legato 
-
-legato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-legato = mapSep (setBeginSlur True) id (setEndSlur True) 
-
-spiccato :: (HasArticulation a, HasVoice a, Ord v, v ~ Voice a) => Score a -> Score a
-spiccato = mapSep (setStaccLevel 2) (setStaccLevel 2) (setStaccLevel 2) 
-
-dynamic :: (HasDynamic a, HasVoice a, Ord v, v ~ Voice a) => Double -> Score a -> Score a
-dynamic n = mapSep (setLevel n) id id 
-
-
--- tremolo :: Int -> Score a -> Score a
 tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
 tremolo n = fmap (setTrem n)
+
 
 
 -- TODO better transposition etc
@@ -433,15 +446,11 @@ fifth      = 7
 minorThird = 3
 majorThird = 4
 
--- infixl 1 &
--- (&) = flip ($)
 
-
-
-
-
--- | Map over first, middle and last elements of list.
---   Biased on first, then on first and last for short lists.
+-- | 
+-- Map over first, middle and last elements of list.
+-- Biased on first, then on first and last for short lists.
+-- 
 mapSepL :: (a -> b) -> (a -> b) -> (a -> b) -> [a] -> [b]
 mapSepL f g h []      = []
 mapSepL f g h [a]     = [f a]
@@ -458,8 +467,6 @@ mapSepPart f g h = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc . pe
         third f (a,b,c) = (a,b,f c)
 
 
-
-
 instance IsPitch Integer where
     fromPitch (PitchL (pc, sem, oct)) = fromIntegral $ semitones sem + diatonic pc + (oct+1) * 12
         where
@@ -472,9 +479,6 @@ instance IsPitch Integer where
                 4 -> 7
                 5 -> 9
                 6 -> 11
--- instance IsDynamics Integer where
-    -- fromDynamics (DynamicsL (Just x, _)) = x
-    -- fromDynamics (DynamicsL (Nothing, _)) = error "IsDynamics Integer: No dynamics"
 
 maximum' :: (Ord a, Foldable t) => a -> t a -> a
 maximum' z = option z getMax . foldMap (Option . Just . Max)
@@ -489,22 +493,16 @@ minimum' z = option z getMin . foldMap (Option . Just . Min)
 mcatMaybes :: MonadPlus m => m (Maybe a) -> m a
 mcatMaybes = (>>= maybe mzero return)
 
+second :: (a -> b) -> (c,a) -> (c,b)
 second f (a,b) = (a,f b)
 
+partToScore' :: Part (Maybe a) -> Score a
 partToScore' = mcatMaybes . partToScore
-
--- -- |
--- -- Get all notes that start during a given note.
--- --
--- samplePart :: Part (Maybe a) -> Part (Maybe b) -> Part (Maybe (a, Part (Maybe b)))
--- samplePart as bs = 
---     scoreToPart $ fmap (second (scoreToPart)) $ 
---     sampleSingle (partToScore' as) (partToScore' bs)
---     where
--- 
 
 -- mapParts :: (Ord v, v ~ Voice a, HasVoice a) => (Part (Maybe a) -> Part (Maybe a)) -> Score a -> Score a
 -- mapParts f = mapVoices (fmap $ mcatMaybes . partToScore . f . scoreToPart)
 
 toFrac :: (Real a, Fractional b) => a -> b
 toFrac = fromRational . toRational
+
+fromJust (Just x) = x

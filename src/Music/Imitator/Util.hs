@@ -48,7 +48,7 @@ module Music.Imitator.Util (
         mapIndexed,      
         
         -- ** Mathematics
-        tau,             
+        -- tau,             
         
         -- ** System
         execute,
@@ -221,8 +221,8 @@ mapIndexed f as = map (uncurry f) (zip is as)
         n  = length as - 1
         is = [0..n]
 
-tau :: Floating a => a
-tau = 2 * pi
+-- tau :: Floating a => a
+-- tau = 2 * pi
 
 -- |
 -- Excecute an external process asynchronously (using @forkProcess@) with the given arguments.

@@ -24,6 +24,7 @@ library
         hosc,
         hsc3,
         reenact,
+        tau,
         semigroups,
         semigroupoids,
         vector-space,

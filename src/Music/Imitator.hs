@@ -62,6 +62,7 @@ import Control.Monad
 import Control.Applicative
 import System.Directory
 import System.IO.Unsafe
+import Math.Tau
 
 import Control.Reactive
 import Control.Reactive.Midi
