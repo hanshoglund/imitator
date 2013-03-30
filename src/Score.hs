@@ -41,18 +41,28 @@ cmdScore = mempty
 --    |> (note $ ReadBuffer "/Users/hans/Desktop/Test/Test1loud.aiff")
     |> (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/canon15d.aiff")
     |> (playOnce 4 14 & setAzim (0.0 + 0))
-    -- |> sp1 |> rest^*3
-    -- |> sp1 |> rest^*3
-    -- |> sp1 |> rest^*5
-    -- |> sp2 |> rest^*3
-    -- |> sp2 |> rest^*3
-    -- |> sp2 |> rest^*5
-    -- |> sp1 |> rest^*3
-    -- |> sp1 |> rest^*3
-    -- |> sp1 |> rest^*5
-    -- |> sp2 |> rest^*3
-    -- |> sp2 |> rest^*3
-    -- |> sp2 |> rest^*5
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
+    |> rest^*100
+    |> (playOnce 4 14 & setAzim (0.0 + 0))
+
 
 sp1 = setCurve Smooth $ mempty
     <> rest^*0.0 |> (playOnce 4 14 & setAzim (0.0 + 0))
@@ -234,15 +244,20 @@ main :: IO ()
 main = dr
 
 
-drawScores :: (Integral p, p ~ Pitch b, HasPitch b) => Score b -> Diagram SVG R2
-drawScores notes = pitches <> middleLines <> crossLines
+drawScores :: (Integral p, p ~ Pitch b, HasPitch b) => Score b -> Score c -> Diagram SVG R2
+drawScores notes cmds = notesD <> cmdsD <> middleLines <> crossLines
     where
-        pitches     = mconcat $ fmap drawPitch $ perform notes
+        notesD     = mconcat $ fmap drawNote $ perform notes
+        cmdsD      = mconcat $ fmap drawCmd $ perform cmds
         middleLines = translateX ((/ 2) $ totalDur) (hrule $ totalDur)
         crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 60)) $ [0..5]
 
-        drawPitch (t,d,x) = translateY (getP x) $ translateX (getT t) $ scaleX (getD d) $ noteShape
-        noteShape = lcA transparent $ fcA (black `withOpacity` 0.3) $ circle 1
+        drawNote (t,d,x) = translateY (getP x) $ translateX (getT t) $ scaleX (getD d) $ noteShape
+        drawCmd (t,d,x) = translateY 0 $ translateX (getT t) $ cmdShape
+
+        noteShape = lcA transparent $ fcA (blue `withOpacity` 0.3) $ circle 1
+        cmdShape = lcA (red `withOpacity` 0.3) $ vrule (90)
+
         
         totalDur = getD $ duration notes
         getT = fromRational . toRational
@@ -250,7 +265,7 @@ drawScores notes = pitches <> middleLines <> crossLines
         getP = (subtract 60) . fromIntegral . getPitch
 
 
-dr = defaultMain (drawScores noteScore)
+dr = defaultMain (drawScores noteScore cmdScore)
 
 nrt = do
     writeSynthDefs
