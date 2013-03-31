@@ -103,17 +103,16 @@ echoShort2 = mempty
 -- TODO harmonics (nat + art)
 
 noteScore :: Score Note
-noteScore = addInstrChange $
-
+noteScore = {-addInstrChange $-}
        (short1 </> delay (4*1) short1) 
-    |> rest^*6 
+    |> rest^*2 
     |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    |> rest^*6 
+    |> rest^*(4/3) 
     |> (short1 </> delay (4*3) short1) 
-
-    |> rest^*6 
+    
+    |> rest^*2 
     |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    |> rest^*6 
+    |> rest^*(4/3) 
     
     |> rest^*(4*(60-30))
     |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
@@ -121,9 +120,9 @@ noteScore = addInstrChange $
     
     |> rest^*(4*(90-40))
     |> (canon1_1 <> (delay (4*10) $ moveToPart vl2 $ down octave $ canon1_1))
-    -- 
-    -- |> rest^*(4*(90+30+40))     
-    |> c' -- mark ending!
+    
+    |> rest^*(4*(90+30+40))     
+    |> c' -- mark ending!  
 
 
 short1 :: Score Note
@@ -148,8 +147,14 @@ makeCanon0 dn subj1 subj2 =
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
         (dyn dn $ rep 100 $ legato $ up   fifth  $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up   unison $ subj ^* 1     )
-    </> (dyn dn $ rep 100 $ legato $ down octave $ subj ^* (3/2) )
+    </> (dyn dn $ rep 100 $ legato $ up   fifth   $ subj ^* 1     )
+    </> (dyn dn $ rep 100 $ legato $ down unison  $ subj ^* (3/2) )
+
+makeCanon15 :: Score (Dyn Double) -> Score Note -> Score Note
+makeCanon15 dn subj = 
+        (dyn dn $ rep 100 $ legato $ up   octave  $ subj ^* (2/3) )
+    </> (dyn dn $ rep 100 $ legato $ up   fifth   $ subj ^* 1     )
+    </> (dyn dn $ rep 100 $ legato $ down unison  $ subj ^* (3/2) )
 
 
 canon0 :: Score Note
@@ -157,7 +162,7 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
-        dn   = (rep 9 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
+        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon1 :: Score Note
 canon1 = text "arco" $ makeCanon1 dn subj
@@ -166,7 +171,7 @@ canon1 = text "arco" $ makeCanon1 dn subj
         dn   = (rep 13 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon1_1 :: Score Note
-canon1_1 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
+canon1_1 = {-up 12 $ -}text "arco" $ makeCanon15 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (rep 10 $ (_p `cresc` _f)^*5 |> _f |> (_f `dim` _p)^*5 |> _p )
@@ -254,6 +259,7 @@ getPartGroup p = case p of
     _      -> 2
 
 -- A hack, works only in Sibelius
+addInstrChange :: Score Note -> Score Note
 addInstrChange = mapVoices $
     \[a,b,c,d,e,f,g,h] -> 
         [ text "~P41" a,
