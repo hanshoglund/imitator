@@ -43,7 +43,7 @@ cmdScore = mempty
     <> delay 0          (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
 
     <> delay 30         echoShort1
-    <> delay (3 *60+20) echoShort2
+    <> delay (2 *60+20) echoShort2
     
     -- canon1_1
     <> delay (10 *60+10) (playOnce (9*60+20)  0 & setCurve Smooth)
@@ -53,31 +53,31 @@ cmdScore = mempty
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
 echoShort1 = mempty
-    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
 
 echoShort2 = mempty
-    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 10 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 25 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
 
 
@@ -100,7 +100,8 @@ echoShort2 = mempty
 --------------------------------------------------------------------------------
 
 -- TODO reorder parts?
--- TODO harmonics (nat + art)
+-- TODO harmonics (nat + art)  
+-- TODO remove all slurs!!!!
 
 noteScore :: Score Note
 noteScore = {-addInstrChange $-}
@@ -134,41 +135,40 @@ noteScore = {-addInstrChange $-}
 
 short1 :: Score Note
 short1 = staccato $ down 5 $ dynamic ppp $ text "col legno battuto"  $
-        (delay 0 $ rep 20 $ legato $ grp 4 c |> grp 4 db |> grp 5 c  |> rest^*2)
-    </> (delay 1 $ rep 20 $ legato $ grp 4 c |> grp 4 c  |> grp 4 c  |> rest^*2)
-    </> (delay 3 $ rep 20 $ legato $ grp 3 c |> grp 5 c  |> grp 5 db |> rest^*2)
-    </> (delay 6 $ rep 20 $ legato $ grp 5 c |> grp 5 c  |> grp 5 c  |> grp 4 b_ |> rest^*2)
+        (delay 0 $ rep 10 $ legato $ grp 4 c |> grp 4 db |> grp 5 c  |> rest^*2)
+    </> (delay 1 $ rep 10 $ legato $ grp 4 c |> grp 4 c  |> grp 4 c  |> rest^*2)
+    </> (delay 3 $ rep 10 $ legato $ grp 3 c |> grp 5 c  |> grp 5 db |> rest^*2)
+    </> (delay 6 $ rep 10 $ legato $ grp 5 c |> grp 5 c  |> grp 5 c  |> grp 4 b_ |> rest^*2)
     where
 
-grp n p = rep n p^/n
 
 
 
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
-        (dyn dn $ rep 100 $ legato $ subj1 ^*(4/3))
-    </> (dyn dn $ rep 100 $ legato $ subj2 ^*1)
-    </> (dyn dn $ rep 100 $ legato $ subj1 ^*2) 
+        (dyn dn $ repeated $ legato $ subj1 ^*(4/3))
+    </> (dyn dn $ repeated $ legato $ subj2 ^*1)
+    </> (dyn dn $ repeated $ legato $ subj1 ^*2) 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
-        (dyn dn $ rep 100 $ legato $ up   fifth  $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up   fifth   $ subj ^* 1     )
-    </> (dyn dn $ rep 100 $ legato $ down unison  $ subj ^* (3/2) )
+        (dyn dn $ repeated $ legato $ up   fifth  $ subj ^* (2/3) )
+    </> (dyn dn $ repeated $ legato $ up   fifth   $ subj ^* 1     )
+    </> (dyn dn $ repeated $ legato $ down unison  $ subj ^* (3/2) )
 
 makeCanon15 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon15 dn subj = 
-        (dyn dn $ rep 100 $ legato $ up   octave  $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up   fifth   $ subj ^* 1     )
-    </> (dyn dn $ rep 100 $ legato $ down unison  $ subj ^* (3/2) )
+        (dyn dn $ repeated $ legato $ up   octave  $ subj ^* (2/3) )
+    </> (dyn dn $ repeated $ legato $ up   fifth   $ subj ^* 1     )
+    </> (dyn dn $ repeated $ legato $ down unison  $ subj ^* (3/2) )
 
 makeCanon3 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon3 dn subj = 
-        (dyn dn $ rep 100 $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up   octave          $ subj ^* 1     )
-    </> (dyn dn $ rep 100 $ legato $ up   fifth           $ subj ^* (3/2) )
-    </> (dyn dn $ rep 100 $ legato $ down octave          $ subj ^* (3/2) )
+        (dyn dn $ repeated $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
+    </> (dyn dn $ repeated $ legato $ up   octave          $ subj ^* 1     )
+    </> (dyn dn $ repeated $ legato $ up   fifth           $ subj ^* (3/2) )
+    </> (dyn dn $ repeated $ legato $ down octave          $ subj ^* (3/2) )
 
 
 canon00 :: Score Note
@@ -265,6 +265,15 @@ instance Show NotePart where
     show Vc2  = "Violoncello 2"
     show Db1  = "Double Bass 1"
     show Db2  = "Double Bass 2"
+-- instance Show NotePart where
+--     show Vl1  = "Vl. 1"
+--     show Vl2  = "Vl. 2"
+--     show Vla1 = "Vla. 1"
+--     show Vla2 = "Vla. 2"
+--     show Vc1  = "Vc. 1"
+--     show Vc2  = "Vc. 2"
+--     show Db1  = "Db. 1"
+--     show Db2  = "Db. 2"
 
 vl1, vl2, vla1, vla2, vc1, vc2, db1, db2 :: NotePart
 vl1  = Vl1
@@ -541,8 +550,23 @@ majorThird = 4
 -- Structure
 --------------------------------------------------------------------------------
 
+-- | Repeat n times.
+rep :: (Eq a, Num a, 
+        Monoid b, Semigroup b, 
+        HasOnset b, Delayable b) 
+        => a -> b  -> b
 rep 0 x = mempty
 rep n x = x |> rep (n-1) x
+
+-- repeated x = x |> repeated x
+repeated = rep 50 -- FIXME
+
+-- | Repeat and scale.
+grp :: (Eq s, Fractional s, s ~ (Scalar v), 
+        Monoid v, Semigroup v, VectorSpace v, 
+        HasOnset v, Delayable v) 
+        => Scalar v -> v -> v
+grp n p = rep n p^/n
 
 
 -- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
