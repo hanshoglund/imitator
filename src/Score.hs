@@ -46,9 +46,9 @@ cmdScore = mempty
     <> delay (3 *60+20) echoShort2
     
     -- canon1_1
-    <> delay (11 *60+10) (playOnce (10*60+20)  0 & setCurve Smooth)
-    <> delay (11 *60+30) (playOnce (10*60+30) 10 & setCurve Smooth)
-    <> delay (11 *60+50) (playOnce (10*60+40) 20 & setCurve Smooth)
+    <> delay (10 *60+10) (playOnce (9*60+20)  0 & setCurve Smooth)
+    <> delay (10 *60+30) (playOnce (9*60+30) 10 & setCurve Smooth)
+    <> delay (10 *60+50) (playOnce (9*60+40) 20 & setCurve Smooth)
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
@@ -114,14 +114,18 @@ noteScore = {-addInstrChange $-}
     |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
     |> rest^*(4/3) 
     
-    |> rest^*(4*(60-30))
+    |> rest^*(4*(15))
     |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
     |> rest^*7 
-    
-    |> rest^*(4*(90-40))
+
+    |> rest^*(4*(40))
+    |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    |> rest^*7 
+        
+    |> rest^*(4*(25))
     |> (canon1_1 <> (delay (4*10) $ moveToPart vl2 $ down octave $ canon1_1))
     
-    |> rest^*(4*(90+30+40))     
+    |> rest^*(4*(130))     
     |> c' -- mark ending!  
 
 
