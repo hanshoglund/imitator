@@ -103,7 +103,7 @@ echoShort2 = mempty
 -- TODO harmonics (nat + art)
 
 noteScore :: Score Note
-noteScore = addNames $
+noteScore = addInstrChange $
 
        (short1 </> delay (4*1) short1) 
     |> rest^*6 
@@ -124,18 +124,7 @@ noteScore = addNames $
     -- 
     -- |> rest^*(4*(90+30+40))     
     |> c' -- mark ending!
-        where
-            addNames = mapVoices (
-                \[a,b,c,d,e,f,g,h] -> 
-                    [ text "~P41" a,
-                      text "~P42" b,
-                      text "~P43" c,
-                      text "~P44" d,
-                      text "~P41" e,
-                      text "~P42" f,
-                      text "~P43" g,
-                      text "~P44" h 
-                      ])
+
 
 short1 :: Score Note
 short1 = staccato $ down 5 $ dynamic ppp $ text "col legno battuto"  $
@@ -263,6 +252,19 @@ getPartGroup p = case p of
     Vc1    -> 1
     Db1    -> 1
     _      -> 2
+
+-- A hack, works only in Sibelius
+addInstrChange = mapVoices $
+    \[a,b,c,d,e,f,g,h] -> 
+        [ text "~P41" a,
+          text "~P42" b,
+          text "~P43" c,
+          text "~P44" d,
+          text "~P41" e,
+          text "~P42" f,
+          text "~P43" g,
+          text "~P44" h 
+          ]
 
 type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
 
