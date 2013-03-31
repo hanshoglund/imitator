@@ -42,13 +42,12 @@ cmdScore = mempty
     <> delay 0          (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
     <> delay 0          (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
 
-    <> delay 30         echoShort1
-    <> delay (2 *60+20) echoShort2
+    <> delay (0 *60+20)  echoShort1
+    <> delay (2 *60+20)  echoShort2
+
+    -- TODO
+    <> delay (6 *60+20)  echoShort2
     
-    -- canon1_1
-    <> delay (10 *60+10) (playOnce (9*60+20)  0 & setCurve Smooth)
-    <> delay (10 *60+30) (playOnce (9*60+30) 10 & setCurve Smooth)
-    <> delay (10 *60+50) (playOnce (9*60+40) 20 & setCurve Smooth)
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
@@ -124,7 +123,7 @@ noteScore = {-addInstrChange $-}
     |> rest^*7 
         
     |> rest^*(4*(25))
-    |> ((delay (4*5) $ canon1_1) <> (moveToPart vl2 $ down octave $ canon1_1))
+    |> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
     
     |> rest^*(4*(40))
     |> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
@@ -157,8 +156,8 @@ makeCanon1 dn subj =
     </> (dyn dn $ repeated $ legato $ up   fifth   $ subj ^* 1     )
     </> (dyn dn $ repeated $ legato $ down unison  $ subj ^* (3/2) )
 
-makeCanon15 :: Score (Dyn Double) -> Score Note -> Score Note
-makeCanon15 dn subj = 
+makeCanon2 :: Score (Dyn Double) -> Score Note -> Score Note
+makeCanon2 dn subj = 
         (dyn dn $ repeated $ legato $ up   octave  $ subj ^* (2/3) )
     </> (dyn dn $ repeated $ legato $ up   fifth   $ subj ^* 1     )
     </> (dyn dn $ repeated $ legato $ down unison  $ subj ^* (3/2) )
@@ -186,19 +185,19 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon1 :: Score Note
-canon1 = text "arco" $ makeCanon1 dn subj
+canon1 = down 2 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (f^*2 |> melody [e,f,e,c] |> d^*4)
         dn   = (rep 13 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
-canon1_1 :: Score Note
-canon1_1 = {-up 12 $ -}text "arco" $ makeCanon15 dn subj
+canon2 :: Score Note
+canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (rep 10 $ (_p `cresc` _f)^*5 |> _f |> (_f `dim` _p)^*5 |> _p )
 
 canon3 :: Score Note
-canon3 = {-up 12 $ -}text "arco" $ makeCanon3 dn subj
+canon3 = down 2 $ text "arco" $ makeCanon3 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (rep 10 $ (_f `cresc` ff)^*5 |> ff |> (ff `dim` f)^*5 |> _f )
