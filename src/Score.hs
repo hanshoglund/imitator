@@ -107,21 +107,21 @@ noteScore =
 
        (short1 </> delay (4*1) short1) 
     |> rest^*6 
-    |> canon0
-    |> rest^*8 
+    |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
+    |> rest^*6 
     |> (short1 </> delay (4*3) short1) 
 
     |> rest^*6 
-    |> canon0
-    |> rest^*8 
-
+    |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
+    |> rest^*6 
+    
     |> rest^*(4*(60-30))
-    |> (canon1) 
+    |> (canon1 <> (delay (4*5) $ moveToPart vl2 $ canon1))
     |> rest^*7 
-
+    
     |> rest^*(4*(90-40))
-    |> (canon1_1 <> (delay (4*3) $ moveToPart vl2 $ down octave $ canon1_1))
-
+    |> (canon1_1 <> (delay (4*10) $ moveToPart vl2 $ down octave $ canon1_1))
+    
     |> rest^*(4*(90+30+40))     
     |> c' -- mark ending!
 
@@ -140,36 +140,36 @@ grp n p = rep n p^/n
 
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
-makeCanon0 dn subj1 subj2 = (^*2) $ dynamic _p $ mempty
-    <>  (rep 5 $ legato $ subj1 ^*(4/3))
-    </> (rep 5 $ legato $ subj2 ^*1)
-    </> (rep 3 $ legato $ subj1 ^*2) 
+makeCanon0 dn subj1 subj2 = 
+        (dyn dn $ rep 100 $ legato $ subj1 ^*(4/3))
+    </> (dyn dn $ rep 100 $ legato $ subj2 ^*1)
+    </> (dyn dn $ rep 100 $ legato $ subj1 ^*2) 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
-        (dyn dn $ rep 100 $ legato $ up octave $ subj ^* (2/3) )
-    </> (dyn dn $ rep 100 $ legato $ up fifth  $ subj ^* 1     )
-    </> (dyn dn $ rep 100 $ legato $ up unison $ subj ^* (3/2) )
+        (dyn dn $ rep 100 $ legato $ up   fifth  $ subj ^* (2/3) )
+    </> (dyn dn $ rep 100 $ legato $ up   unison $ subj ^* 1     )
+    </> (dyn dn $ rep 100 $ legato $ down octave $ subj ^* (3/2) )
 
 
 canon0 :: Score Note
-canon0 = text "arco" $ makeCanon0 dn subj1 subj2
+canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
-        dn    = mempty
+        dn   = (rep 9 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon1 :: Score Note
-canon1 = up 12 $ text "arco" $ makeCanon1 dn subj
+canon1 = text "arco" $ makeCanon1 dn subj
     where
-        subj = (e^*2 |> melody [e,f,e,c] |> d^*4)^/1
-        dn   = (rep 10 $ (cresc ppp mp)^*3 |> mp |> (dim mp ppp)^*3 |> ppp )
+        subj = (f^*2 |> melody [e,f,e,c] |> d^*4)^/1
+        dn   = (rep 13 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon1_1 :: Score Note
 canon1_1 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> a^*4)^/1
-        dn   = (rep 10 $ (cresc _p _f)^*5 |> _f |> (dim _f _p)^*5 |> ppp )
+        dn   = (rep 10 $ (_p `cresc` _f)^*5 |> _f |> (_f `dim` _p)^*5 |> _p )
 
 
 
