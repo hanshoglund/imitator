@@ -46,9 +46,9 @@ cmdScore = mempty
     <> delay (3 *60+20) echoShort2
     
     -- canon1_1
-    <> delay (10 *60+30) (playOnce (10*60+10)  0 & setCurve Smooth)
-    <> delay (10 *60+40) (playOnce (10*60+20) 10 & setCurve Smooth)
-    <> delay (10 *60+50) (playOnce (10*60+30) 20 & setCurve Smooth)
+    <> delay (11 *60+10) (playOnce (10*60+20)  0 & setCurve Smooth)
+    <> delay (11 *60+30) (playOnce (10*60+30) 10 & setCurve Smooth)
+    <> delay (11 *60+50) (playOnce (10*60+40) 20 & setCurve Smooth)
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
@@ -106,8 +106,8 @@ noteScore :: Score Note
 noteScore = {-addInstrChange $-}
        (short1 </> delay (4*1) short1) 
     |> rest^*2 
-    |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    |> rest^*(4/3) 
+    |> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
+    |> rest^*(0/3) 
     |> (short1 </> delay (4*3) short1) 
     
     |> rest^*2 
@@ -156,6 +156,13 @@ makeCanon15 dn subj =
     </> (dyn dn $ rep 100 $ legato $ up   fifth   $ subj ^* 1     )
     </> (dyn dn $ rep 100 $ legato $ down unison  $ subj ^* (3/2) )
 
+
+canon00 :: Score Note
+canon00 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
+    where
+        subj1 = g_ |> a_^*(3/2) |> g_^*2 |> a_
+        subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
+        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon0 :: Score Note
 canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
