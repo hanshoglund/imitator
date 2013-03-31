@@ -103,7 +103,7 @@ echoShort2 = mempty
 -- TODO harmonics (nat + art)
 
 noteScore :: Score Note
-noteScore = 
+noteScore = addNames $
 
        (short1 </> delay (4*1) short1) 
     |> rest^*6 
@@ -116,7 +116,7 @@ noteScore =
     |> rest^*6 
     
     |> rest^*(4*(60-30))
-    |> (canon1 <> (delay (4*5) $ moveToPart vl2 $ canon1))
+    |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
     |> rest^*7 
     
     |> rest^*(4*(90-40))
@@ -124,7 +124,18 @@ noteScore =
     
     |> rest^*(4*(90+30+40))     
     |> c' -- mark ending!
-
+        where
+            addNames = mapVoices (
+                \[a,b,c,d,e,f,g,h] -> 
+                    [ text "~P41" a,
+                      text "~P42" b,
+                      text "~P43" c,
+                      text "~P43" d,
+                      text "~P41" e,
+                      text "~P42" f,
+                      text "~P43" g,
+                      text "~P43" h 
+                      ])
 
 short1 :: Score Note
 short1 = staccato $ down 5 $ dynamic ppp $ text "col legno battuto"  $
@@ -470,7 +481,7 @@ tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
 tremolo n = fmap (setTrem n)
 
 text :: (Ord v, v ~ Voice b, HasVoice b, HasText b) => String -> Score b -> Score b
-text s = mapSep (setText s) id id
+text s = mapSep (addText s) id id
 
 
 --------------------------------------------------------------------------------
