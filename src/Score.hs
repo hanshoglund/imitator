@@ -123,9 +123,12 @@ noteScore = {-addInstrChange $-}
     |> rest^*7 
         
     |> rest^*(4*(25))
-    |> (canon1_1 <> (delay (4*10) $ moveToPart vl2 $ down octave $ canon1_1))
+    |> ((delay (4*5) $ canon1_1) <> (moveToPart vl2 $ down octave $ canon1_1))
     
-    |> rest^*(4*(130))     
+    |> rest^*(4*(40))
+    |> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
+
+    |> rest^*(4*(90))     
     |> c' -- mark ending!  
 
 
@@ -160,6 +163,13 @@ makeCanon15 dn subj =
     </> (dyn dn $ rep 100 $ legato $ up   fifth   $ subj ^* 1     )
     </> (dyn dn $ rep 100 $ legato $ down unison  $ subj ^* (3/2) )
 
+makeCanon3 :: Score (Dyn Double) -> Score Note -> Score Note
+makeCanon3 dn subj = 
+        (dyn dn $ rep 100 $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
+    </> (dyn dn $ rep 100 $ legato $ up   octave          $ subj ^* 1     )
+    </> (dyn dn $ rep 100 $ legato $ up   fifth           $ subj ^* (3/2) )
+    </> (dyn dn $ rep 100 $ legato $ down octave          $ subj ^* (3/2) )
+
 
 canon00 :: Score Note
 canon00 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
@@ -186,6 +196,12 @@ canon1_1 = {-up 12 $ -}text "arco" $ makeCanon15 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (rep 10 $ (_p `cresc` _f)^*5 |> _f |> (_f `dim` _p)^*5 |> _p )
+
+canon3 :: Score Note
+canon3 = {-up 12 $ -}text "arco" $ makeCanon3 dn subj
+    where
+        subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
+        dn   = (rep 10 $ (_f `cresc` ff)^*5 |> ff |> (ff `dim` f)^*5 |> _f )
 
 
 
