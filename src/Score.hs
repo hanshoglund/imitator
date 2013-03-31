@@ -121,8 +121,8 @@ noteScore = addNames $
     
     |> rest^*(4*(90-40))
     |> (canon1_1 <> (delay (4*10) $ moveToPart vl2 $ down octave $ canon1_1))
-    
-    |> rest^*(4*(90+30+40))     
+    -- 
+    -- |> rest^*(4*(90+30+40))     
     |> c' -- mark ending!
         where
             addNames = mapVoices (
@@ -130,11 +130,11 @@ noteScore = addNames $
                     [ text "~P41" a,
                       text "~P42" b,
                       text "~P43" c,
-                      text "~P43" d,
+                      text "~P44" d,
                       text "~P41" e,
                       text "~P42" f,
                       text "~P43" g,
-                      text "~P43" h 
+                      text "~P44" h 
                       ])
 
 short1 :: Score Note
@@ -173,13 +173,13 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
 canon1 :: Score Note
 canon1 = text "arco" $ makeCanon1 dn subj
     where
-        subj = (f^*2 |> melody [e,f,e,c] |> d^*4)^/1
+        subj = (f^*2 |> melody [e,f,e,c] |> d^*4)
         dn   = (rep 13 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
 
 canon1_1 :: Score Note
 canon1_1 = {-up 12 $ -}text "arco" $ makeCanon1 dn subj
     where
-        subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> a^*4)^/1
+        subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (rep 10 $ (_p `cresc` _f)^*5 |> _f |> (_f `dim` _p)^*5 |> _p )
 
 
