@@ -563,8 +563,9 @@ majorThird = 4
 -- | 
 -- Repeat exact amount of times.
 -- 
--- > Int -> Score Note -> Score Note
+-- > Duration -> Score Note -> Score Note
 -- 
+rep :: (Monoid a, Semigroup a, HasOnset a, Delayable a) => Duration -> a -> a
 rep 0 a = mempty
 rep n a = a |> rep (n-1) a
 
@@ -576,21 +577,24 @@ rep n a = a |> rep (n-1) a
 -- Example:
 -- > repWith [1,2,1] (c^*)
 --
+repWith :: (Monoid c, HasOnset c, Delayable c) => [a] -> (a -> c) -> c
 repWith = flip scatMap
+
 scatMap f = scat . fmap f
         
     
 -- | 
 -- Repeat exact amount of times with an index.
 -- 
--- > Int -> (Int -> Score Note) -> Score Note
+-- > Duration -> (Duration -> Score Note) -> Score Note
 --
+repWithIndex :: (Monoid c, HasOnset c, Delayable c) => Duration -> (Duration -> c) -> c
 repWithIndex n = repWith [0..n-1]
 
 -- | 
 -- Repeat exact amount of times with relative time.
 -- 
--- > Int -> (Double -> Score Note) -> Score Note
+-- > Real a => a -> (Time -> Score Note) -> Score Note
 --
 repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
     where
@@ -606,6 +610,7 @@ group n a = rep n (a^/n)
 --
 -- > Score Note -> Score Note
 --
+repeated :: (Monoid a, Semigroup a, HasOnset a, Delayable a) => a -> a
 repeated = rep 50 
 -- FIXME should be 
 -- repeated a = a |> repeated 
