@@ -29,7 +29,7 @@ import Music.Imitator
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
 
-import Diagrams.Prelude hiding (open, duration, stretch, Time, (|>), Duration, (&), text, e, tau)
+import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, Time, (|>), Duration, (&), text, e, tau)
 import Diagrams.Backend.SVG (SVG(..), Options(..))
 import Diagrams.Backend.SVG.CmdLine
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
@@ -112,21 +112,21 @@ noteScore = addInstrChange $
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
     ||> c'^*4
 
-    -- ||> rest^*(4*(15))
-    -- ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    ||> rest^*(4*(15))
+    ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
 
-    -- ||> rest^*(4*(40))
-    -- ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-    -- ||> rest^*7 
-    -- 
-    -- ||> rest^*(4*(25))
-    -- ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
-    -- 
-    -- ||> rest^*(4*(40))
-    -- ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
-    -- 
-    -- ||> rest^*(4*(90))     
-    -- ||> c'^*4 -- mark ending!  
+    ||> rest^*(4*(40))
+    ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    ||> rest^*7 
+    
+    ||> rest^*(4*(25))
+    ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
+    
+    ||> rest^*(4*(40))
+    ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
+    
+    ||> rest^*(4*(90))     
+    ||> c'^*4 -- mark ending!  
 
 infixl 6 ||>
 a ||> b = padToBar a |> b
@@ -138,15 +138,18 @@ padToBar a = a |> (rest ^* (d' * 4))
 
 
 short1 :: Score Note
-short1 = staccato $ dynamic ppp $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 7 $ legato $ g `withGroups` [4,4,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 7 $ legato $ g `withGroups` [4,4,5,4,5] |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 7 $ legato $ g `withGroups` [4,5,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ legato $ g `withGroups` [3,3,5,3,5] |> rest^*6)
+short1 = {-staccato $ -} dynsRel (ff `cresc` pp |> pp `cresc` ff |> mf) $ text "col legno battuto"  $
+        (down 12 $ delay 0 $ rep 7 $ g `withGroups` [4,4,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 7 $ g `withGroups` [4,4,5,4,5] |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 7 $ g `withGroups` [4,5,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ g `withGroups` [3,3,5,3,5] |> rest^*6)
     where
         withGroups p = scat . fmap (\d -> group d p)
 
+dynRel :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
+dynRel d a  = (duration a `stretchTo` d) `dyn` a
 
+dynsRel d a = (duration a `stretchTo` d) `dyns` a
 
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
@@ -436,8 +439,9 @@ dynamic n = mapSep (setLevel n) id id
 dyn :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
 dyn ds = applyDynSingle (fmap fromJust . scoreToPart $ ds)
 
-applyDyn :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Part (Dyn Double) -> Score a -> Score a
-applyDyn ds = mapVoices (fmap $ applyDynSingle ds)
+-- | Apply a variable level over the score.
+dyns :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Score (Dyn Double) -> Score a -> Score a
+dyns ds = mapVoices (fmap $ applyDynSingle (fmap fromJust $ scoreToPart ds))
 
 -- Dynamic action over a duration
 data Dyn a
