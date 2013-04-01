@@ -308,7 +308,9 @@ addInstrChange = mapVoices $
           text "~P44" h 
           ]
 
-type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
+type Note = (VoiceT NotePart (TieT 
+    (TremoloT (HarmonicT (SlideT 
+        (DynamicT (ArticulationT (TextT Integer))))))))
 
 score :: Score Note -> Score Note
 score = id
