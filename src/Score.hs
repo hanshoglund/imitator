@@ -502,6 +502,7 @@ padToBar a = a |> (rest ^* (d' * 4))
 --------------------------------------------------------------------------------
 
 
+{-
 successor :: (Integral b, Enum a) => b -> a -> a
 successor n | n <  0 = (!! fromIntegral (abs n)) . iterate pred
             | n >= 0 = (!! fromIntegral n)       . iterate succ
@@ -558,3 +559,4 @@ toFrac :: (Real a, Fractional b) => a -> b
 toFrac = fromRational . toRational
 
 fromJust (Just x) = x
+-}
