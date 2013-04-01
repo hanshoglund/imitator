@@ -385,6 +385,17 @@ rt = do
 
 -- TODO move all this...
 
+-- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
+-- TODO split score (note: do recursive split, for Score (Score a) etc)
+-- TODO invert/retrograde etc
+
+resetDynamics :: HasDynamic c => c -> c
+resetDynamics = setBeginCresc False . setEndCresc False . setBeginDim False . setEndDim False
+-- FIXME setLevel
+
+resetArticulation :: HasArticulation c => c -> c
+resetArticulation = setBeginSlur False . setContSlur False . setEndSlur False . setAccLevel 0 . setStaccLevel 0
+
 
 --------------------------------------------------------------------------------
 -- Pitch
@@ -477,11 +488,15 @@ repeated = rep 50
 
 
 
--- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
--- TODO split score (note: do recursive split, for Score (Score a) etc)
--- TODO invert/retrograde etc
-                                                   
 
+                                                   
+-- |
+-- Reverse a score around its middle point.
+-- 
+-- > onset a    = onset (rev a)
+-- > duration a = duration (rev a)
+-- > offset a   = offset (rev a)
+--
 rev :: Score a -> Score a
 rev = startAt 0 . rev'
     where
