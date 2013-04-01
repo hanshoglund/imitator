@@ -8,32 +8,36 @@
     OverloadedStrings #-}
 
 module Score (
-        cmdScore
+        cmdScore,
+        noteScore
   ) where
 
+import Control.Monad
+import Control.Applicative
+import Control.Apply.Reverse
+import Data.Semigroup
+import Data.VectorSpace
+import Data.AffineSpace
 import Data.Foldable (Foldable(..), toList)
-import Math.Tau
 import Data.String
 import Data.Ratio
 import qualified Data.List as List
-import Data.Semigroup
-import Control.Monad
+
 import Control.Concurrent (threadDelay)
-import Control.Applicative
-import Control.Apply.Reverse
-import Data.VectorSpace
-import Data.AffineSpace
-import Music.Score
-import Music.Score.Rhythm (quantize)
-import Music.Imitator
+
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
+import Music.Score
+import Music.Score.Rhythm (quantize)
 
-import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, Time, (|>), Duration, (&), text, e, tau)
+import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, (|>), 
+                                Time, Duration, 
+                                (&), text, e, tau)
 import Diagrams.Backend.SVG (SVG(..), Options(..))
-import Diagrams.Backend.SVG.CmdLine
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as ByteString
+
+import Music.Imitator
 
 quantizeScore = fmap (quantize . getPart) . scoreToParts
 
@@ -136,7 +140,7 @@ padToBar a = a |> (rest ^* (d' * 4))
 
 
 short1 :: Score Note
-short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp) $ text "col legno battuto"  $
+short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ rep 7 $ g `withGroups` [4,4,4,5,4] |> rest^*6)
     </> (down 12 $ delay 1 $ rep 7 $ g `withGroups` [4,4,5,4,5] |> rest^*6)
     </> (down 12 $ delay 3 $ rep 7 $ g `withGroups` [4,5,4,5,4] |> rest^*6)
@@ -148,10 +152,10 @@ short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp) $ text "col legno battut
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
-        (dynsRel dn $ rep 7 $ legato $ subj1 ^*(4/3))
+        (dynsRel dn $ rep 7  $ legato $ subj1 ^*(4/3))
     </> (dynsRel dn $ rep 8  $ legato $ subj2 ^*1)
     </> (dynsRel dn $ rep 5  $ legato $ subj1 ^*2) 
-    </> (dynsRel dn $ rep 3  $ legato $ subj1 ^*3) 
+    </> (dynsRel dn $ rep 3  $ legato $ subj2 ^*3) 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
@@ -176,8 +180,8 @@ makeCanon3 dn subj =
 canon00 :: Score Note
 canon00 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
-        subj1 = g_ |> a_^*(3/2) |> g_^*2 |> a_
-        subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
+        subj1 = g_ |> a_^*(3/2) |> g_^*2
+        subj2 = g_^*3 |> a_ |> bb_^*1 |> c^*3
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon0 :: Score Note
