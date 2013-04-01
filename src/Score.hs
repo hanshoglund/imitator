@@ -148,7 +148,7 @@ short1 = staccato $ dynamic ppp $ text "col legno battuto"  $
         (down 12 $ delay 0 $ rep 7 $ legato $ g `withGroups` [4,4,4,5,4] |> rest^*6)
     </> (down 12 $ delay 1 $ rep 7 $ legato $ g `withGroups` [4,4,5,4,5] |> rest^*6)
     </> (down 12 $ delay 3 $ rep 7 $ legato $ g `withGroups` [4,5,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ legato $ g `withGroups` [3,3,4,3,4] |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ legato $ g `withGroups` [3,3,5,3,5] |> rest^*6)
     where
         withGroups p = scat . fmap (\d -> group d p)
 
@@ -585,8 +585,16 @@ scatMap f = scat . fmap f
 -- 
 -- > Int -> (Int -> Score Note) -> Score Note
 --
-repWithIndex 0 a = mempty
-repWithIndex n a = a n |> repWithIndex (n-1) a
+repWithIndex n = repWith [0..n-1]
+
+-- | 
+-- Repeat exact amount of times with relative time.
+-- 
+-- > Int -> (Double -> Score Note) -> Score Note
+--
+repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
+    where
+        n' = Time $ toRational n
 
 -- | 
 -- Repeat a number of times and scale down by the same amount.
