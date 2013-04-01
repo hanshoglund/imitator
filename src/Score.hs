@@ -93,21 +93,6 @@ echoShort2 = mempty
 
 
 
-
--- sp1 = setCurve Smooth $ mempty
---     <> rest^*0.0 |> (playOnce 4 14 & setAzim (0.0 + 0))
---     <> rest^*1.2 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
---     <> rest^*2.4 |> (playOnce 4 14 & setAzim (0.0 - 0.2))
---     <> rest^*3.6 |> (playOnce 4 14 & setAzim (0.0 + 0  ))
--- 
--- sp2 = setCurve Smooth $ mempty
---     <> rest^*0.0 |> (playOnce 50 14 & setAzim (0.5      ))
---     <> rest^*1.2 |> (playOnce 50 14 & setAzim (0.5 + 0.2))
---     <> rest^*2.4 |> (playOnce 50 14 & setAzim (0.5 - 0.2))
---     <> rest^*3.6 |> (playOnce 50 14 & setAzim (0.5 + 0.3))
---     <> rest^*4.8 |> (playOnce 50 14 & setAzim (0.5 - 0.3))
-
-
 --------------------------------------------------------------------------------
 
 -- TODO reorder parts?
@@ -117,9 +102,9 @@ echoShort2 = mempty
 noteScore :: Score Note
 noteScore = addInstrChange
        (short1 </> delay (4*1) short1) 
-    |> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
+    -- |> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
     -- |> rest^*(0/3) 
-    |> (short1 </> delay (4*3) short1) 
+    -- |> (short1 </> delay (4*3) short1) 
     -- 
     -- |> rest^*2 
     -- |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
@@ -141,6 +126,11 @@ noteScore = addInstrChange
     -- 
     -- |> rest^*(4*(90))     
     |> c' -- mark ending!  
+
+padToBar a = a |> (rest^*d')
+    where
+        d  = getDuration $ duration a / 4
+        d' = fromIntegral $ (negate (numerator d) `mod` denominator d)
 
 
 short1 :: Score Note
