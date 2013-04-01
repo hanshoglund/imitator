@@ -148,9 +148,10 @@ short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp) $ text "col legno battut
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
-        (dynsRel dn $ rep 10 $ legato $ subj1 ^*(4/3))
-    </> (dynsRel dn $ rep 7  $ legato $ subj2 ^*1)
+        (dynsRel dn $ rep 7 $ legato $ subj1 ^*(4/3))
+    </> (dynsRel dn $ rep 8  $ legato $ subj2 ^*1)
     </> (dynsRel dn $ rep 5  $ legato $ subj1 ^*2) 
+    </> (dynsRel dn $ rep 3  $ legato $ subj1 ^*3) 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
