@@ -46,10 +46,21 @@ cmdScore = mempty
     <> delay (2 *60+20)  echoShort2
 
     -- TODO
-    <> delay (6 *60+20)  echoShort2
+    <> delay (109*4)     echoCanon1
+    <> delay (111*4)     echoCanon1
+
+    <> delay (319*4)     echoCanon3
+    <> delay (322*4)     echoCanon3
+    <> delay (324*4)     echoCanon3
     
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
+
+echoCanon1 = mempty
+    |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
+
+echoCanon3 = mempty
+    |> (playOnce (317*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
 
 echoShort1 = mempty
     |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
@@ -103,43 +114,42 @@ echoShort2 = mempty
 -- TODO remove all slurs!!!!
 
 noteScore :: Score Note
-noteScore = {-addInstrChange $-}
+noteScore = addInstrChange
        (short1 </> delay (4*1) short1) 
-    |> rest^*2 
     |> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
-    |> rest^*(0/3) 
+    -- |> rest^*(0/3) 
     |> (short1 </> delay (4*3) short1) 
-    
-    |> rest^*2 
-    |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    |> rest^*(4/3) 
-    
-    |> rest^*(4*(15))
-    |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-    |> rest^*7 
-
-    |> rest^*(4*(40))
-    |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-    |> rest^*7 
-        
-    |> rest^*(4*(25))
-    |> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
-    
-    |> rest^*(4*(40))
-    |> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
-
-    |> rest^*(4*(90))     
+    -- 
+    -- |> rest^*2 
+    -- |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
+    -- |> rest^*(4/3) 
+    -- 
+    -- |> rest^*(4*(15))
+    -- |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    -- |> rest^*7 
+    -- 
+    -- |> rest^*(4*(40))
+    -- |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    -- |> rest^*7 
+    --     
+    -- |> rest^*(4*(25))
+    -- |> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
+    -- 
+    -- |> rest^*(4*(40))
+    -- |> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
+    -- 
+    -- |> rest^*(4*(90))     
     |> c' -- mark ending!  
 
 
 short1 :: Score Note
-short1 = staccato $ down 5 $ dynamic ppp $ text "col legno battuto"  $
-        (delay 0 $ rep 10 $ legato $ grp 4 c |> grp 4 db |> grp 5 c  |> rest^*2)
-    </> (delay 1 $ rep 10 $ legato $ grp 4 c |> grp 4 c  |> grp 4 c  |> rest^*2)
-    </> (delay 3 $ rep 10 $ legato $ grp 3 c |> grp 5 c  |> grp 5 db |> rest^*2)
-    </> (delay 6 $ rep 10 $ legato $ grp 5 c |> grp 5 c  |> grp 5 c  |> grp 4 b_ |> rest^*2)
+short1 = staccato $ dynamic ppp $ text "col legno battuto"  $
+        (down 12 $ delay 0 $ rep 7 $ legato $ g `grps` [4,4,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 7 $ legato $ g `grps` [4,4,5,4,5] |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 7 $ legato $ g `grps` [4,5,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ legato $ g `grps` [3,3,4,3,4] |> rest^*6)
     where
-
+        grps p = scat . fmap (\d -> grp d p)
 
 
 
