@@ -130,14 +130,6 @@ noteScore = addInstrChange $
     ||> bar^*90     
     ||> c'^*4 -- mark ending!  
 
-infixl 6 ||>
-a ||> b = padToBar a |> b
-bar = rest^*4
-
-padToBar a = a |> (rest ^* (d' * 4))
-    where
-        d  = snd $ properFraction $ duration a / 4
-        d' = if (d == 0) then 0 else (1-d)
 
 
 short1 :: Score Note
@@ -474,22 +466,6 @@ group n a = rep n (a^/n)
 groupWith :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => [a] -> c -> c
 groupWith = flip $ \p -> scat . fmap (flip group $ p)
 
-
-
--- |
--- Repeat indefinately, like repeat for lists.
---
--- > Score Note -> Score Note
---
--- repeated :: (Monoid a, Semigroup a, HasOnset a, Delayable a) => a -> a
-repeated = rep 50 
--- FIXME should be 
--- repeated a = a |> repeated 
-
-
-
-
-                                                   
 -- |
 -- Reverse a score around its middle point.
 -- 
@@ -504,8 +480,24 @@ rev = startAt 0 . rev'
         g (t,d,x) = (-(t.+^d),d,x)
         getT (t,d,x) = t
 
--- t `midAt` x = delay d x where d = t .-. mid x
--- mid a   = onset a .+^ (duration a ^/ 2)
+-- |
+-- Repeat indefinately, like repeat for lists.
+--
+-- > Score Note -> Score Note
+--
+repeated :: (Monoid c, HasOnset c, Delayable c) => c -> c
+repeated = rep 500
+-- TODO proper impl
+
+infixl 6 ||>
+a ||> b = padToBar a |> b
+bar = rest^*4
+
+padToBar a = a |> (rest ^* (d' * 4))
+    where
+        d  = snd $ properFraction $ duration a / 4
+        d' = if (d == 0) then 0 else (1-d)
+                                                   
 
 --------------------------------------------------------------------------------
 
