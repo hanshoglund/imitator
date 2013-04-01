@@ -316,7 +316,8 @@ addInstrChange = mapVoices $
 
 type Note = (VoiceT NotePart (TieT (TremoloT (DynamicT (ArticulationT (TextT Integer))))))
 
-score x = (x::Score Note)
+score :: Score Note -> Score Note
+score = id
 
 open :: Score Note -> IO ()
 open = openXml . (^/4)            
@@ -327,10 +328,14 @@ play = playMidiIO
 --------------------------------------------------------------------------------
 
 main :: IO ()
-main = dr
+main = rt
 
-
-drawScores :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b) => Score b -> Score c -> Diagram SVG R2
+-- | 
+-- Ad-hoc drawing of commands notes.
+-- 
+drawScores 
+    :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b) 
+    => Score b -> Score c -> Diagram SVG R2
 drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
     where                                
         notes1 = mfilter (\x -> getPartGroup (getVoice x) == 1) notes
@@ -347,17 +352,14 @@ drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
         off 2 = (-50)
         drawCmd (t,d,x) = translateY 0 $ translateX (getT t) $ cmdShape
 
-        
-        noteShape 1 = lcA transparent $ fcA (blue  `withOpacity` 0.3) $ circle 1
-        noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ circle 1
+        noteShape 1 = lcA transparent $ fcA (blue  `withOpacity` 0.3) $ square 1
+        noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ square 1
         cmdShape = lcA (red `withOpacity` 0.3) $ vrule (200)
 
-        
         totalDur = getD $ duration notes
         getT = fromRational . toRational
         getD = fromRational . toRational
         getP = (subtract 60) . fromIntegral . getPitch
-
 
 dr = do                                             
     let sc  = drawScores noteScore cmdScore
@@ -376,16 +378,7 @@ rt = do
 
 
 
-
-
-
-
-
-
-
-
-
-
+-- TODO move all this...
 
 --------------------------------------------------------------------------------
 -- Articulation
@@ -453,6 +446,7 @@ dynsRel d a = (duration a `stretchTo` d) `dyns` a
 data Dyn a
     = Level  a
     | Change a a
+    deriving (Eq, Show)
 
 instance Fractional a => IsDynamics (Dyn a) where
     fromDynamics (DynamicsL (Just a, Nothing)) = Level (toFrac a)
@@ -535,9 +529,15 @@ onsetIn a b = Score . mfilter (\(t,d,x) -> a <= t && t < a .+^ b) . getScore
 -- Ornaments etc
 --------------------------------------------------------------------------------
 
+-- |
+-- Add tremolo cross-beams to all notes in the score.
+--
 tremolo :: (Functor f, HasTremolo b) => Int -> f b -> f b
 tremolo n = fmap (setTrem n)
 
+-- |
+-- Add text to the first note in the score.
+--
 text :: (Ord v, v ~ Voice b, HasVoice b, HasText b) => String -> Score b -> Score b
 text s = mapSep (addText s) id id
 
@@ -583,7 +583,12 @@ rep n a = a |> rep (n-1) a
 --
 repWith :: (Monoid c, HasOnset c, Delayable c) => [a] -> (a -> c) -> c
 repWith = flip scatMap
-
+  
+-- | 
+-- Combination of 'scat' and 'fmap'. Note that
+--
+-- > scatMap = flip repWith
+-- 
 scatMap f = scat . fmap f
         
     
@@ -592,7 +597,7 @@ scatMap f = scat . fmap f
 -- 
 -- > Duration -> (Duration -> Score Note) -> Score Note
 --
-repWithIndex :: (Monoid c, HasOnset c, Delayable c) => Duration -> (Duration -> c) -> c
+repWithIndex :: (Enum a, Num a, Monoid c, HasOnset c, Delayable c) => a -> (a -> c) -> c
 repWithIndex n = repWith [0..n-1]
 
 -- | 
@@ -600,13 +605,17 @@ repWithIndex n = repWith [0..n-1]
 -- 
 -- > Real a => a -> (Time -> Score Note) -> Score Note
 --
+repWithTime :: (Enum a, Fractional a, Monoid c, HasOnset c, Delayable c) => a -> (a -> c) -> c
 repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
     where
-        n' = Time $ toRational n
+        n' = n
 
 -- | 
 -- Repeat a number of times and scale down by the same amount.
 -- 
+-- > Duration -> Score Note -> Score Note
+--
+group :: (Monoid a, Semigroup a, VectorSpace a, HasOnset a, Delayable a, Scalar a ~ Duration) => Duration -> a -> a
 group n a = rep n (a^/n)
 
 -- |
