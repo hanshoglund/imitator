@@ -108,28 +108,26 @@ noteScore = addInstrChange $
     ||> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
     ||> (short1 </> delay (4*3) short1) 
 
-    ||> c'^*4
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    ||> c'^*4
 
-    ||> rest^*(4*(15))
+    ||> bar^*15
     ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
 
-    ||> rest^*(4*(40))
+    ||> bar^*40
     ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-    ||> rest^*7 
     
-    ||> rest^*(4*(25))
+    ||> bar^*25
     ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
     
-    ||> rest^*(4*(40))
+    ||> bar^*40
     ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
     
-    ||> rest^*(4*(90))     
+    ||> bar^*90     
     ||> c'^*4 -- mark ending!  
 
 infixl 6 ||>
 a ||> b = padToBar a |> b
+bar = rest^*4
 
 padToBar a = a |> (rest ^* (d' * 4))
     where
@@ -138,7 +136,7 @@ padToBar a = a |> (rest ^* (d' * 4))
 
 
 short1 :: Score Note
-short1 = {-staccato $ -} dynsRel (ff `cresc` pp |> pp `cresc` ff |> mf) $ text "col legno battuto"  $
+short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ rep 7 $ g `withGroups` [4,4,4,5,4] |> rest^*6)
     </> (down 12 $ delay 1 $ rep 7 $ g `withGroups` [4,4,5,4,5] |> rest^*6)
     </> (down 12 $ delay 3 $ rep 7 $ g `withGroups` [4,5,4,5,4] |> rest^*6)
@@ -151,27 +149,27 @@ short1 = {-staccato $ -} dynsRel (ff `cresc` pp |> pp `cresc` ff |> mf) $ text "
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
         (dynsRel dn $ rep 10 $ legato $ subj1 ^*(4/3))
-    </> (dynsRel dn $ rep 10 $ legato $ subj2 ^*1)
-    </> (dynsRel dn $ rep 10 $ legato $ subj1 ^*2) 
+    </> (dynsRel dn $ rep 7  $ legato $ subj2 ^*1)
+    </> (dynsRel dn $ rep 5  $ legato $ subj1 ^*2) 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
         (dynsRel dn $ rep 10 $ legato $ up   fifth  $ subj ^* (2/3) )
-    </> (dynsRel dn $ rep 10 $ legato $ up   fifth  $ subj ^* 1     )
-    </> (dynsRel dn $ rep 10 $ legato $ down unison $ subj ^* (3/2) )
+    </> (dynsRel dn $ rep 7  $ legato $ up   fifth  $ subj ^* 1     )
+    </> (dynsRel dn $ rep 5  $ legato $ down unison $ subj ^* (3/2) )
 
 makeCanon2 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon2 dn subj = 
         (dynsRel dn $ rep 10 $ legato $ up   octave  $ subj ^* (2/3) )
-    </> (dynsRel dn $ rep 10 $ legato $ up   fifth   $ subj ^* 1     )
-    </> (dynsRel dn $ rep 10 $ legato $ down unison  $ subj ^* (3/2) )
+    </> (dynsRel dn $ rep 7  $ legato $ up   fifth   $ subj ^* 1     )
+    </> (dynsRel dn $ rep 5  $ legato $ down unison  $ subj ^* (3/2) )
 
 makeCanon3 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon3 dn subj = 
         (dynsRel dn $ rep 10 $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
     </> (dynsRel dn $ rep 10 $ legato $ up   octave          $ subj ^* 1     )
-    </> (dynsRel dn $ rep 10 $ legato $ up   fifth           $ subj ^* (3/2) )
-    </> (dynsRel dn $ rep 10 $ legato $ down octave          $ subj ^* (3/2) )
+    </> (dynsRel dn $ rep 7  $ legato $ up   fifth           $ subj ^* (3/2) )
+    </> (dynsRel dn $ rep 5  $ legato $ down octave          $ subj ^* 2 )
 
 
 canon00 :: Score Note
