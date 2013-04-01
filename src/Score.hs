@@ -474,7 +474,7 @@ dyn2 = snd . List.mapAccumL g (Nothing, False, False) -- level, cresc, dim
             | a /= b                            = ((Just b,  False, False), (cr,    dm,    Just b,  False, False))
         g (Just a , cr, dm) (Change b c) 
             | a == b                            = ((Just b,  b < c, b > c), (cr,    dm,    Nothing, b < c, b > c))
-            | a /= b                            = ((Just b,  False, False), (cr,    dm,    Just b,  b < c, b > c))
+            | a /= b                            = ((Just b,  b < c, b > c), (cr,    dm,    Just b,  b < c, b > c))
 
 
 
