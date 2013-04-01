@@ -146,36 +146,32 @@ short1 = {-staccato $ -} dynsRel (ff `cresc` pp |> pp `cresc` ff |> mf) $ text "
     where
         withGroups p = scat . fmap (\d -> group d p)
 
-dynRel :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
-dynRel d a  = (duration a `stretchTo` d) `dyn` a
-
-dynsRel d a = (duration a `stretchTo` d) `dyns` a
 
 
 makeCanon0 :: Score (Dyn Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
-        (dyn dn $ repeated $ legato $ subj1 ^*(4/3))
-    </> (dyn dn $ repeated $ legato $ subj2 ^*1)
-    </> (dyn dn $ repeated $ legato $ subj1 ^*2) 
+        (dynsRel dn $ rep 10 $ legato $ subj1 ^*(4/3))
+    </> (dynsRel dn $ rep 10 $ legato $ subj2 ^*1)
+    </> (dynsRel dn $ rep 10 $ legato $ subj1 ^*2) 
 
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
-        (dyn dn $ repeated $ legato $ up   fifth  $ subj ^* (2/3) )
-    </> (dyn dn $ repeated $ legato $ up   fifth  $ subj ^* 1     )
-    </> (dyn dn $ repeated $ legato $ down unison $ subj ^* (3/2) )
+        (dynsRel dn $ rep 10 $ legato $ up   fifth  $ subj ^* (2/3) )
+    </> (dynsRel dn $ rep 10 $ legato $ up   fifth  $ subj ^* 1     )
+    </> (dynsRel dn $ rep 10 $ legato $ down unison $ subj ^* (3/2) )
 
 makeCanon2 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon2 dn subj = 
-        (dyn dn $ repeated $ legato $ up   octave  $ subj ^* (2/3) )
-    </> (dyn dn $ repeated $ legato $ up   fifth   $ subj ^* 1     )
-    </> (dyn dn $ repeated $ legato $ down unison  $ subj ^* (3/2) )
+        (dynsRel dn $ rep 10 $ legato $ up   octave  $ subj ^* (2/3) )
+    </> (dynsRel dn $ rep 10 $ legato $ up   fifth   $ subj ^* 1     )
+    </> (dynsRel dn $ rep 10 $ legato $ down unison  $ subj ^* (3/2) )
 
 makeCanon3 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon3 dn subj = 
-        (dyn dn $ repeated $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
-    </> (dyn dn $ repeated $ legato $ up   octave          $ subj ^* 1     )
-    </> (dyn dn $ repeated $ legato $ up   fifth           $ subj ^* (3/2) )
-    </> (dyn dn $ repeated $ legato $ down octave          $ subj ^* (3/2) )
+        (dynsRel dn $ rep 10 $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
+    </> (dynsRel dn $ rep 10 $ legato $ up   octave          $ subj ^* 1     )
+    </> (dynsRel dn $ rep 10 $ legato $ up   fifth           $ subj ^* (3/2) )
+    </> (dynsRel dn $ rep 10 $ legato $ down octave          $ subj ^* (3/2) )
 
 
 canon00 :: Score Note
@@ -183,32 +179,32 @@ canon00 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2 |> a_
         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
-        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
+        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon0 :: Score Note
 canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
-        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
+        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon1 :: Score Note
 canon1 = down 2 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (f^*2 |> melody [e,f,e,c] |> d^*4)
-        dn   = (rep 13 $ (pp `cresc` mf)^*3 |> mf |> (mf `dim` pp)^*3 |> pp )
+        dn   = (rep 13 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon2 :: Score Note
 canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
-        dn   = (rep 10 $ (_p `cresc` _f)^*5 |> _f |> (_f `dim` _p)^*5 |> _p )
+        dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 canon3 :: Score Note
 canon3 = down 2 $ text "arco" $ makeCanon3 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
-        dn   = (rep 10 $ (_f `cresc` ff)^*5 |> ff |> (ff `dim` f)^*5 |> _f )
+        dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 
 
@@ -432,16 +428,23 @@ spiccato = mapSep (setStaccLevel 2) (setStaccLevel 2) (setStaccLevel 2)
 --------------------------------------------------------------------------------
 
 -- | Apply a constant level over the whole score.
-dynamic :: (HasDynamic a, HasVoice a, Ord v, v ~ Voice a) => Double -> Score a -> Score a
-dynamic n = mapSep (setLevel n) id id 
+-- dynamic :: (HasDynamic a, HasVoice a, Ord v, v ~ Voice a) => Double -> Score a -> Score a
+-- dynamic n = mapSep (setLevel n) id id 
 
--- | Apply a variable level over the score.
+-- | Apply a variable level over a single-part score.
 dyn :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
 dyn ds = applyDynSingle (fmap fromJust . scoreToPart $ ds)
 
 -- | Apply a variable level over the score.
 dyns :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Score (Dyn Double) -> Score a -> Score a
 dyns ds = mapVoices (fmap $ applyDynSingle (fmap fromJust $ scoreToPart ds))
+
+dynRel :: HasDynamic a => Score (Dyn Double) -> Score a -> Score a
+dynRel d a  = (duration a `stretchTo` d) `dyn` a
+
+dynsRel :: (Ord v, v ~ Voice a, HasVoice a, HasDynamic a) => Score (Dyn Double) -> Score a -> Score a
+dynsRel d a = (duration a `stretchTo` d) `dyns` a
+
 
 -- Dynamic action over a duration
 data Dyn a
