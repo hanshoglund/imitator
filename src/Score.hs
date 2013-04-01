@@ -21,6 +21,7 @@ import Data.AffineSpace
 import Data.Foldable (Foldable(..), toList)
 import Data.String
 import Data.Ratio
+import Data.Ord (comparing)
 import qualified Data.List as List
 
 import Control.Concurrent (threadDelay)
@@ -326,6 +327,9 @@ open = openXml . (^/4)
 play :: Score Note -> IO ()
 play = playMidiIO            
 
+simple :: Score (VoiceT Integer Integer) -> Score (VoiceT Integer Integer)
+simple = id
+
 --------------------------------------------------------------------------------
 
 main :: IO ()
@@ -478,9 +482,15 @@ repeated = rep 50
 -- TODO invert/retrograde etc
                                                    
 
+rev :: Score a -> Score a
+rev = startAt 0 . rev'
+    where
+        rev' = Score . List.sortBy (comparing getT) . fmap g . getScore
+        g (t,d,x) = (-(t.+^d),d,x)
+        getT (t,d,x) = t
 
-
-
+-- t `midAt` x = delay d x where d = t .-. mid x
+-- mid a   = onset a .+^ (duration a ^/ 2)
 
 --------------------------------------------------------------------------------
 
