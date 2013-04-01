@@ -16,7 +16,7 @@ import System.Exit
 import Graphics.UI.WX hiding (Event, Reactive)
 
 import Music.Score (Time(..))
-import Music.Imitator
+import Music.Imitator hiding (text)
 
 import Score
 
