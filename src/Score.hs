@@ -24,6 +24,7 @@ import Control.Apply.Reverse
 import Data.VectorSpace
 import Data.AffineSpace
 import Music.Score
+import Music.Score.Rhythm (quantize)
 import Music.Imitator
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
@@ -33,6 +34,8 @@ import Diagrams.Backend.SVG (SVG(..), Options(..))
 import Diagrams.Backend.SVG.CmdLine
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as ByteString
+
+quantizeScore = fmap (quantize . getPart) . scoreToParts
 
 --------------------------------------------------------------------------------
 
@@ -100,37 +103,38 @@ echoShort2 = mempty
 -- TODO remove all slurs!!!!
 
 noteScore :: Score Note
-noteScore = addInstrChange
-       (short1 </> delay (4*1) short1) 
-    -- |> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
-    -- |> rest^*(0/3) 
-    -- |> (short1 </> delay (4*3) short1) 
-    -- 
-    -- |> rest^*2 
-    -- |> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    -- |> rest^*(4/3) 
-    -- 
-    -- |> rest^*(4*(15))
-    -- |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-    -- |> rest^*7 
-    -- 
-    -- |> rest^*(4*(40))
-    -- |> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-    -- |> rest^*7 
-    --     
-    -- |> rest^*(4*(25))
-    -- |> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
-    -- 
-    -- |> rest^*(4*(40))
-    -- |> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
-    -- 
-    -- |> rest^*(4*(90))     
-    |> c' -- mark ending!  
+noteScore = addInstrChange $
+        (short1 </> delay (4*1) short1) 
+    ||> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
+    ||> (short1 </> delay (4*3) short1) 
 
-padToBar a = a |> (rest^*d')
+    ||> c'^*4
+    ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
+    ||> c'^*4
+
+    -- ||> rest^*(4*(15))
+    -- ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+
+    -- ||> rest^*(4*(40))
+    -- ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    -- ||> rest^*7 
+    -- 
+    -- ||> rest^*(4*(25))
+    -- ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
+    -- 
+    -- ||> rest^*(4*(40))
+    -- ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
+    -- 
+    -- ||> rest^*(4*(90))     
+    -- ||> c'^*4 -- mark ending!  
+
+infixl 6 ||>
+a ||> b = padToBar a |> b
+
+padToBar a = a |> (rest ^* (d' * 4))
     where
-        d  = getDuration $ duration a / 4
-        d' = fromIntegral $ (negate (numerator d) `mod` denominator d)
+        d  = snd $ properFraction $ duration a / 4
+        d' = if (d == 0) then 0 else (1-d)
 
 
 short1 :: Score Note
