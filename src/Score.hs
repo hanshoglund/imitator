@@ -142,10 +142,10 @@ padToBar a = a |> (rest ^* (d' * 4))
 
 short1 :: Score Note
 short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 7 $ g `groupWith` [4,4,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 7 $ g `groupWith` [4,4,5,4,5] |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 7 $ g `groupWith` [4,5,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ g `groupWith` [3,3,5,3,5] |> rest^*6)
+        (down 12 $ delay 0 $ rep 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
     where
 
 
@@ -460,8 +460,8 @@ repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
 group :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => a -> c -> c
 group n a = rep n (a^/n)
 
-groupWith :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => c -> [a] -> c
-groupWith p = scat . fmap (\d -> group d p)
+groupWith :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => [a] -> c -> c
+groupWith = flip $ \p -> scat . fmap (flip group $ p)
 
 
 
