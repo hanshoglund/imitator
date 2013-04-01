@@ -4,6 +4,7 @@
     DeriveFunctor, 
     DeriveFoldable, 
     GeneralizedNewtypeDeriving,
+    NoMonomorphismRestriction,
     OverloadedStrings #-}
 
 module Score (
@@ -144,12 +145,12 @@ noteScore = addInstrChange
 
 short1 :: Score Note
 short1 = staccato $ dynamic ppp $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 7 $ legato $ g `grps` [4,4,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 7 $ legato $ g `grps` [4,4,5,4,5] |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 7 $ legato $ g `grps` [4,5,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ legato $ g `grps` [3,3,4,3,4] |> rest^*6)
+        (down 12 $ delay 0 $ rep 7 $ legato $ g `withGroups` [4,4,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 7 $ legato $ g `withGroups` [4,4,5,4,5] |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 7 $ legato $ g `withGroups` [4,5,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ legato $ g `withGroups` [3,3,4,3,4] |> rest^*6)
     where
-        grps p = scat . fmap (\d -> grp d p)
+        withGroups p = scat . fmap (\d -> group d p)
 
 
 
@@ -163,8 +164,8 @@ makeCanon0 dn subj1 subj2 =
 makeCanon1 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
         (dyn dn $ repeated $ legato $ up   fifth  $ subj ^* (2/3) )
-    </> (dyn dn $ repeated $ legato $ up   fifth   $ subj ^* 1     )
-    </> (dyn dn $ repeated $ legato $ down unison  $ subj ^* (3/2) )
+    </> (dyn dn $ repeated $ legato $ up   fifth  $ subj ^* 1     )
+    </> (dyn dn $ repeated $ legato $ down unison $ subj ^* (3/2) )
 
 makeCanon2 :: Score (Dyn Double) -> Score Note -> Score Note
 makeCanon2 dn subj = 
@@ -559,23 +560,48 @@ majorThird = 4
 -- Structure
 --------------------------------------------------------------------------------
 
--- | Repeat n times.
-rep :: (Eq a, Num a, 
-        Monoid b, Semigroup b, 
-        HasOnset b, Delayable b) 
-        => a -> b  -> b
-rep 0 x = mempty
-rep n x = x |> rep (n-1) x
+-- | 
+-- Repeat exact amount of times.
+-- 
+-- > Int -> Score Note -> Score Note
+-- 
+rep 0 a = mempty
+rep n a = a |> rep (n-1) a
 
--- repeated x = x |> repeated x
-repeated = rep 50 -- FIXME
+-- | 
+-- Repeat once for each element in the list.
+-- 
+-- > [a] -> (a -> Score Note) -> Score Note
+--     
+-- Example:
+-- > repWith [1,2,1] (c^*)
+--
+repWith = flip scatMap
+scatMap f = scat . fmap f
+        
+    
+-- | 
+-- Repeat exact amount of times with an index.
+-- 
+-- > Int -> (Int -> Score Note) -> Score Note
+--
+repWithIndex 0 a = mempty
+repWithIndex n a = a n |> repWithIndex (n-1) a
 
--- | Repeat and scale.
-grp :: (Eq s, Fractional s, s ~ (Scalar v), 
-        Monoid v, Semigroup v, VectorSpace v, 
-        HasOnset v, Delayable v) 
-        => Scalar v -> v -> v
-grp n p = rep n p^/n
+-- | 
+-- Repeat a number of times and scale down by the same amount.
+-- 
+group n a = rep n (a^/n)
+
+-- |
+-- Repeat indefinately, like repeat for lists.
+--
+-- > Score Note -> Score Note
+--
+repeated = rep 50 
+-- FIXME should be 
+-- repeated a = a |> repeated 
+
 
 
 -- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
