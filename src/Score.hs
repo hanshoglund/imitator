@@ -141,12 +141,13 @@ padToBar a = a |> (rest ^* (d' * 4))
 
 short1 :: Score Note
 short1 = {-staccato $ -} dynsRel (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 7 $ g `withGroups` [4,4,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 7 $ g `withGroups` [4,4,5,4,5] |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 7 $ g `withGroups` [4,5,4,5,4] |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ g `withGroups` [3,3,5,3,5] |> rest^*6)
+        (down 12 $ delay 0 $ rep 7 $ g `groupWith` [4,4,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 7 $ g `groupWith` [4,4,5,4,5] |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 7 $ g `groupWith` [4,5,4,5,4] |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ g `groupWith` [3,3,5,3,5] |> rest^*6)
     where
-        withGroups p = scat . fmap (\d -> group d p)
+
+
 
 
 
@@ -408,9 +409,8 @@ majorThird = 4
 -- 
 -- > Duration -> Score Note -> Score Note
 -- 
-rep :: (Monoid a, Semigroup a, HasOnset a, Delayable a) => Duration -> a -> a
-rep 0 a = mempty
-rep n a = a |> rep (n-1) a
+rep :: (Enum a, Monoid c, HasOnset c, Delayable c) => a -> c -> c
+rep n a = replicate (0 `max` fromEnum n) () `repWith` (const a)
 
 -- | 
 -- Repeat once for each element in the list.
@@ -421,7 +421,7 @@ rep n a = a |> rep (n-1) a
 -- > repWith [1,2,1] (c^*)
 --
 repWith :: (Monoid c, HasOnset c, Delayable c) => [a] -> (a -> c) -> c
-repWith = flip scatMap
+repWith = flip (\f -> scat . fmap f)
   
 -- | 
 -- Combination of 'scat' and 'fmap'. Note that
@@ -430,7 +430,6 @@ repWith = flip scatMap
 -- 
 scatMap f = scat . fmap f
         
-    
 -- | 
 -- Repeat exact amount of times with an index.
 -- 
@@ -454,15 +453,20 @@ repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
 -- 
 -- > Duration -> Score Note -> Score Note
 --
-group :: (Monoid a, Semigroup a, VectorSpace a, HasOnset a, Delayable a, Scalar a ~ Duration) => Duration -> a -> a
+group :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => a -> c -> c
 group n a = rep n (a^/n)
+
+groupWith :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => c -> [a] -> c
+groupWith p = scat . fmap (\d -> group d p)
+
+
 
 -- |
 -- Repeat indefinately, like repeat for lists.
 --
 -- > Score Note -> Score Note
 --
-repeated :: (Monoid a, Semigroup a, HasOnset a, Delayable a) => a -> a
+-- repeated :: (Monoid a, Semigroup a, HasOnset a, Delayable a) => a -> a
 repeated = rep 50 
 -- FIXME should be 
 -- repeated a = a |> repeated 
