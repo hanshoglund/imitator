@@ -129,8 +129,8 @@ noteScore = addInstrChange $
     ||> bar^*25
     ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
     ||> bar^*10
-    ||> (rev $ (delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
-    ||> ((delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
+
+    ||> canon3
     
     -- part 4 (jete)
     ||> bar^*15           
@@ -194,12 +194,6 @@ makeCanon2 dn subj =
     </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
     </> (dynamics dn $ rep 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
 
-makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note
-makeCanon3 dn subj = 
-        (dynamics dn $ rep 10 $ {- legato $ -} up   (octave+fifth)  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 10 $ {- legato $ -} up   octave          $ subj ^* 1     )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth           $ subj ^* (3/2) )
-    </> (dynamics dn $ rep 5  $ {- legato $ -} down octave          $ subj ^* 2 )
 
 
 canon0 :: Score Note
@@ -228,10 +222,23 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
+makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon3 dn subj bass = 
+        (dynamics dn $ rep 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
+    </> (dynamics dn $ rep 8  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
+
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   octave          $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 8  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> (dynamics dn $ rep 5  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
+
 canon3 :: Score Note
-canon3 = down 2 $ text "arco" $ makeCanon3 dn subj
+canon3 = down 2 $ text "arco" $ makeCanon3 dn subj bass
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
+        bass = (melody [d,a] |> g^*2)
         dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 
@@ -436,6 +443,7 @@ unison     = 0
 octave     = 12
 tritone    = 6
 fifth      = 7
+fourth     = 5
 minorThird = 3
 majorThird = 4
 
