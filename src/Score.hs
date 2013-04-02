@@ -109,30 +109,38 @@ echoShort2 = mempty
 
 noteScore :: Score Note
 noteScore = addInstrChange $
+    -- part 1
         (short1  </> delay (4*3) short1) 
     ||> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
+
     ||> (short1  </> delay (4*3) short1) 
+    ||> bar^*30
     
-    ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    
+    -- part 2
     ||> bar^*15
-    ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    ||> (canon1  <> (delay (4*7) $ moveToPart vl2 $ canon1))
     
     ||> bar^*40
-    ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    ||> (canon1  <> (delay (4*7) $ moveToPart vl2 $ canon1))
     
+    -- part 3
     ||> bar^*25
     ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
     
-    ||> bar^*40
+    ||> bar^*10
+    ||> (rev $ (delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
     ||> ((delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
     
+    -- part 4 (coda)
     ||> bar^*15           
-    ||> (jete1 </> delay (20*8) jete1)
-    ||> bar^*35     
+    ||> (jete1 </> delay (12*8) jete1)
+    ||> bar^*15     
     ||> c'^*4 -- mark ending!  
 
 
+-- TODO replace rep with repWith, work on continous transforms
+-- TODO pedals
+-- TODO harmonics?
 
 short1 :: Score Note
 short1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
@@ -156,18 +164,19 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
     </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
     </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
     where
-        ps = [0,6,6,0,6,6,0,6,6,0,6,6,0,6,6,6] 
-        vs = [True,False,True,False,True,False,True,False,True,False,True,False,True,False,True,False]
-        ds = fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
+        ps = take n $ cycle [0,6,6,0,6,6,0] 
+        vs = take n $ cycle [True,False,True,False,True,False,True,False]
+        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
+        n  = 9
 
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
-        a = (rep 7  $ {- legato $ -} subj1 ^*(4/3))
-        b = (rep 8  $ {- legato $ -} subj2 ^*1)
-        c = (rep 5  $ {- legato $ -} subj1 ^*2) 
-        d = (rep 3  $ {- legato $ -} subj2 ^*3) 
+        a = (rep 5  $ {- legato $ -} subj1 ^*(4/3))
+        b = (rep 4  $ {- legato $ -} subj2 ^*1)
+        c = (rep 3  $ {- legato $ -} subj1 ^*2) 
+        d = (rep 2  $ {- legato $ -} subj2 ^*3) 
 
 makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
