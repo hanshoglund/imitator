@@ -132,10 +132,9 @@ noteScore = addInstrChange $
     ||> bar^*25
     
     -- part 3 (canon2 and canon3)
-    ||> bar^*25
-    ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
     ||> bar^*10
-
+    ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
+    ||> bar^*25
     ||> (rest^*2 |> canon3)
     
     -- part 4 (jete)
@@ -218,7 +217,7 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon01 :: Score Note
-canon01 = text "arco" $ makeCanon0 dn subj1 subj2
+canon01 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
