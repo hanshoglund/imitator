@@ -103,17 +103,16 @@ echoShort2 = mempty
 
 --------------------------------------------------------------------------------
 
--- TODO reorder parts?
--- TODO harmonics (nat + art)  
--- TODO remove all slurs!!!!
+-- TODO col legno in basses one octave down (do last, sounds wrong!)
 
 noteScore :: Score Note
 noteScore = addInstrChange $
     -- part 1
-        (short1  </> delay (4*3) short1) 
-    ||> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
+        (colLegno1  </> delay (4*3) colLegno1) 
+    ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
 
-    ||> (short1  </> delay (4*3) short1) 
+    -- TODO shorter version here...
+    ||> (colLegno2  </> delay (4*3) colLegno2) 
     ||> bar^*30
     
     -- part 2
@@ -142,13 +141,19 @@ noteScore = addInstrChange $
 -- TODO pedals
 -- TODO harmonics?
 
-short1 :: Score Note
-short1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
+colLegno1 :: Score Note
+colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ rep 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
     </> (down 12 $ delay 1 $ rep 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
     </> (down 12 $ delay 3 $ rep 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
     </> (down 12 $ delay 6 $ rep 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
-    where
+
+colLegno2 :: Score Note
+colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
+        (down 12 $ delay 0 $ rep 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 4 $ [4,4,5,4,5,4]    `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 4 $ [4,5,4,5,4,4]    `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 4 $ [3,3,5,3,3]      `groupWith` g |> rest^*6)
 
 
 makeJete :: Pitch Note -> Bool -> Duration -> Score Note
@@ -198,19 +203,19 @@ makeCanon3 dn subj =
     </> (dynamics dn $ rep 5  $ {- legato $ -} down octave          $ subj ^* 2 )
 
 
-canon00 :: Score Note
-canon00 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
+canon0 :: Score Note
+canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
-canon0 :: Score Note
-canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
-    where
-        subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
-        subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
-        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+-- canon0 :: Score Note
+-- canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
+--     where
+--         subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
+--         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
+--         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon1 :: Score Note
 canon1 = down 2 $ text "arco" $ makeCanon1 dn subj
