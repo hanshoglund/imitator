@@ -45,6 +45,7 @@ quantizeScore = fmap (quantize . getPart) . scoreToParts . (^/4)
 --------------------------------------------------------------------------------
 
 -- FIXME duration must be shorter than env start time
+-- TODO spread out source positions (minimize risk of noise etc)
 
 cmdScore :: Score Command
 cmdScore = mempty
@@ -62,9 +63,17 @@ cmdScore = mempty
     <> delay (322*4)     echoCanon3
     <> delay (324*4)     echoCanon3
 
-    <> delay (25*60+24)  echoEnd
-    <> delay (25*60+34)  echoEnd
-    <> delay (25*60+44)  echoEnd
+    <> delay (25*60+24+0)  echoEnd
+    <> delay (25*60+24+2)  echoEnd
+
+    <> delay (25*60+34+0)  echoEnd
+    <> delay (25*60+34+2)  echoEnd
+    <> delay (25*60+34+4)  echoEnd
+    <> delay (25*60+34+6)  echoEnd
+
+    <> delay (25*60+44+0)  echoEnd
+    <> delay (25*60+44+2)  echoEnd
+    <> delay (25*60+44+4)  echoEnd
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
@@ -146,10 +155,10 @@ noteScore = addInstrChange $
     
     -- part 4 (jete)
     ||> bar^*1
-    ||> (delay (4*10) (jete1 </> delay (12*8) jete1) 
+    ||> (delay (4*10) (dynamics _p $ jete1 </> delay (12*8) jete1) 
         <> mconcat [
-            delay 0  $ up 12 $ moveToPart vl2  $ g_^*(4*30),
-            delay 5 $ up 12 $ moveToPart vla2 $ a_^*(4*30)
+            delay 0  $ dynamics ppp $ up (12*3) $ moveToPart vl2  $ d_^*(4*30),
+            delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30)
            ]                         
          )
     ||> bar^*15     
