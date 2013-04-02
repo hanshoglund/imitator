@@ -579,8 +579,8 @@ rev = startAt 0 . rev'
 --
 -- > Score Note -> Score Note
 --
-repeated :: Score a -> Score a
-repeated a = a `plus` delay (duration a) (repeated a)
+repeatS :: Score a -> Score a
+repeatS a = a `plus` delay (duration a) (repeatS a)
     where         
         Score as `plus` Score bs = Score (as <> bs)
         
@@ -605,6 +605,14 @@ rotr xs = (last xs:init xs)
 
 rotated n as | n >= 0 = iterate rotr as !! n
              | n <  0 = iterate rotl as !! (abs n)
+
+
+sampleS :: (Ord v, v ~ Voice a, HasVoice a) => Score b -> Score a -> Score (b, Score a)
+sampleS x = mapVoices (fmap $ sampleSingle x)
+
+gateS :: Score a -> Score b -> Score b
+gateS p as = mconcat $ toList $ fmap snd $ sampleSingle p as
+
 
 
 --------------------------------------------------------------------------------
