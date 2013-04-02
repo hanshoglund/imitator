@@ -104,42 +104,41 @@ echoShort2 = mempty
 --------------------------------------------------------------------------------
 
 -- TODO col legno in basses one octave down (do last, sounds wrong!)
+-- TODO register in canons?
+-- TODO replace rep with repWith, work on continous transforms
+-- TODO pedals
+-- TODO harmonics?
+
 
 noteScore :: Score Note
 noteScore = addInstrChange $
-    -- part 1
+    -- part 1 (first canon and col legno)
         (colLegno1  </> delay (4*3) colLegno1) 
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-
-    -- TODO shorter version here...
     ||> (colLegno2  </> delay (4*3) colLegno2) 
     ||> bar^*30
     
-    -- part 2
+    -- part 2 (development into canon2)
     ||> bar^*15
     ||> (canon1  <> (delay (4*7) $ moveToPart vl2 $ canon1))
     
     ||> bar^*40
     ||> (canon1  <> (delay (4*7) $ moveToPart vl2 $ canon1))
     
-    -- part 3
+    -- part 3 (canon2 and canon3)
     ||> bar^*25
-    ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
-    
+    ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
     ||> bar^*10
     ||> (rev $ (delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
     ||> ((delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
     
-    -- part 4 (coda)
+    -- part 4 (jete)
     ||> bar^*15           
     ||> (jete1 </> delay (12*8) jete1)
     ||> bar^*15     
-    ||> c'^*4 -- mark ending!  
+    -- ||> c'^*4 -- mark ending!  
 
-
--- TODO replace rep with repWith, work on continous transforms
--- TODO pedals
--- TODO harmonics?
+--------------------------------------------------------------------------------
 
 colLegno1 :: Score Note
 colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
