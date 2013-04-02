@@ -174,6 +174,14 @@ colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col leg
     </> (down 12 $ delay 3 $ rep 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
     </> (down 12 $ delay 6 $ rep 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
 
+colLegno1V :: Score Note
+colLegno1V = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
+        (down 12 $ delay 0 $ rep 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
+
+
 colLegno2 :: Score Note
 colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ rep 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
@@ -470,6 +478,7 @@ resetDynamics = setBeginCresc False . setEndCresc False . setBeginDim False . se
 
 resetArticulation :: HasArticulation c => c -> c
 resetArticulation = setBeginSlur False . setContSlur False . setEndSlur False . setAccLevel 0 . setStaccLevel 0
+
 
 
 --------------------------------------------------------------------------------
