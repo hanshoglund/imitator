@@ -109,9 +109,9 @@ echoShort2 = mempty
 
 noteScore :: Score Note
 noteScore = addInstrChange $
-        (short1 </> delay (4*1) short1) 
+        (short1  </> delay (4*3) short1) 
     ||> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
-    ||> (short1 </> delay (4*3) short1) 
+    ||> (short1  </> delay (4*3) short1) 
     
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
     
@@ -125,10 +125,10 @@ noteScore = addInstrChange $
     ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))
     
     ||> bar^*40
-    ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
+    ||> ((delay (4*1) $ canon3) <> (moveToPart vl2 $ canon3))
     
-    ||> bar^*10           
-    ||> (jete1 </> delay (2*8) jete1)
+    ||> bar^*15           
+    ||> (jete1 </> delay (20*8) jete1)
     ||> bar^*35     
     ||> c'^*4 -- mark ending!  
 
@@ -151,9 +151,9 @@ makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
 
 jete1 :: Score Note
 jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
-        (delay 3  $ up 12   $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
-    </> (delay 5  $ up 12   $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
-    </> (delay 7  $ up 0    $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
+        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
+    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
+    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
     </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
     where
         ps = [0,6,6,0,6,6,0,6,6,0,6,6,0,6,6,6] 
@@ -162,10 +162,12 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
 
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
-        (dynamics dn $ rep 7  $ {- legato $ -} subj1 ^*(4/3))
-    </> (dynamics dn $ rep 8  $ {- legato $ -} subj2 ^*1)
-    </> (dynamics dn $ rep 5  $ {- legato $ -} subj1 ^*2) 
-    </> (dynamics dn $ rep 3  $ {- legato $ -} subj2 ^*3) 
+        dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
+    where
+        a = (rep 7  $ {- legato $ -} subj1 ^*(4/3))
+        b = (rep 8  $ {- legato $ -} subj2 ^*1)
+        c = (rep 5  $ {- legato $ -} subj1 ^*2) 
+        d = (rep 3  $ {- legato $ -} subj2 ^*3) 
 
 makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
@@ -191,7 +193,7 @@ canon00 :: Score Note
 canon00 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
-        subj2 = g_^*3 |> a_ |> bb_^*1 |> c^*3
+        subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon0 :: Score Note
