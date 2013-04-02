@@ -130,13 +130,13 @@ noteScore = addInstrChange $
     ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
     ||> bar^*10
 
-    ||> canon3
+    ||> (rest^*2 |> canon3)
     
     -- part 4 (jete)
     ||> bar^*15           
     ||> (jete1 </> delay (12*8) jete1)
     ||> bar^*15     
-    -- ||> c'^*4 -- mark ending!  
+    ||> c'^*4 -- mark ending!  
 
 --------------------------------------------------------------------------------
 
@@ -173,6 +173,10 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 9
 
+
+
+
+
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
@@ -182,20 +186,6 @@ makeCanon0 dn subj1 subj2 =
         c = (rep 5  $ {- legato $ -} subj1 ^*2) 
         d = (rep 2  $ {- legato $ -} subj2 ^*3) 
 
-makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
-makeCanon1 dn subj = 
-        (dynamics dn $ rep 10 $ {- legato $ -} up   fifth  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth  $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison $ subj ^* (3/2) )
-
-makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
-makeCanon2 dn subj = 
-        (dynamics dn $ rep 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
-
-
-
 canon0 :: Score Note
 canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
@@ -203,18 +193,23 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
--- canon0 :: Score Note
--- canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
---     where
---         subj1 = melody [g_,a_] |> d^*(3/2) |> c |> d
---         subj2 = g_^*3 |> a_ |> bb_^*2 |> c^*2
---         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
+makeCanon1 dn subj = 
+        (dynamics dn $ rep 10 $ {- legato $ -} up   fifth  $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth  $ subj ^* 1     )
+    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison $ subj ^* (3/2) )
 
 canon1 :: Score Note
 canon1 = down 2 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (f^*2 |> melody [e,f,e,c] |> d^*4)
         dn   = (rep 13 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+
+makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
+makeCanon2 dn subj = 
+        (dynamics dn $ rep 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
+    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
 
 canon2 :: Score Note
 canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
@@ -223,19 +218,20 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
         dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon3 dn subj bass = rev $
+makeCanon3 dn subj bass =
         (dynamics dn $ rep 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
     </> (dynamics dn $ rep 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
     </> (dynamics dn $ rep 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
     </> (dynamics dn $ rep 11  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
-    -- 
+
     </> (dynamics dn $ rep 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
     </> (dynamics dn $ rep 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ rep 6{-7-}  $ {- legato $ -} down fourth          $ subj ^* (3/2) )      -- FIXME can not reverse
+    </> (dynamics dn $ rep 7{-7-}  $ {- legato $ -} down fourth          $ subj ^* (3/2) )      -- FIXME can not reverse
     </> (dynamics dn $ rep 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
 
+-- FIXME inverse dynamics
 canon3 :: Score Note
-canon3 = down 2 $ text "arco" $ makeCanon3 dn subj bass
+canon3 = down 2 $ text "arco" $ rev (makeCanon3 dn subj bass) |> makeCanon3 dn subj bass
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         bass = (melody [d,a] |> g^*2)
