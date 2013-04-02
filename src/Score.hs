@@ -223,15 +223,15 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
         dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon3 dn subj bass = 
+makeCanon3 dn subj bass = rev $
         (dynamics dn $ rep 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
     </> (dynamics dn $ rep 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
     </> (dynamics dn $ rep 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
     </> (dynamics dn $ rep 11  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
-
+    -- 
     </> (dynamics dn $ rep 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
     </> (dynamics dn $ rep 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
+    </> (dynamics dn $ rep 6{-7-}  $ {- legato $ -} down fourth          $ subj ^* (3/2) )      -- FIXME can not reverse
     </> (dynamics dn $ rep 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
 
 canon3 :: Score Note
