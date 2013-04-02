@@ -779,8 +779,8 @@ kStdOutputType          = "WAV"
 kStdOutputFormat        = "int16"
 
 -- FIXME hardcoded
--- (kInputBuses, kOutputBuses) = (10, 8)
-(kInputBuses, kOutputBuses) = (2,2)
+(kInputBuses, kOutputBuses) = (10, 8)
+-- (kInputBuses, kOutputBuses) = (2,2)
 
 kAudioBuses             = 128
 kControlBuses           = 4096

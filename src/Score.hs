@@ -174,8 +174,8 @@ makeCanon0 dn subj1 subj2 =
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
         a = (rep 5  $ {- legato $ -} subj1 ^*(4/3))
-        b = (rep 4  $ {- legato $ -} subj2 ^*1)
-        c = (rep 3  $ {- legato $ -} subj1 ^*2) 
+        b = (rep 5  $ {- legato $ -} subj2 ^*1)
+        c = (rep 5  $ {- legato $ -} subj1 ^*2) 
         d = (rep 2  $ {- legato $ -} subj2 ^*3) 
 
 makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
