@@ -112,12 +112,12 @@ noteScore = addInstrChange $
         (short1 </> delay (4*1) short1) 
     ||> (canon00 <> (delay (4*5) $ moveToPart vl2 $ canon00))
     ||> (short1 </> delay (4*3) short1) 
-
+    
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-
+    
     ||> bar^*15
     ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
-
+    
     ||> bar^*40
     ||> (canon1 <> (delay (4*7) $ moveToPart vl2 $ canon1))
     
@@ -127,7 +127,8 @@ noteScore = addInstrChange $
     ||> bar^*40
     ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
     
-    ||> bar^*90     
+    ||> bar^*10
+    ||> bar^*35     
     ||> c'^*4 -- mark ending!  
 
 
@@ -141,8 +142,22 @@ short1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno 
     where
 
 
+makeJete :: Pitch Note -> Bool -> Duration -> Score Note
+makeJete p v d = text "jeté" $ modifyPitches (+ p) $ g_ |> ((if v then cs else cs_){-^/2-}) {-|> rest^/2-} |> rest^*d
 
+makeJetes :: [Pitch Note] -> [Bool] -> [Duration] -> Score Note
+makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
 
+jete1 :: Score Note
+jete1 = 
+        (delay 3  $ up 12   $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
+    </> (delay 5  $ up 12   $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
+    </> (delay 7  $ up 0    $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
+    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
+    where
+        ps = [0,6,6,0,6,6,0,6,6,0,6,6,0,6,6,6] 
+        vs = [True,False,True,False,True,False,True,False,True,False,True,False,True,False,True,False]
+        ds = fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
 
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
@@ -500,6 +515,15 @@ padToBar a = a |> (rest ^* (d' * 4))
         d  = snd $ properFraction $ duration a / 4
         d' = if (d == 0) then 0 else (1-d)
                                                    
+
+rotl []     = []
+rotl (x:xs) = xs ++ [x]
+
+rotr [] = []
+rotr xs = (last xs:init xs)
+
+rotated n as | n >= 0 = iterate rotr as !! n
+             | n <  0 = iterate rotl as !! (abs n)
 
 
 --------------------------------------------------------------------------------
