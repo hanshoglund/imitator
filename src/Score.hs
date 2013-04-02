@@ -225,14 +225,14 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
 makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon3 dn subj bass = 
         (dynamics dn $ rep 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
-    </> (dynamics dn $ rep 8  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
     </> (dynamics dn $ rep 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
+    </> (dynamics dn $ rep 11  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
 
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   octave          $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 8  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
+    </> (dynamics dn $ rep 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
+    </> (dynamics dn $ rep 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
 
 canon3 :: Score Note
 canon3 = down 2 $ text "arco" $ makeCanon3 dn subj bass
