@@ -40,7 +40,7 @@ import qualified Data.ByteString.Lazy as ByteString
 
 import Music.Imitator
 
-quantizeScore = fmap (quantize . getPart) . scoreToParts
+quantizeScore = fmap (quantize . getPart) . scoreToParts . (^/4)
 
 --------------------------------------------------------------------------------
 
@@ -127,7 +127,8 @@ noteScore = addInstrChange $
     ||> bar^*40
     ||> ((delay (4*5) $ canon3) <> (moveToPart vl2 $ canon3))
     
-    ||> bar^*10
+    ||> bar^*10           
+    ||> (jete1 </> delay (2*8) jete1)
     ||> bar^*35     
     ||> c'^*4 -- mark ending!  
 
@@ -149,7 +150,7 @@ makeJetes :: [Pitch Note] -> [Bool] -> [Duration] -> Score Note
 makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
 
 jete1 :: Score Note
-jete1 = 
+jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
         (delay 3  $ up 12   $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
     </> (delay 5  $ up 12   $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
     </> (delay 7  $ up 0    $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
@@ -161,29 +162,29 @@ jete1 =
 
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
-        (dynamics dn $ rep 7  $ legato $ subj1 ^*(4/3))
-    </> (dynamics dn $ rep 8  $ legato $ subj2 ^*1)
-    </> (dynamics dn $ rep 5  $ legato $ subj1 ^*2) 
-    </> (dynamics dn $ rep 3  $ legato $ subj2 ^*3) 
+        (dynamics dn $ rep 7  $ {- legato $ -} subj1 ^*(4/3))
+    </> (dynamics dn $ rep 8  $ {- legato $ -} subj2 ^*1)
+    </> (dynamics dn $ rep 5  $ {- legato $ -} subj1 ^*2) 
+    </> (dynamics dn $ rep 3  $ {- legato $ -} subj2 ^*3) 
 
 makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
-        (dynamics dn $ rep 10 $ legato $ up   fifth  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ legato $ up   fifth  $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ legato $ down unison $ subj ^* (3/2) )
+        (dynamics dn $ rep 10 $ {- legato $ -} up   fifth  $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth  $ subj ^* 1     )
+    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison $ subj ^* (3/2) )
 
 makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon2 dn subj = 
-        (dynamics dn $ rep 10 $ legato $ up   octave  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ legato $ up   fifth   $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ legato $ down unison  $ subj ^* (3/2) )
+        (dynamics dn $ rep 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
+    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
 
 makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon3 dn subj = 
-        (dynamics dn $ rep 10 $ legato $ up   (octave+fifth)  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 10 $ legato $ up   octave          $ subj ^* 1     )
-    </> (dynamics dn $ rep 7  $ legato $ up   fifth           $ subj ^* (3/2) )
-    </> (dynamics dn $ rep 5  $ legato $ down octave          $ subj ^* 2 )
+        (dynamics dn $ rep 10 $ {- legato $ -} up   (octave+fifth)  $ subj ^* (2/3) )
+    </> (dynamics dn $ rep 10 $ {- legato $ -} up   octave          $ subj ^* 1     )
+    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth           $ subj ^* (3/2) )
+    </> (dynamics dn $ rep 5  $ {- legato $ -} down octave          $ subj ^* 2 )
 
 
 canon00 :: Score Note
