@@ -29,6 +29,7 @@ import Control.Concurrent (threadDelay)
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
 import Music.Score
+import Music.Score.Combinators
 import Music.Score.Rhythm (quantize)
 
 import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, (|>), 
@@ -578,8 +579,12 @@ rev = startAt 0 . rev'
 --
 -- > Score Note -> Score Note
 --
-repeated :: (Monoid c, HasOnset c, Delayable c) => c -> c
-repeated = rep 500
+repeated :: Score a -> Score a
+repeated a = a `plus` delay (duration a) (repeated a)
+    where         
+        Score as `plus` Score bs = Score (as <> bs)
+        
+
 -- TODO proper impl
 
 infixl 6 ||>
