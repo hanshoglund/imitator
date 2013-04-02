@@ -61,9 +61,16 @@ cmdScore = mempty
     <> delay (319*4)     echoCanon3
     <> delay (322*4)     echoCanon3
     <> delay (324*4)     echoCanon3
-    
+
+    <> delay (25*60+24)  echoEnd
+    <> delay (25*60+34)  echoEnd
+    <> delay (25*60+44)  echoEnd
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
+
+echoEnd = mempty
+    |> (playOnce (25*60+4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
+
 
 echoCanon1 = mempty
     |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
