@@ -116,14 +116,20 @@ noteScore = addInstrChange $
         (colLegno1  </> delay (4*3) colLegno1) 
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
     ||> (colLegno2  </> delay (4*3) colLegno2) 
-    ||> bar^*30
+    ||> (bar^*30
+            <> moveToPart vc1 g_^*(4*20)
+            <> moveToPart vc2 g_^*(4*20)
+            <> delay (4*15) (moveToPart vla1 a_^*(4*20))
+            <> delay (4*15) (moveToPart vla2 a_^*(4*20))
+            
+            )
     
     -- part 2 (development into canon2)
-    ||> bar^*15
-    ||> (canon1  <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    ||> canon01
+    ||> bar^*25
     
-    ||> bar^*40
-    ||> (canon1  <> (delay (4*7) $ moveToPart vl2 $ canon1))
+    ||> jete0
+    ||> bar^*25
     
     -- part 3 (canon2 and canon3)
     ||> bar^*25
@@ -133,10 +139,16 @@ noteScore = addInstrChange $
     ||> (rest^*2 |> canon3)
     
     -- part 4 (jete)
-    ||> bar^*15           
-    ||> (jete1 </> delay (12*8) jete1)
+    ||> bar^*1
+    ||> (delay (4*10) (jete1 </> delay (12*8) jete1) 
+        <> mconcat [
+            delay 0  $ up 12 $ moveToPart vl2  $ g_^*(4*30),
+            delay 5 $ up 12 $ moveToPart vla2 $ a_^*(4*30)
+           ]                         
+         )
     ||> bar^*15     
     ||> c'^*4 -- mark ending!  
+
 
 --------------------------------------------------------------------------------
 
@@ -150,9 +162,9 @@ colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col leg
 colLegno2 :: Score Note
 colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ rep 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 4 $ [4,4,5,4,5,4]    `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 4 $ [4,5,4,5,4,4]    `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 4 $ [3,3,5,3,3]      `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ rep 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ rep 4 $ [4,5,4,5,4,4]  `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ rep 4 $ [3,3,5,3,3]    `groupWith` g |> rest^*6)
 
 
 makeJete :: Pitch Note -> Bool -> Duration -> Score Note
@@ -160,6 +172,18 @@ makeJete p v d = text "jeté" $ modifyPitches (+ p) $ g_ |> ((if v then cs else 
 
 makeJetes :: [Pitch Note] -> [Bool] -> [Duration] -> Score Note
 makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
+
+jete0 :: Score Note
+jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
+        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
+    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
+    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
+    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
+    where
+        ps = take n $ cycle [0,6,6,0,6,6,0] 
+        vs = take n $ cycle [True,False,True,False,True,False,True,False]
+        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
+        n  = 3
 
 jete1 :: Score Note
 jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
@@ -190,6 +214,13 @@ canon0 :: Score Note
 canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
+        subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
+        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+
+canon01 :: Score Note
+canon01 = text "arco" $ makeCanon0 dn subj1 subj2
+    where
+        subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
@@ -231,11 +262,12 @@ makeCanon3 dn subj bass =
 
 -- FIXME inverse dynamics
 canon3 :: Score Note
-canon3 = down 2 $ text "arco" $ rev (makeCanon3 dn subj bass) |> makeCanon3 dn subj bass
+canon3 = down 2 $ text "arco" $ rev (makeCanon3 dn1 subj bass) |> makeCanon3 dn2 subj bass
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         bass = (melody [d,a] |> g^*2)
-        dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
+        dn1   = _f
+        dn2   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 
 
@@ -380,7 +412,7 @@ drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
         middleLines = translateX ((/ 2) $ totalDur) (hrule $ totalDur)
         crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 100)) $ [0..5]
 
-        drawNote n (t,d,x) = translateY (getP x + off n) $ translateX (getT t) $ scaleX (getD d) $ noteShape n
+        drawNote n (t,d,x) = translateY (getP x + off n) $ translateX (getT (t.+^(d^/2))) $ scaleX (getD d) $ noteShape n
         off 1 = 50
         off 2 = (-50)
         drawCmd (t,d,x) = translateY 0 $ translateX (getT t) $ cmdShape
