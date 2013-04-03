@@ -50,9 +50,9 @@ cmdScore = mempty
     <> delay (109*4)     echoCanon1
     <> delay (111*4)     echoCanon1
 
-    <> delay (319*4)     echoCanon3
-    <> delay (322*4)     echoCanon3
-    <> delay (324*4)     echoCanon3
+    <> delay (20*60+20+0)  echoCanon3
+    <> delay (21*60+20+2)  echoCanon3
+    <> delay (22*60+20+4)  echoCanon3
 
     <> delay (25*60+24+0)  echoEnd
     <> delay (25*60+24+2)  echoEnd
@@ -118,7 +118,7 @@ echoShort2 = mempty
 
 
 noteScore :: Score Note
-noteScore = addInstrChange $
+noteScore = {-addInstrChange $-}
     -- part 1 (first canon and col legno)
         (colLegno1  </> delay (4*3) colLegno1) 
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
