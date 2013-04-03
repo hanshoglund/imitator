@@ -217,6 +217,7 @@ colLegno3 :: Score Note
 colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
 
 
+--------------------------------------------------------------------------------
 
 
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
@@ -277,22 +278,26 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
 
 makeCanon3 :: Score Note -> Score Note -> Score Note
 makeCanon3 subj bass =
-        ({-dynamics dn $ -}repWithIndex 13 $ \i -> upVl i  $ subj ^* (4/5) )
-    </> ({-dynamics dn $ -}repWithIndex 11 $ \i -> upVla i $ subj ^* (2/3) )
-    </> ({-dynamics dn $ -}repTimes 9     $ up   unison          $ subj ^* 1     )
-    </> ({-dynamics dn $ -}repTimes 13    $ down (octave*2)      $ bass ^* 2     )
+        (repWithTime 13 $ \t -> reg Vl1 t   $ subj ^* (4/5) )
+    </> (repWithTime 11 $ \t -> reg Vla1 t  $ subj ^* (2/3) )
+    </> (repWithTime 15 $ \t -> reg Vc1 t   $ subj ^* 1     )
+    </> (repWithTime 16 $ \t -> reg Db1 t   $ bass ^* 2     )
 
-    </> ({-dynamics dn $ -}repTimes 13    $ up   octave          $ subj ^* (2/3) )
-    </> ({-dynamics dn $ -}repTimes 11     $ up   unison          $ subj ^* 1     )
-    </> ({-dynamics dn $ -}repTimes 9     $ down fourth          $ subj ^* (3/2) )
-    </> ({-dynamics dn $ -}repTimes 11     $ down (octave*2)      $ bass ^* 3     )
+    </> (repWithTime 15 $ \t -> reg Vl2 t   $ subj ^* (2/3) )
+    </> (repWithTime 11 $ \t -> reg Vla2 t  $ subj ^* 1     )
+    </> (repWithTime 9  $ \t -> reg Vc2 t   $ subj ^* (3/2) )
+    </> (repWithTime 11 $ \t -> reg Db2 t   $ bass ^* 3     )
     where
-        upVl n  | n < 3     = up (octave+fifth)
-                | n < 6     = up octave
-                | otherwise = up fifth
-        upVla n | n < 4     = up fifth
-                | n < 7     = up fifth
-                | otherwise = up unison
+        reg Vl1  t | t < 0.3 = up   (octave+fifth) | t < 0.6 = up octave       | t >= 0.6 = up fifth
+        reg Vla1 t | t < 0.4 = up   fifth          | t < 0.7 = up unison       | t >= 0.7 = up unison
+        reg Vc1  t | t < 0.4 = down fourth         | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        
+        reg Vl2  t | t < 0.4 = up   octave         | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vla2 t | t < 0.4 = up   unison         | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vc2  t | t < 0.4 = down octave         | t < 0.7 = down fourth     | t >= 0.7 = up unison
+
+        reg Db1  t | t < 0.4 = down (octave*1)     | t < 0.7 = down (octave*2) | t >= 0.7 = down (octave*1)
+        reg Db2  t | t < 0.4 = down (octave*2)     | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
 
 -- FIXME inverse dynamics
 -- TODO should we just scale this up?
