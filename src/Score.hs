@@ -132,8 +132,8 @@ noteScore = addInstrChange $
     ||> canon4
     ||> (bar^*15 <> moveToPart vl2 canon4)
     ||> (bar^*35
-            <> delay 0      (moveToPart vla1 bb_^*(4*20))
-            <> delay (4*20) (moveToPart vla2 c  ^*(4*20))
+            <> delay 0      (moveToPart vc2  bb_^*(4*20))
+            <> delay (4*20) (moveToPart vla1 c  ^*(4*20))
             )    
     
     -- part 3 (canon2 and canon3)
@@ -144,10 +144,11 @@ noteScore = addInstrChange $
             <> delay (4*20) (moveToPart vla2 bb ^*(4*20))
             )
 
-    ||> bar^*30
-    -- ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
-    ||> bar^*10
-    ||> (canon3)
+    ||> (bar^*35
+            <> delay 0      (moveToPart vl1  bb_^*(4*20))
+            <> delay (4*20) (moveToPart vla1 c  ^*(4*20))
+            )    
+    ||> canon3
     
     -- part 4 (jete)
     ||> bar^*1
