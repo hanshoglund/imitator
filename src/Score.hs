@@ -43,8 +43,9 @@ cmdScore = mempty
     <> delay 0          (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
     <> delay 0          (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
 
-    <> delay (0 *60+20)  echoShort1
-    <> delay (2 *60+20)  echoShort2
+    <> delay (0*60+20)  echoShort1
+    -- TODO echo canon 0 ?
+    <> delay (4*60+20)  echoShort2
 
     -- TODO
     <> delay (109*4)     echoCanon1
@@ -79,31 +80,31 @@ echoCanon3 = mempty
     |> (playOnce (20*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 0))
 
 echoShort1 = mempty
-    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
 
 echoShort2 = mempty
-    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 10 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 15 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
-    |> (playOnce 20 180 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
     |> rest^*10
 
 
@@ -119,16 +120,17 @@ echoShort2 = mempty
 
 noteScore :: Score Note
 noteScore = {-addInstrChange $-}
+
     -- part 1 (first canon and col legno)
         (colLegno1  </> delay (4*3) colLegno1) 
     ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
     ||> (colLegno2  </> delay (4*3) colLegno2) 
+
+    -- part 2 (canon4 and surrounding)
     ||> (bar^*30
             <> delay 0      (moveToPart vc2 g_^*(4*20))
             <> delay (4*15) (moveToPart vc1 a_^*(4*20))
             )
-    
-    -- part 2 (development into canon2)
     ||> canon4
     ||> (bar^*15 <> moveToPart vl2 (rev canon4))
     ||> (bar^*35
@@ -136,29 +138,26 @@ noteScore = {-addInstrChange $-}
             <> delay (4*20) (moveToPart vla1 c  ^*(4*20))
             )    
     
-    -- part 3 (?)
-    ||> (bar^*10
+    -- part 3 (development to canon3)
+    ||> (bar^*45
             <> delay 0      (moveToPart vl1  d' ^*(4*20))
             <> delay 0      (moveToPart vla1 f' ^*(4*20))
             <> delay (4*20) (moveToPart vl2  g  ^*(4*20))
             <> delay (4*20) (moveToPart vla2 bb ^*(4*20))
+            <> delay (4*40) (moveToPart vl1  bb_^*(4*20))
+            <> delay (4*60) (moveToPart vla1 c  ^*(4*20))
             )
-
-    ||> (bar^*35
-            <> delay 0      (moveToPart vl1  bb_^*(4*20))
-            <> delay (4*20) (moveToPart vla1 c  ^*(4*20))
-            )    
     ||> canon3
     
     -- part 4 (jete)
-    ||> bar^*1
-    ||> (delay (4*10) (dynamics _p $ jete1 </> delay (12*8) jete1) 
-        <> mconcat [
+    ||> mconcat [
             delay 0 $ dynamics ppp $ up (12*3) $ moveToPart vl2  $ d_^*(4*30),
-            delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30)
-           ]                         
-         )
-    ||> bar^*5     
+            delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30),
+            delay (4*10) (dynamics _p $ jete1 
+                </> 
+            delay (12*8) jete1)
+           ]
+    ||> bar^*2
     ||> c'^*4 -- mark ending!  
 
 
@@ -240,16 +239,6 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
         subj1 = g_ |> a_^*(3/2) |> g_^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
-
-canon01 :: Score Note
-canon01 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
-    where
-        subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
-        subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
-        dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
-
-
-
 
 makeCanon4 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon4 dn subj1 subj2 = 
