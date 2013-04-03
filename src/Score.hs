@@ -142,7 +142,7 @@ noteScore = addInstrChange $
     ||> bar^*10
     ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
     ||> bar^*25
-    ||> (rest^*2 |> canon3)
+    ||> (canon3)
     
     -- part 4 (jete)
     ||> bar^*1
@@ -267,23 +267,23 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
 
 makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon3 dn subj bass =
-        (dynamics dn $ repTimes 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
-    </> (dynamics dn $ repTimes 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
-    </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ repTimes 11 $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
+        ({-dynamics dn $ -}repTimes 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
+    </> ({-dynamics dn $ -}repTimes 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
+    </> ({-dynamics dn $ -}repTimes 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> ({-dynamics dn $ -}repTimes 11 $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
 
-    </> (dynamics dn $ repTimes 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
-    </> (dynamics dn $ repTimes 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ repTimes 7  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
-    </> (dynamics dn $ repTimes 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
+    </> ({-dynamics dn $ -}repTimes 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
+    </> ({-dynamics dn $ -}repTimes 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> ({-dynamics dn $ -}repTimes 7  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
+    </> ({-dynamics dn $ -}repTimes 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
 
 -- FIXME inverse dynamics
 canon3 :: Score Note
-canon3 = down 2 $ text "arco" $ rev (makeCanon3 dn1 subj bass) |> makeCanon3 dn2 subj bass
+canon3 = (rest^*2 |>) $ down 2 $ text "arco" $ dynamics dn1 (rev (makeCanon3 dn1 subj bass)) |> dynamics dn2 (makeCanon3 dn2 subj bass)
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         bass = (melody [d,a] |> g^*2)
-        dn1   = _f
+        dn1   = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
         dn2   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 
