@@ -1,11 +1,6 @@
 
-{-# LANGUAGE 
-    TypeFamilies, 
-    DeriveFunctor, 
-    DeriveFoldable, 
-    GeneralizedNewtypeDeriving,
-    NoMonomorphismRestriction,
-    OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies, DeriveFunctor, DeriveFoldable, GeneralizedNewtypeDeriving,
+    NoMonomorphismRestriction, OverloadedStrings #-}
 
 module Score (
         cmdScore,
@@ -15,16 +10,15 @@ module Score (
 import Control.Monad
 import Control.Applicative
 import Control.Apply.Reverse
+import Control.Concurrent (threadDelay)
 import Data.Semigroup
 import Data.VectorSpace
 import Data.AffineSpace
 import Data.Foldable (Foldable(..), toList)
+import Data.Ord (comparing)
 import Data.String
 import Data.Ratio
-import Data.Ord (comparing)
 import qualified Data.List as List
-
-import Control.Concurrent (threadDelay)
 
 import Music.Pitch.Literal
 import Music.Dynamics.Literal
@@ -32,16 +26,12 @@ import Music.Score
 import Music.Score.Combinators
 import Music.Score.Rhythm (quantize)
 
-import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, (|>), 
-                                Time, Duration, 
-                                (&), text, e, tau)
+import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, (|>), Time, Duration, (&), text, e, tau)
 import Diagrams.Backend.SVG (SVG(..), Options(..))
 import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Data.ByteString.Lazy as ByteString
 
 import Music.Imitator
-
-quantizeScore = fmap (quantize . getPart) . scoreToParts . (^/4)
 
 --------------------------------------------------------------------------------
 
@@ -280,11 +270,11 @@ makeCanon3 dn subj bass =
         (dynamics dn $ repTimes 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
     </> (dynamics dn $ repTimes 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
     </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ repTimes 11  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
+    </> (dynamics dn $ repTimes 11 $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
 
     </> (dynamics dn $ repTimes 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
     </> (dynamics dn $ repTimes 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ repTimes 7{-7-}  $ {- legato $ -} down fourth          $ subj ^* (3/2) )      -- FIXME can not reverse
+    </> (dynamics dn $ repTimes 7  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
     </> (dynamics dn $ repTimes 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
 
 -- FIXME inverse dynamics
@@ -416,6 +406,8 @@ play = playMidiIO
 
 simple :: Score (VoiceT Integer Integer) -> Score (VoiceT Integer Integer)
 simple = id
+
+-- quantizeScore = fmap (quantize . getPart) . scoreToParts . (^/4)
 
 --------------------------------------------------------------------------------
 
@@ -588,8 +580,6 @@ repeatS a = a `plus` delay (duration a) (repeatS a)
         Score as `plus` Score bs = Score (as <> bs)
         
 
--- TODO proper impl
-
 infixl 6 ||>
 a ||> b = padToBar a |> b
 bar = rest^*4
@@ -629,64 +619,3 @@ off = rest
 
 
 
---------------------------------------------------------------------------------
-
-
-{-
-successor :: (Integral b, Enum a) => b -> a -> a
-successor n | n <  0 = (!! fromIntegral (abs n)) . iterate pred
-            | n >= 0 = (!! fromIntegral n)       . iterate succ
-
--- | 
--- Map over first, middle and last elements of list.
--- Biased on first, then on first and last for short lists.
--- 
-mapSepL :: (a -> b) -> (a -> b) -> (a -> b) -> [a] -> [b]
-mapSepL f g h []      = []
-mapSepL f g h [a]     = [f a]
-mapSepL f g h [a,b]   = [f a, h b]
-mapSepL f g h xs      = [f $ head xs] ++ (map g $ tail $ init xs) ++ [h $ last xs]
-
-mapSep :: (HasVoice a, Ord v, v ~ Voice a) => (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
-mapSep f g h sc = fixDur . mapVoices (fmap $ mapSepPart f g h) $ sc
-    where
-        fixDur a = padAfter (duration sc - duration a) a
-
-
-mapSepPart :: (a -> b) -> (a -> b) -> (a -> b) -> Score a -> Score b
-mapSepPart f g h sc = mconcat . mapSepL (fmap f) (fmap g) (fmap h) . fmap toSc . perform $ sc
-    where             
-        fixDur a = padAfter (duration sc - duration a) a
-        toSc (t,d,x) = delay (t .-. 0) . stretch d $ note x
-        third f (a,b,c) = (a,b,f c)
-
-padAfter :: Duration -> Score a -> Score a
-padAfter d a = a |> (rest^*d)
-
-maximum' :: (Ord a, Foldable t) => a -> t a -> a
-maximum' z = option z getMax . foldMap (Option . Just . Max)
-
-minimum' :: (Ord a, Foldable t) => a -> t a -> a
-minimum' z = option z getMin . foldMap (Option . Just . Min)
-
--- | 
--- Pass through @Just@ occurrences.
--- Generalizes the 'catMaybes' function.
--- 
-mcatMaybes :: MonadPlus m => m (Maybe a) -> m a
-mcatMaybes = (>>= maybe mzero return)
-
-second :: (a -> b) -> (c,a) -> (c,b)
-second f (a,b) = (a,f b)
-
-partToScore' :: Part (Maybe a) -> Score a
-partToScore' = mcatMaybes . partToScore
-
--- mapParts :: (Ord v, v ~ Voice a, HasVoice a) => (Part (Maybe a) -> Part (Maybe a)) -> Score a -> Score a
--- mapParts f = mapVoices (fmap $ mcatMaybes . partToScore . f . scoreToPart)
-
-toFrac :: (Real a, Fractional b) => a -> b
-toFrac = fromRational . toRational
-
-fromJust (Just x) = x
--}
