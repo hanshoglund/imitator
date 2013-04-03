@@ -293,16 +293,16 @@ makeCanon3 subj bass =
     </> (repWithTime (15/(3/2)) $ \t -> reg Vc2 t   $ subj ^* (3/2) )
     </> (repWithTime (18/ 2   ) $ \t -> reg Db2 t    $ bass ^* 3    )
     where
-        reg Vl1  t | t < 0.3 = up   (octave+fifth) | t < 0.6 = up octave       | t >= 0.6 = up fifth
-        reg Vla1 t | t < 0.4 = up   fifth          | t < 0.7 = up unison       | t >= 0.7 = up unison
-        reg Vc1  t | t < 0.4 = down fourth         | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vl1  t | t < 0.3 = up   (octave + fifth) | t < 0.6 = up fifth         | t >= 0.6 = up fifth
+        reg Vla1 t | t < 0.4 = up   octave           | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vc1  t | t < 0.4 = down octave           | t < 0.7 = down fourth     | t >= 0.7 = down fourth
         
-        reg Vl2  t | t < 0.4 = up   octave         | t < 0.7 = up fifth        | t >= 0.7 = up unison
-        reg Vla2 t | t < 0.4 = up   unison         | t < 0.7 = up fifth        | t >= 0.7 = up unison
-        reg Vc2  t | t < 0.4 = down octave         | t < 0.7 = down fourth     | t >= 0.7 = up unison
+        reg Vl2  t | t < 0.4 = up   fifth            | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vla2 t | t < 0.4 = up   unison           | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vc2  t | t < 0.4 = down octave           | t < 0.7 = down octave     | t >= 0.7 = down fourth
 
-        reg Db1  t | t < 0.4 = down (octave*1)     | t < 0.7 = down (octave*2) | t >= 0.7 = down (octave*1)
-        reg Db2  t | t < 0.4 = down (octave*2)     | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
+        reg Db1  t | t < 0.4 = down (octave*1)       | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
+        reg Db2  t | t < 0.4 = down (octave*2)       | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
 
 -- FIXME inverse dynamics
 -- TODO should we just scale this up?
