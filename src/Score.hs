@@ -132,8 +132,9 @@ noteScore = addInstrChange $
             )
     
     -- part 2 (development into canon2)
-    ||> canon01
-    ||> bar^*25
+    ||> canon4
+    ||> (bar^*15 <> moveToPart vl2 canon4)
+    ||> bar^*10
     
     ||> jete0
     ||> bar^*25
@@ -241,17 +242,26 @@ canon01 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
-makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
-makeCanon1 dn subj = 
-        (dynamics dn $ repTimes 10 $ {- legato $ -} up   fifth  $ subj ^* (2/3) )
-    </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   fifth  $ subj ^* 1     )
-    </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison $ subj ^* (3/2) )
 
-canon1 :: Score Note
-canon1 = down 2 $ text "arco" $ makeCanon1 dn subj
+
+
+makeCanon4 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon4 dn subj1 subj2 = 
+        dynamics dn (rev $ a </> b </> c </> d)
     where
-        subj = (f^*2 |> melody [e,f,e,c] |> d^*4)
-        dn   = (repTimes 13 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+        a = (repWithTime 5 $ \t -> up (round $ octave * t) $ subj1 ^*(4/3))
+        b = (repWithTime 5 $ \t -> up (round $ octave * t) $ subj2 ^*1)
+        c = (repWithTime 2 $ \t -> up (round $ octave * t) $ subj1 ^*2) 
+        d = (repWithTime 2 $ \t -> up (round $ octave * t) $ subj2 ^*3) 
+
+canon4 :: Score Note
+canon4 = text "arco" $ (^*2) $ makeCanon4 dn subj1 subj2
+    where
+        subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
+        subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
+        dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+
+
 
 makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon2 dn subj = 
