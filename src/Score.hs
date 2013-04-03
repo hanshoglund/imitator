@@ -265,21 +265,29 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
-makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon3 dn subj bass =
-        ({-dynamics dn $ -}repTimes 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
-    </> ({-dynamics dn $ -}repTimes 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
-    </> ({-dynamics dn $ -}repTimes 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> ({-dynamics dn $ -}repTimes 11 $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
+makeCanon3 :: Score Note -> Score Note -> Score Note
+makeCanon3 subj bass =
+        ({-dynamics dn $ -}repWithIndex 7 $ \i -> upVl i  $ subj ^* (4/5) )
+    </> ({-dynamics dn $ -}repWithIndex 9 $ \i -> upVla i $ subj ^* (2/3) )
+    </> ({-dynamics dn $ -}repTimes 7  $ up   unison          $ subj ^* 1     )
+    </> ({-dynamics dn $ -}repTimes 11 $ down (octave*2)      $ bass ^* 2     )
 
-    </> ({-dynamics dn $ -}repTimes 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
-    </> ({-dynamics dn $ -}repTimes 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> ({-dynamics dn $ -}repTimes 7  $ {- legato $ -} down fourth          $ subj ^* (3/2) )
-    </> ({-dynamics dn $ -}repTimes 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
+    </> ({-dynamics dn $ -}repTimes 11 $ up   octave          $ subj ^* (2/3) )
+    </> ({-dynamics dn $ -}repTimes 9  $ up   unison          $ subj ^* 1     )
+    </> ({-dynamics dn $ -}repTimes 7  $ down fourth          $ subj ^* (3/2) )
+    </> ({-dynamics dn $ -}repTimes 9  $ down (octave*2)      $ bass ^* 3     )
+    where
+        upVl n  | n < 3     = up (octave+fifth)
+                | n < 6     = up octave
+                | otherwise = up fifth
+        upVla n | n < 4     = up fifth
+                | n < 7     = up fifth
+                | otherwise = up unison
 
 -- FIXME inverse dynamics
+-- TODO should we just scale this up?
 canon3 :: Score Note
-canon3 = (rest^*2 |>) $ down 2 $ text "arco" $ dynamics dn1 (rev (makeCanon3 dn1 subj bass)) |> dynamics dn2 (makeCanon3 dn2 subj bass)
+canon3 = (rest^*2 |>) $ down 2 $ text "arco" $ dynamics dn1 (rev (makeCanon3 subj bass)) |> dynamics dn2 (makeCanon3 subj bass)
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         bass = (melody [d,a] |> g^*2)
