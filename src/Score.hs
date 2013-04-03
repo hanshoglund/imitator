@@ -148,8 +148,8 @@ noteScore = addInstrChange $
     ||> bar^*1
     ||> (delay (4*10) (dynamics _p $ jete1 </> delay (12*8) jete1) 
         <> mconcat [
-            delay 0  $ dynamics ppp $ up (12*3) $ moveToPart vl2  $ d_^*(4*30),
-            delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30)
+            delay 0 $ dynamics ppp $ up (12*3) $ moveToPart vl2  $ d_^*(4*30),
+            delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30)
            ]                         
          )
     ||> bar^*15     
@@ -190,26 +190,26 @@ makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
 
 jete0 :: Score Note
 jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
-        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
-    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
-    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
-    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
+        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
+    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
+    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
+    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
     where
         ps = take n $ cycle [0,6,6,0,6,6,0] 
         vs = take n $ cycle [True,False,True,False,True,False,True,False]
-        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
+        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 3
 
 jete1 :: Score Note
 jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
-        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
-    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
-    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
-    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
+        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
+    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
+    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
+    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
     where
         ps = take n $ cycle [0,6,6,0,6,6,0] 
         vs = take n $ cycle [True,False,True,False,True,False,True,False]
-        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
+        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 9
 
 colLegno3 :: Score Note
@@ -298,7 +298,7 @@ instance Monoid Command where
     x `mappend` y = x
 
 readBuffer = note . ReadBuffer
-playOnce t d = setTime t $ setDur d $ note mempty
+playOnce t d = setTime t $ setDur d $ note mempty
 
 setTime  :: Time -> Score Command -> Score Command
 setTime  = \x -> fmap (setTime' x)
@@ -414,7 +414,7 @@ simple = id
 main :: IO ()
 main = rt
 
--- | 
+-- | 
 -- Ad-hoc drawing of commands notes.
 -- 
 drawScores 
@@ -604,7 +604,7 @@ sampleS :: (Ord v, v ~ Voice a, HasVoice a) => Score b -> Score a -> Score (b, S
 sampleS x = mapVoices (fmap $ sampleSingle x)
 
 gateS :: Score a -> Score b -> Score b
-gateS p as = mconcat $ toList $ fmap snd $ sampleSingle p as
+gateS p as = mconcat $ toList $ fmap snd $ sampleSingle p as
 
 takeS :: Duration -> Score a -> Score a
 takeS d = gateS (on^*d)
