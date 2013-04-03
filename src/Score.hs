@@ -304,10 +304,18 @@ makeCanon3 subj bass =
 canon3 :: Score Note
 canon3 = (rest^*2 |>) $ down 2 $ text "arco" $ dynamics dn1 (rev (makeCanon3 subj bass)) |> dynamics dn2 (makeCanon3 subj bass)
     where
-        subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
-        bass = (melody [d,a] |> g^*2)
         dn1   = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
         dn2   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
+
+        -- subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
+        -- bass = (melody [d,a] |> g^*2)
+        subj = (g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
+        bass = (melody [d,a] |> g^*2)
+
+
+-- subj = (^*2) $ c |> melody[c,d,e,d]^/2 |> c |> c |> d |> e |> e 
+    -- |> rest^*(3/2) 
+    -- |> melody [g,f,e,d,c]^/2 |> d^*2 |> e^*3 |> c |> d^*2
 
 
 
