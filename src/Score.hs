@@ -136,13 +136,13 @@ noteScore = addInstrChange $
     ||> (bar^*15 <> moveToPart vl2 canon4)
     ||> bar^*10
     
-    ||> jete0
     ||> bar^*25
     
     -- part 3 (canon2 and canon3)
     ||> bar^*10
-    ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
-    ||> bar^*25
+    ||> bar^*30
+    -- ||> ((delay (4*5) $ canon2) <> (moveToPart vl2 $ down octave $ canon2))    
+    ||> bar^*10
     ||> (canon3)
     
     -- part 4 (jete)
@@ -153,7 +153,7 @@ noteScore = addInstrChange $
             delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30)
            ]                         
          )
-    ||> bar^*15     
+    ||> bar^*5     
     ||> c'^*4 -- mark ending!  
 
 
@@ -199,7 +199,7 @@ jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         ps = take n $ cycle [0,6,6,0,6,6,0] 
         vs = take n $ cycle [True,False,True,False,True,False,True,False]
         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
-        n  = 3
+        n  = 7
 
 jete1 :: Score Note
 jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
@@ -249,10 +249,10 @@ makeCanon4 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon4 dn subj1 subj2 = 
         dynamics dn (rev $ a </> b </> c </> d)
     where
-        a = (repWithTime 5 $ \t -> up (round $ octave * t) $ subj1 ^*(4/3))
-        b = (repWithTime 5 $ \t -> up (round $ octave * t) $ subj2 ^*1)
-        c = (repWithTime 2 $ \t -> up (round $ octave * t) $ subj1 ^*2) 
-        d = (repWithTime 2 $ \t -> up (round $ octave * t) $ subj2 ^*3) 
+        a = (repWithTime 5 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*(4/3))
+        b = (repWithTime 5 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*1)
+        c = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*2) 
+        d = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*3) 
 
 canon4 :: Score Note
 canon4 = text "arco" $ (^*2) $ makeCanon4 dn subj1 subj2
@@ -277,15 +277,15 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
 
 makeCanon3 :: Score Note -> Score Note -> Score Note
 makeCanon3 subj bass =
-        ({-dynamics dn $ -}repWithIndex 7 $ \i -> upVl i  $ subj ^* (4/5) )
-    </> ({-dynamics dn $ -}repWithIndex 9 $ \i -> upVla i $ subj ^* (2/3) )
-    </> ({-dynamics dn $ -}repTimes 7  $ up   unison          $ subj ^* 1     )
-    </> ({-dynamics dn $ -}repTimes 11 $ down (octave*2)      $ bass ^* 2     )
+        ({-dynamics dn $ -}repWithIndex 13 $ \i -> upVl i  $ subj ^* (4/5) )
+    </> ({-dynamics dn $ -}repWithIndex 11 $ \i -> upVla i $ subj ^* (2/3) )
+    </> ({-dynamics dn $ -}repTimes 9     $ up   unison          $ subj ^* 1     )
+    </> ({-dynamics dn $ -}repTimes 13    $ down (octave*2)      $ bass ^* 2     )
 
-    </> ({-dynamics dn $ -}repTimes 11 $ up   octave          $ subj ^* (2/3) )
-    </> ({-dynamics dn $ -}repTimes 9  $ up   unison          $ subj ^* 1     )
-    </> ({-dynamics dn $ -}repTimes 7  $ down fourth          $ subj ^* (3/2) )
-    </> ({-dynamics dn $ -}repTimes 9  $ down (octave*2)      $ bass ^* 3     )
+    </> ({-dynamics dn $ -}repTimes 13    $ up   octave          $ subj ^* (2/3) )
+    </> ({-dynamics dn $ -}repTimes 11     $ up   unison          $ subj ^* 1     )
+    </> ({-dynamics dn $ -}repTimes 9     $ down fourth          $ subj ^* (3/2) )
+    </> ({-dynamics dn $ -}repTimes 11     $ down (octave*2)      $ bass ^* 3     )
     where
         upVl n  | n < 3     = up (octave+fifth)
                 | n < 6     = up octave
