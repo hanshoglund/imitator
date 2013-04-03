@@ -282,15 +282,15 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
 
 makeCanon3 :: Score Note -> Score Note -> Score Note
 makeCanon3 subj bass =
-        (repWithTime 13 $ \t -> reg Vl1 t   $ subj ^* (4/5) )
-    </> (repWithTime 11 $ \t -> reg Vla1 t  $ subj ^* (2/3) )
-    </> (repWithTime 15 $ \t -> reg Vc1 t   $ subj ^* 1     )
-    </> (repWithTime 16 $ \t -> reg Db1 t   $ bass ^* 2     )
+        (repWithTime (10/(4/5)) $ \t -> reg Vl1 t   $ subj ^* (4/5) )
+    </> (repWithTime (10/(2/3)) $ \t -> reg Vla1 t  $ subj ^* (2/3) )
+    </> (repWithTime (10/ 1   ) $ \t -> reg Vc1 t   $ subj ^* 1     )
+    </> (repWithTime (10/ 2   ) $ \t -> reg Db2 t   $ bass ^* 3    )
 
-    </> (repWithTime 15 $ \t -> reg Vl2 t   $ subj ^* (2/3) )
-    </> (repWithTime 11 $ \t -> reg Vla2 t  $ subj ^* 1     )
-    </> (repWithTime 9  $ \t -> reg Vc2 t   $ subj ^* (3/2) )
-    </> (repWithTime 11 $ \t -> reg Db2 t   $ bass ^* 3     )
+    </> (repWithTime (10/(2/3)) $ \t -> reg Vl2 t   $ subj ^* (2/3) )
+    </> (repWithTime (10/ 1   ) $ \t -> reg Vla2 t  $ subj ^* 1     )
+    </> (repWithTime (10/(3/2)) $ \t -> reg Vc2 t   $ subj ^* (3/2) )
+    </> (repWithTime (10/ 2   ) $ \t -> reg Db2 t    $ bass ^* 3    )
     where
         reg Vl1  t | t < 0.3 = up   (octave+fifth) | t < 0.6 = up octave       | t >= 0.6 = up fifth
         reg Vla1 t | t < 0.4 = up   fifth          | t < 0.7 = up unison       | t >= 0.7 = up unison
@@ -306,10 +306,13 @@ makeCanon3 subj bass =
 -- FIXME inverse dynamics
 -- TODO should we just scale this up?
 canon3 :: Score Note
-canon3 = (rest^*2 |>) $ down 2 $ text "arco" $ dynamics dn1 (rev (makeCanon3 subj bass)) |> dynamics dn2 (makeCanon3 subj bass)
+canon3 = down 2 $ text "arco" $ rest^*padC |> firstC |> secondC
     where
-        dn1   = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
-        dn2   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
+        firstC  = dynamics dn1 (rev (makeCanon3 subj bass))
+        secondC = dynamics dn2 (makeCanon3 subj bass)
+        padC    = fromIntegral $ 4 - numerator (getDuration $ duration firstC) `mod` 4
+        dn1     = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
+        dn2     = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
         -- subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
         -- bass = (melody [d,a] |> g^*2)
