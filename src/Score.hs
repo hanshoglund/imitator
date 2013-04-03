@@ -166,29 +166,30 @@ noteScore = addInstrChange $
     ||> c'^*4 -- mark ending!  
 
 
+
 --------------------------------------------------------------------------------
 
 colLegno1 :: Score Note
 colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
+        (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ repTimes 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
 
 colLegno1V :: Score Note
 colLegno1V = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
+        (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ repTimes 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
 
 
 colLegno2 :: Score Note
 colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ rep 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 1 $ rep 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 3 $ rep 4 $ [4,5,4,5,4,4]  `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 6 $ rep 4 $ [3,3,5,3,3]    `groupWith` g |> rest^*6)
+        (down 12 $ delay 0 $ repTimes 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 1 $ repTimes 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 3 $ repTimes 4 $ [4,5,4,5,4,4]  `groupWith` g |> rest^*6)
+    </> (down 12 $ delay 6 $ repTimes 4 $ [3,3,5,3,3]    `groupWith` g |> rest^*6)
 
 
 makeJete :: Pitch Note -> Bool -> Duration -> Score Note
@@ -221,6 +222,8 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 9
 
+colLegno3 :: Score Note
+colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
 
 
 
@@ -229,60 +232,60 @@ makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon0 dn subj1 subj2 = 
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
-        a = (rep 5  $ {- legato $ -} subj1 ^*(4/3))
-        b = (rep 5  $ {- legato $ -} subj2 ^*1)
-        c = (rep 5  $ {- legato $ -} subj1 ^*2) 
-        d = (rep 2  $ {- legato $ -} subj2 ^*3) 
+        a = (repTimes 5  $ {- legato $ -} subj1 ^*(4/3))
+        b = (repTimes 5  $ {- legato $ -} subj2 ^*1)
+        c = (repTimes 5  $ {- legato $ -} subj1 ^*2) 
+        d = (repTimes 2  $ {- legato $ -} subj2 ^*3) 
 
 canon0 :: Score Note
 canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
-        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+        dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 canon01 :: Score Note
 canon01 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
-        dn   = (rep 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+        dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 makeCanon1 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon1 dn subj = 
-        (dynamics dn $ rep 10 $ {- legato $ -} up   fifth  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth  $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison $ subj ^* (3/2) )
+        (dynamics dn $ repTimes 10 $ {- legato $ -} up   fifth  $ subj ^* (2/3) )
+    </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   fifth  $ subj ^* 1     )
+    </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison $ subj ^* (3/2) )
 
 canon1 :: Score Note
 canon1 = down 2 $ text "arco" $ makeCanon1 dn subj
     where
         subj = (f^*2 |> melody [e,f,e,c] |> d^*4)
-        dn   = (rep 13 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+        dn   = (repTimes 13 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
 makeCanon2 dn subj = 
-        (dynamics dn $ rep 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
-    </> (dynamics dn $ rep 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
+        (dynamics dn $ repTimes 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
+    </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
+    </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
 
 canon2 :: Score Note
 canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
-        dn   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
+        dn   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 makeCanon3 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon3 dn subj bass =
-        (dynamics dn $ rep 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
-    </> (dynamics dn $ rep 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ rep 11  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
+        (dynamics dn $ repTimes 7  $ {- legato $ -} up   (octave+fifth)  $ subj ^* (4/5) )
+    </> (dynamics dn $ repTimes 9  $ {- legato $ -} up   fifth           $ subj ^* (2/3) )
+    </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> (dynamics dn $ repTimes 11  $ {- legato $ -} down (octave*2)      $ bass ^* 2     )
 
-    </> (dynamics dn $ rep 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
-    </> (dynamics dn $ rep 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
-    </> (dynamics dn $ rep 7{-7-}  $ {- legato $ -} down fourth          $ subj ^* (3/2) )      -- FIXME can not reverse
-    </> (dynamics dn $ rep 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
+    </> (dynamics dn $ repTimes 11 $ {- legato $ -} up   octave          $ subj ^* (2/3) )
+    </> (dynamics dn $ repTimes 9  $ {- legato $ -} up   unison          $ subj ^* 1     )
+    </> (dynamics dn $ repTimes 7{-7-}  $ {- legato $ -} down fourth          $ subj ^* (3/2) )      -- FIXME can not reverse
+    </> (dynamics dn $ repTimes 9  $ {- legato $ -} down (octave*2)      $ bass ^* 3     )
 
 -- FIXME inverse dynamics
 canon3 :: Score Note
@@ -291,7 +294,7 @@ canon3 = down 2 $ text "arco" $ rev (makeCanon3 dn1 subj bass) |> makeCanon3 dn2
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         bass = (melody [d,a] |> g^*2)
         dn1   = _f
-        dn2   = (rep 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
+        dn2   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 
 
@@ -510,8 +513,8 @@ majorThird = 4
 -- 
 -- > Duration -> Score Note -> Score Note
 -- 
-rep :: (Enum a, Monoid c, HasOnset c, Delayable c) => a -> c -> c
-rep n a = replicate (0 `max` fromEnum n) () `repWith` (const a)
+repTimes :: (Enum a, Monoid c, HasOnset c, Delayable c) => a -> c -> c
+repTimes n a = replicate (0 `max` fromEnum n) () `repWith` (const a)
 
 -- | 
 -- Repeat once for each element in the list.
@@ -555,7 +558,7 @@ repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
 -- > Duration -> Score Note -> Score Note
 --
 group :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => a -> c -> c
-group n a = rep n (a^/n)
+group n a = repTimes n (a^/n)
 
 groupWith :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => [a] -> c -> c
 groupWith = flip $ \p -> scat . fmap (flip group $ p)
@@ -612,6 +615,17 @@ sampleS x = mapVoices (fmap $ sampleSingle x)
 
 gateS :: Score a -> Score b -> Score b
 gateS p as = mconcat $ toList $ fmap snd $ sampleSingle p as
+
+takeS :: Duration -> Score a -> Score a
+takeS d = gateS (on^*d)
+
+on :: Score ()
+on = note ()
+
+off :: Score ()
+off = rest
+
+
 
 
 
