@@ -130,13 +130,13 @@ noteScore = {-addInstrChange $-}
     
     -- part 2 (development into canon2)
     ||> canon4
-    ||> (bar^*15 <> moveToPart vl2 canon4)
+    ||> (bar^*15 <> moveToPart vl2 (rev canon4))
     ||> (bar^*35
             <> delay 0      (moveToPart vc2  bb_^*(4*20))
             <> delay (4*20) (moveToPart vla1 c  ^*(4*20))
             )    
     
-    -- part 3 (canon2 and canon3)
+    -- part 3 (?)
     ||> (bar^*10
             <> delay 0      (moveToPart vl1  d' ^*(4*20))
             <> delay 0      (moveToPart vla1 f' ^*(4*20))
@@ -281,24 +281,23 @@ canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
-makeCanon3 :: Score Note -> Score Note -> Score Note
-makeCanon3 subj bass =
-        (repWithTime (10/(4/5)) $ \t -> reg Vl1 t   $ subj ^* (4/5) )
-    </> (repWithTime (12/(2/3)) $ \t -> reg Vla1 t  $ subj ^* (2/3) )
-    </> (repWithTime (15/ 1   ) $ \t -> reg Vc1 t   $ subj ^* 1     )
-    </> (repWithTime (18/ 2   ) $ \t -> reg Db2 t   $ bass ^* 3    )
+makeCanon3 :: Score Note -> Score Note -> Score Note -> Score Note
+makeCanon3 subj1 subj2 bass =
+        (repWithTime (10/(4/5)) $ \t -> reg Vl1 t   $ subj1 ^* (4/5) )
+    </> (repWithTime (12/(2/3)) $ \t -> reg Vla1 t  $ subj1 ^* (2/3) )
+    </> (repWithTime (15/ 1   ) $ \t -> reg Vc1 t   $ subj1 ^* 1     )
+    </> (repWithTime (18/ 2   ) $ \t -> reg Db2 t   $ bass ^* 1    )
 
-    </> (repWithTime (10/(2/3)) $ \t -> reg Vl2 t   $ subj ^* (2/3) )
-    </> (repWithTime (12/ 1   ) $ \t -> reg Vla2 t  $ subj ^* 1     )
-    </> (repWithTime (15/(3/2)) $ \t -> reg Vc2 t   $ subj ^* (3/2) )
-    </> (repWithTime (18/ 2   ) $ \t -> reg Db2 t    $ bass ^* 3    )
+    </> (repWithTime (10/(2/3)) $ \t -> reg Vl2 t   $ subj2 ^* (2/3) )
+    </> (repWithTime (12/ 1   ) $ \t -> reg Vla2 t  $ subj2 ^* 1     )
+    </> (repWithTime (15/(3/2)) $ \t -> reg Vc2 t   $ subj2 ^* (3/2) )
+    </> (repWithTime (18/ 2   ) $ \t -> reg Db2 t   $ bass ^* 1    )
     where
-        reg Vl1  t | t < 0.3 = up   (octave + fifth) | t < 0.6 = up fifth         | t >= 0.6 = up fifth
-        reg Vla1 t | t < 0.4 = up   octave           | t < 0.7 = up fifth        | t >= 0.7 = up unison
-        reg Vc1  t | t < 0.4 = down octave           | t < 0.7 = down fourth     | t >= 0.7 = down fourth
-        
-        reg Vl2  t | t < 0.4 = up   fifth            | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vl1  t | t < 0.3 = up   (octave + fifth) | t < 0.6 = up octave       | t >= 0.6 = up fifth
+        reg Vl2  t | t < 0.4 = up   octave           | t < 0.7 = up fifth        | t >= 0.7 = up fifth
+        reg Vla1 t | t < 0.4 = up   fifth            | t < 0.7 = up fifth        | t >= 0.7 = up unison
         reg Vla2 t | t < 0.4 = up   unison           | t < 0.7 = up fifth        | t >= 0.7 = up unison
+        reg Vc1  t | t < 0.4 = down octave           | t < 0.7 = down octave     | t >= 0.7 = down fourth
         reg Vc2  t | t < 0.4 = down octave           | t < 0.7 = down octave     | t >= 0.7 = down fourth
 
         reg Db1  t | t < 0.4 = down (octave*1)       | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
@@ -309,16 +308,17 @@ makeCanon3 subj bass =
 canon3 :: Score Note
 canon3 = down 2 $ text "arco" $ c^*padC |> firstC |> secondC
     where
-        firstC  = dynamics dn1 (rev (makeCanon3 subj bass))
-        secondC = dynamics dn2 (makeCanon3 subj bass)
+        firstC  = dynamics dn1 (rev (makeCanon3 subj1 subj2 bass))
+        secondC = dynamics dn2 (makeCanon3 subj1 subj2 bass)
         padC    = fromIntegral $ 4 - numerator (getDuration $ duration firstC) `mod` 4
         dn1     = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
         dn2     = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
         -- subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
         -- bass = (melody [d,a] |> g^*2)
-        subj = (g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
-        bass = (melody [d,a] |> g^*2)
+subj1 = (d^*3 |> a |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
+subj2 = (d^*2 |> a |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
+bass  = melody [d,a] |> g^*2 |> melody [c,d,a] |> g^*2
 
 
 -- subj = (^*2) $ c |> melody[c,d,e,d]^/2 |> c |> c |> d |> e |> e 
