@@ -51,9 +51,7 @@ cmdScore = mempty
     <> delay (109*4)     echoCanon1
     <> delay (111*4)     echoCanon1
 
-    <> delay (20*60+20+0)  echoCanon3
-    <> delay (21*60+20+2)  echoCanon3
-    <> delay (22*60+20+4)  echoCanon3
+    <> delay (22*60+20+0) echoCanon3
 
     -- <> delay (25*60+24+0)  echoEnd
     -- <> delay (25*60+24+2)  echoEnd
@@ -77,34 +75,38 @@ echoCanon1 = mempty
     |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
 
 echoCanon3 = mempty
-    |> (playOnce (20*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 1.0))
+    |> rest^*30
+    |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 0.3))
+    |> rest^*30
+    |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 - 0.3))
 
 echoShort1 = mempty
-    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 + 0.1))
     |> rest^*10
-    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 - 0.1))
     |> rest^*10
-    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0 + 0.2))
     |> rest^*10
-    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0 - 0.2))
     |> rest^*10
-    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 + 0.3))
     |> rest^*10
-    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 - 0.3))
     |> rest^*10
 
 echoShort2 = mempty
-    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 + 1.0))
     |> rest^*10
-    |> (playOnce 10 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 - 0.4))
     |> rest^*10
-    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0 + 0.4))
     |> rest^*10
-    |> (playOnce 15 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 15 50 & setCurve Smooth & setAzim (0 - 0.2))
     |> rest^*10
-    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 + 0.2))
     |> rest^*10
-    |> (playOnce 20 50 & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 - 0.0))
     |> rest^*10
 
 
