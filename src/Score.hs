@@ -121,44 +121,46 @@ echoShort2 = mempty
 noteScore :: Score Note
 noteScore = {-addInstrChange $-}
 
-    -- part 1 (first canon and col legno)
-        (colLegno1  </> delay (4*3) colLegno1) 
-    ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))
-    ||> (colLegno2  </> delay (4*3) colLegno2) 
+    -- * Part 1 (first canon and col legno)
+        (colLegno1  </> delay (4*3) colLegno1)
+    ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))     -- A
+    ||> (colLegno2  </> delay (4*3) colLegno2)                  -- B
 
-    -- part 2 (canon4 and surrounding)
-    ||> (bar^*30
-            <> delay 0      (moveToPart vc2 g_^*(4*20))
-            <> delay (4*15) (moveToPart vc1 a_^*(4*20))
+    -- * Part 2 (canon4 and surrounding)
+    -- C
+    ||> (dynamics _p $ bar^*30
+            <> delay 0      (moveToPart vc2 g_^*(4*15))
+            <> delay (4*15) (moveToPart vc1 a_^*(4*15))
             )
+    -- D, E
     ||> canon4
     ||> (bar^*15 <> moveToPart vl2 (rev canon4))
-    ||> (bar^*35
-            <> delay 0      (moveToPart vc2  bb_^*(4*20))
-            <> delay (4*20) (moveToPart vla1 c  ^*(4*20))
-            )    
-    
-    -- part 3 (development to canon3)
-    ||> (bar^*45
-            <> delay 0      (moveToPart vl1  d' ^*(4*20))
-            <> delay 0      (moveToPart vla1 f' ^*(4*20))
-            <> delay (4*20) (moveToPart vl2  g  ^*(4*20))
-            <> delay (4*20) (moveToPart vla2 bb ^*(4*20))
-            <> delay (4*40) (moveToPart vl1  bb_^*(4*20))
-            <> delay (4*60) (moveToPart vla1 c  ^*(4*20))
+    -- F
+    ||> (dynamics _p $ bar^*30
+            <> delay 0      (moveToPart vc2 bb_^*(4*15))
+            <> delay (4*15) (moveToPart vc1 c  ^*(4*15))
             )
+
+    -- * Part 3 (development to canon3)
+    -- G
+    ||> (bar^*45
+            <> delay 0      (moveToPart vl1  f'  ^*(4*15)) <> delay 0      (moveToPart vla1 d' ^*(4*15))
+            <> delay (4*15) (moveToPart vl2  bb  ^*(4*15)) <> delay (4*15) (moveToPart vla2 g  ^*(4*15))
+
+            <> delay (4*30) (moveToPart vl1  bb_ ^*(4*15))
+
+            <> delay (4*45) (moveToPart vla1 c   ^*(4*15))
+            )
+    -- H
     ||> canon3
-    
-    -- part 4 (jete)
+
+    -- * Part 4 (jete)
     ||> mconcat [
             delay 0 $ dynamics ppp $ up (12*3) $ moveToPart vl2  $ d_^*(4*30),
-            delay 5 $ dynamics ppp $ up (12*3) $ moveToPart vla2 $ d_^*(4*30),
-            delay (4*10) (dynamics _p $ jete1 
-                </> 
-            delay (12*8) jete1)
+            delay (4*10) (dynamics _p $ jete1 </> delay (12*8) jete1)
            ]
     ||> bar^*2
-    ||> c'^*4 -- mark ending!  
+    ||> c'^*4 -- mark ending!
 
 
 
@@ -194,25 +196,25 @@ makeJetes :: [Pitch Note] -> [Bool] -> [Duration] -> Score Note
 makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
 
 jete0 :: Score Note
-jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
+jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
     </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
     </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
     </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
     where
-        ps = take n $ cycle [0,6,6,0,6,6,0] 
+        ps = take n $ cycle [0,6,6,0,6,6,0]
         vs = take n $ cycle [True,False,True,False,True,False,True,False]
         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 7
 
 jete1 :: Score Note
-jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar 
+jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
     </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
     </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
     </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
     where
-        ps = take n $ cycle [0,6,6,0,6,6,0] 
+        ps = take n $ cycle [0,6,6,0,6,6,0]
         vs = take n $ cycle [True,False,True,False,True,False,True,False]
         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 9
@@ -225,13 +227,13 @@ colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^
 
 
 makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon0 dn subj1 subj2 = 
+makeCanon0 dn subj1 subj2 =
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
         a = (repTimes 5  $ {- legato $ -} subj1 ^*(4/3))
         b = (repTimes 5  $ {- legato $ -} subj2 ^*1)
-        c = (repTimes 5  $ {- legato $ -} subj1 ^*2) 
-        d = (repTimes 2  $ {- legato $ -} subj2 ^*3) 
+        c = (repTimes 5  $ {- legato $ -} subj1 ^*2)
+        d = (repTimes 2  $ {- legato $ -} subj2 ^*3)
 
 canon0 :: Score Note
 canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
@@ -241,13 +243,13 @@ canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 makeCanon4 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon4 dn subj1 subj2 = 
+makeCanon4 dn subj1 subj2 =
         dynamics dn (rev $ a </> b </> c </> d)
     where
         a = (repWithTime 5 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*(4/3))
         b = (repWithTime 5 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*1)
-        c = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*2) 
-        d = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*3) 
+        c = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*2)
+        d = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*3)
 
 canon4 :: Score Note
 canon4 = text "arco" $ (^*2) $ makeCanon4 dn subj1 subj2
@@ -259,7 +261,7 @@ canon4 = text "arco" $ (^*2) $ makeCanon4 dn subj1 subj2
 
 
 makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
-makeCanon2 dn subj = 
+makeCanon2 dn subj =
         (dynamics dn $ repTimes 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
     </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
     </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
@@ -349,14 +351,14 @@ setAzim'  _ x                          = x
 -- Notes
 --------------------------------------------------------------------------------
 
-data NotePart 
-    = Vl1 
-    | Vla1 
-    | Vc1 
-    | Db1 
-    | Vl2 
-    | Vla2 
-    | Vc2 
+data NotePart
+    = Vl1
+    | Vla1
+    | Vc1
+    | Db1
+    | Vl2
+    | Vla2
+    | Vc2
     | Db2
     deriving (Eq, Ord, Enum)
 
@@ -393,7 +395,7 @@ db1  = Db1
 db2  = Db2
 
 -- 1 or 2
-getPartGroup :: NotePart -> Int 
+getPartGroup :: NotePart -> Int
 getPartGroup p = case p of
     Vl1    -> 1
     Vla1   -> 1
@@ -404,7 +406,7 @@ getPartGroup p = case p of
 -- A hack, works only in Sibelius
 addInstrChange :: Score Note -> Score Note
 addInstrChange = mapVoices $
-    \[a,b,c,d,e,f,g,h] -> 
+    \[a,b,c,d,e,f,g,h] ->
         [ text "~P41" a,
           text "~P42" b,
           text "~P43" c,
@@ -412,21 +414,21 @@ addInstrChange = mapVoices $
           text "~P41" e,
           text "~P42" f,
           text "~P43" g,
-          text "~P44" h 
+          text "~P44" h
           ]
 
-type Note = (VoiceT NotePart (TieT 
-    (TremoloT (HarmonicT (SlideT 
+type Note = (VoiceT NotePart (TieT
+    (TremoloT (HarmonicT (SlideT
         (DynamicT (ArticulationT (TextT Integer))))))))
 
 score :: Score Note -> Score Note
 score = id
 
 open :: Score Note -> IO ()
-open = openXml . (^/4)            
+open = openXml . (^/4)
 
 play :: Score Note -> IO ()
-play = playMidiIO            
+play = playMidiIO
 
 simple :: Score (VoiceT Integer Integer) -> Score (VoiceT Integer Integer)
 simple = id
@@ -438,17 +440,17 @@ simple = id
 main :: IO ()
 main = rt
 
--- | 
+-- |
 -- Ad-hoc drawing of commands notes.
--- 
-drawScores 
-    :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b) 
+--
+drawScores
+    :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b)
     => Score b -> Score c -> Diagram SVG R2
 drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
-    where                                
+    where
         notes1 = mfilter (\x -> getPartGroup (getVoice x) == 1) notes
         notes2 = mfilter (\x -> getPartGroup (getVoice x) == 2) notes
-        
+
         notes1D     = mconcat $ fmap (drawNote 1) $ perform notes1
         notes2D     = mconcat $ fmap (drawNote 2) $ perform notes2
         cmdsD       = mconcat $ fmap drawCmd $ perform cmds
@@ -469,7 +471,7 @@ drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
         getD = fromRational . toRational
         getP = (subtract 60) . fromIntegral . getPitch
 
-dr = do                                             
+dr = do
     let sc  = drawScores noteScore cmdScore
     let svg = renderDia SVG (SVGOptions (Dims 1800 800)) sc
     let bs  = renderSvg svg
@@ -479,7 +481,7 @@ nrt = do
     writeSynthDefs
     runImitatorNRT (scoreToTrack cmdScore)
 
-rt = do 
+rt = do
     startServer
     threadDelay 1000000
     runImitatorRT (scoreToTrack cmdScore)
@@ -524,43 +526,43 @@ majorThird = 4
 -- Structure
 --------------------------------------------------------------------------------
 
--- | 
+-- |
 -- Repeat exact amount of times.
--- 
+--
 -- > Duration -> Score Note -> Score Note
--- 
+--
 repTimes :: (Enum a, Monoid c, HasOnset c, Delayable c) => a -> c -> c
 repTimes n a = replicate (0 `max` fromEnum n) () `repWith` (const a)
 
--- | 
+-- |
 -- Repeat once for each element in the list.
--- 
+--
 -- > [a] -> (a -> Score Note) -> Score Note
---     
+--
 -- Example:
 -- > repWith [1,2,1] (c^*)
 --
 repWith :: (Monoid c, HasOnset c, Delayable c) => [a] -> (a -> c) -> c
 repWith = flip (\f -> scat . fmap f)
-  
--- | 
+
+-- |
 -- Combination of 'scat' and 'fmap'. Note that
 --
 -- > scatMap = flip repWith
--- 
+--
 scatMap f = scat . fmap f
-        
--- | 
+
+-- |
 -- Repeat exact amount of times with an index.
--- 
+--
 -- > Duration -> (Duration -> Score Note) -> Score Note
 --
 repWithIndex :: (Enum a, Num a, Monoid c, HasOnset c, Delayable c) => a -> (a -> c) -> c
 repWithIndex n = repWith [0..n-1]
 
--- | 
+-- |
 -- Repeat exact amount of times with relative time.
--- 
+--
 -- > Real a => a -> (Time -> Score Note) -> Score Note
 --
 repWithTime :: (Enum a, Fractional a, Monoid c, HasOnset c, Delayable c) => a -> (a -> c) -> c
@@ -568,9 +570,9 @@ repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
     where
         n' = n
 
--- | 
+-- |
 -- Repeat a number of times and scale down by the same amount.
--- 
+--
 -- > Duration -> Score Note -> Score Note
 --
 group :: (Enum a, Fractional a, a ~ Scalar c, Monoid c, Semigroup c, VectorSpace c, HasOnset c, Delayable c) => a -> c -> c
@@ -581,7 +583,7 @@ groupWith = flip $ \p -> scat . fmap (flip group $ p)
 
 -- |
 -- Reverse a score around its middle point.
--- 
+--
 -- > onset a    = onset (rev a)
 -- > duration a = duration (rev a)
 -- > offset a   = offset (rev a)
@@ -600,9 +602,9 @@ rev = startAt 0 . rev'
 --
 repeatS :: Score a -> Score a
 repeatS a = a `plus` delay (duration a) (repeatS a)
-    where         
+    where
         Score as `plus` Score bs = Score (as <> bs)
-        
+
 
 infixl 6 ||>
 a ||> b = padToBar a |> b
@@ -612,7 +614,7 @@ padToBar a = a |> (rest ^* (d' * 4))
     where
         d  = snd $ properFraction $ duration a / 4
         d' = if (d == 0) then 0 else (1-d)
-                                                   
+
 
 rotl []     = []
 rotl (x:xs) = xs ++ [x]
