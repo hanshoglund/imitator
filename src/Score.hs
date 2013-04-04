@@ -151,7 +151,9 @@ noteScore = {-addInstrChange $-}
 
             <> delay (4*45) (moveToPart vla1 c   ^*(4*15))
             )
-    -- H
+    -- H    
+    -- TODO copy extra bass notes
+    -- TODO 301 vl1 transpose a
     ||> canon3
 
     -- * Part 4 (jete)
