@@ -140,16 +140,22 @@ noteScore = {-addInstrChange $-}
             <> delay 0      (moveToPart vc2 bb_^*(4*15))
             <> delay (4*15) (moveToPart vc1 c  ^*(4*15))
             )
+    ||> (canon5 <> (delay (4*30) $ moveToPart vl2 $ canon5))     -- A
+
 
     -- * Part 3 (development to canon3)
     -- G
     ||> (bar^*45
-            <> delay 0      (moveToPart vl1  f'  ^*(4*15)) <> delay 0      (moveToPart vla1 d' ^*(4*15))
-            <> delay (4*15) (moveToPart vl2  bb  ^*(4*15)) <> delay (4*15) (moveToPart vla2 g  ^*(4*15))
+            <> delay 0      (moveToPart vl1  f'  ^*(4*15)) 
+                -- <> delay 0      (moveToPart vla1 d' ^*(4*15))
+            -- <> delay (4*15) midCanon1
 
-            <> delay (4*30) (moveToPart vl1  bb_ ^*(4*15))
+            <> delay (4*15) (moveToPart vl2  bb  ^*(4*15)) 
+            -- <> delay (4*15) (moveToPart vla2 g  ^*(4*15))
 
-            <> delay (4*45) (moveToPart vla1 c   ^*(4*15))
+            <> delay (4*30) (moveToPart vc1  bb_ ^*(4*15))
+
+            <> delay (4*45) (moveToPart vc1 c   ^*(4*15))
             )
     -- H    
     -- TODO copy extra bass notes
@@ -165,6 +171,21 @@ noteScore = {-addInstrChange $-}
     ||> c'^*4 -- mark ending!
 
 
+--------------------------------------------------------------------------------
+
+makeMidCanon1 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeMidCanon1 dn subj1 subj2 = dynamics dn $ rev $ a </> b </> c
+    where
+        a = (repTimes 5  $ {- legato $ -} subj1 ^*(2/3))
+        b = (repTimes 4  $ {- legato $ -} subj2 ^*1)
+        c = (repTimes 4  $ {- legato $ -} subj2 ^*(3/2))
+
+midCanon1 :: Score Note
+midCanon1 = text "ord" $ (^*2) $ up 7 $ makeMidCanon1 dn subj1 subj2
+    where
+        subj1 = down 2 $ (c' |> b |> g |> a^*3)
+        subj2 = down 2 $ (c' |> b |> c' |> b |> g |> a^*3)
+        dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 --------------------------------------------------------------------------------
 
@@ -227,22 +248,37 @@ colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^
 
 --------------------------------------------------------------------------------
 
-
-makeCanon0 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon0 dn subj1 subj2 =
+makeCanon0 :: Double -> Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon0 n dn subj1 subj2 =
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
-        a = (repTimes 5  $ {- legato $ -} subj1 ^*(4/3))
-        b = (repTimes 5  $ {- legato $ -} subj2 ^*1)
-        c = (repTimes 5  $ {- legato $ -} subj1 ^*2)
-        d = (repTimes 2  $ {- legato $ -} subj2 ^*3)
+        a = (repTimes (5*n/(4/3)) $ subj1 ^*(4/3))
+        b = (repTimes (5*n/1)     $ subj2 ^*1)
+        c = (repTimes (5*n/2)     $ subj1 ^*2)
+        d = (repTimes (5*n/3)     $ subj2 ^*3)
 
 canon0 :: Score Note
-canon0 = text "ord" $ (^*2) $ makeCanon0 dn subj1 subj2
+canon0 = text "ord" $ (^*2) $ makeCanon0 1 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+
+makeCanon5 :: Double -> Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon5 n dn subj1 subj2 =
+        dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
+    where
+        a = (repTimes (5*n/(4/3)) $ subj1 ^*(4/3))
+        b = (repTimes (5*n/1)     $ subj2 ^*1)
+        c = (repTimes (5*n/2)     $ subj1 ^*2)
+        d = (repTimes (5*n/3)     $ subj2 ^*3)
+
+canon5 :: Score Note
+canon5 = text "ord" $ makeCanon5 1.6 dn subj1 subj2
+    where
+        subj1 = g^*2 |> d |> eb^*(3/2) |> c^*2 |> d^*2
+        subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*2 |> d^*3 |> c^*1
+        dn   = (repTimes 5 $ (mf `cresc` _f)^*3 |> (_f `dim` mf)^*3 )
 
 makeCanon4 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
 makeCanon4 dn subj1 subj2 =
@@ -256,8 +292,8 @@ makeCanon4 dn subj1 subj2 =
 canon4 :: Score Note
 canon4 = text "ord" $ (^*2) $ makeCanon4 dn subj1 subj2
     where
-        subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
-        subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
+        subj1 = g_ |> d^*(3/2) |> c^/2 |> a_^/2 |> bb_^/2
+        subj2 = f_^*3 |> bb_^*1 |> a_ |> d_^*3
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 
@@ -300,7 +336,7 @@ makeCanon3 flip subj1 subj2 bass = if flip then lower </> upper else upper </> l
 -- FIXME inverse dynamics
 -- TODO should we just scale this up?
 canon3 :: Score Note
-canon3 = down 2 $ text "ord" $ c^*padC |> firstC |> secondC
+canon3 = text "ord" $ c^*padC |> firstC |> secondC
     where
         firstC  = dynamics dn1 (rev (makeCanon3 False subj1 subj2 bass))
         secondC = dynamics dn2 (makeCanon3 True subj1 subj2 bass)
@@ -308,8 +344,8 @@ canon3 = down 2 $ text "ord" $ c^*padC |> firstC |> secondC
         dn1     = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
         dn2     = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
-        subj1 = (d^*3 |> a |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
-        subj2 = (d^*2 |> a |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
+        subj1 = down 2 $ (d^*3 |> a |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
+        subj2 = down 2 $ (d^*2 |> a |> g^*2 |> c' |> b |> c' |> b |> g |> a^*3)
         bass  = melody [d,a] |> g^*2 |> melody [c,d,a] |> g^*2
         -- bass  = melody [d,g] |> a^*2 |> melody [c,g,d] |> a^*2
 
