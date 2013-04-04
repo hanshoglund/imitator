@@ -175,19 +175,19 @@ noteScore = {-addInstrChange $-}
 
 --------------------------------------------------------------------------------
 
-makeMidCanon1 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeMidCanon1 dn subj1 subj2 = dynamics dn $ rev $ a </> b </> c
-    where
-        a = (repTimes 5  $ {- legato $ -} subj1 ^*(2/3))
-        b = (repTimes 4  $ {- legato $ -} subj2 ^*1)
-        c = (repTimes 4  $ {- legato $ -} subj2 ^*(3/2))
-
-midCanon1 :: Score Note
-midCanon1 = text "ord" $ (^*2) $ up 7 $ makeMidCanon1 dn subj1 subj2
-    where
-        subj1 = down 2 $ (c' |> b |> g |> a^*3)
-        subj2 = down 2 $ (c' |> b |> c' |> b |> g |> a^*3)
-        dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
+-- makeMidCanon1 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
+-- makeMidCanon1 dn subj1 subj2 = dynamics dn $ rev $ a </> b </> c
+--     where
+--         a = (repTimes 5  $ {- legato $ -} subj1 ^*(2/3))
+--         b = (repTimes 4  $ {- legato $ -} subj2 ^*1)
+--         c = (repTimes 4  $ {- legato $ -} subj2 ^*(3/2))
+-- 
+-- midCanon1 :: Score Note
+-- midCanon1 = text "ord" $ (^*2) $ up 7 $ makeMidCanon1 dn subj1 subj2
+--     where
+--         subj1 = down 2 $ (c' |> b |> g |> a^*3)
+--         subj2 = down 2 $ (c' |> b |> c' |> b |> g |> a^*3)
+--         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
 --------------------------------------------------------------------------------
 
@@ -198,13 +198,13 @@ colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col leg
     </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
     </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
 
-colLegno1V :: Score Note
-colLegno1V = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
-        (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 1 $ repTimes 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
-
+-- colLegno1V :: Score Note
+-- colLegno1V = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
+--         (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
+--     </> (down 12 $ delay 1 $ repTimes 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
+--     </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
+--     </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
+-- 
 
 colLegno2 :: Score Note
 colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
@@ -220,17 +220,17 @@ makeJete p v d = text "jeté" $ modifyPitches (+ p) $ g_ |> ((if v then cs else 
 makeJetes :: [Pitch Note] -> [Bool] -> [Duration] -> Score Note
 makeJetes ps vs ds = scat $ zipWith3 makeJete ps vs ds
 
-jete0 :: Score Note
-jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
-        (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
-    </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
-    </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
-    </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
-    where
-        ps = take n $ cycle [0,6,6,0,6,6,0]
-        vs = take n $ cycle [True,False,True,False,True,False,True,False]
-        ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
-        n  = 7
+-- jete0 :: Score Note
+-- jete0 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
+--         (delay 3  $ up 0    $ makeJetes (rotated 0 ps) (rotated 3 vs) (rotated 1 ds))
+--     </> (delay 5  $ up 0    $ makeJetes (rotated 1 ps) (rotated 0 vs) (rotated 3 ds))^*(4/5)
+--     </> (delay 7  $ down 12 $ makeJetes (rotated 2 ps) (rotated 1 vs) (rotated 2 ds))
+--     </> (delay 12 $ down 12 $ makeJetes (rotated 3 ps) (rotated 2 vs) (rotated 0 ds))^*(4/5)
+--     where
+--         ps = take n $ cycle [0,6,6,0,6,6,0]
+--         vs = take n $ cycle [True,False,True,False,True,False,True,False]
+--         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
+--         n  = 7
 
 jete1 :: Score Note
 jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
@@ -244,8 +244,8 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         ds = take n $ cycle $ fmap (+ 4) [3,7,5,7,5,5,3,7,7,7,7,7,5,3,7,7,7,7,7,3,3,5]
         n  = 9
 
-colLegno3 :: Score Note
-colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
+-- colLegno3 :: Score Note
+-- colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
 
 
 --------------------------------------------------------------------------------
@@ -300,17 +300,17 @@ canon4 = text "ord" $ (^*2) $ makeCanon4 dn subj1 subj2
 
 
 
-makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
-makeCanon2 dn subj =
-        (dynamics dn $ repTimes 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
-    </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
-    </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
-
-canon2 :: Score Note
-canon2 = down 2 $ text "ord" $ makeCanon2 dn subj
-    where
-        subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
-        dn   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
+-- makeCanon2 :: Score (Levels Double) -> Score Note -> Score Note
+-- makeCanon2 dn subj =
+--         (dynamics dn $ repTimes 10 $ {- legato $ -} up   octave  $ subj ^* (2/3) )
+--     </> (dynamics dn $ repTimes 7  $ {- legato $ -} up   fifth   $ subj ^* 1     )
+--     </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
+-- 
+-- canon2 :: Score Note
+-- canon2 = down 2 $ text "ord" $ makeCanon2 dn subj
+--     where
+--         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
+--         dn   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
 
 makeCanon3 :: Bool -> Score Note -> Score Note -> Score Note -> Score Note
 makeCanon3 flip subj1 subj2 bass = if flip then lower </> upper else upper </> lower
