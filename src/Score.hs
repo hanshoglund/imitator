@@ -238,7 +238,7 @@ makeCanon0 dn subj1 subj2 =
         d = (repTimes 2  $ {- legato $ -} subj2 ^*3)
 
 canon0 :: Score Note
-canon0 = text "arco" $ (^*2) $ makeCanon0 dn subj1 subj2
+canon0 = text "ord" $ (^*2) $ makeCanon0 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
@@ -254,7 +254,7 @@ makeCanon4 dn subj1 subj2 =
         d = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*3)
 
 canon4 :: Score Note
-canon4 = text "arco" $ (^*2) $ makeCanon4 dn subj1 subj2
+canon4 = text "ord" $ (^*2) $ makeCanon4 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> c^*1 |> bb_^*1
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
@@ -269,7 +269,7 @@ makeCanon2 dn subj =
     </> (dynamics dn $ repTimes 5  $ {- legato $ -} down unison  $ subj ^* (3/2) )
 
 canon2 :: Score Note
-canon2 = down 2 $ text "arco" $ makeCanon2 dn subj
+canon2 = down 2 $ text "ord" $ makeCanon2 dn subj
     where
         subj = (melody [d,a] |> g^*2 |> c' |> b |> c' |> b |> {-g|> a^*3-} a^*4)
         dn   = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
@@ -300,7 +300,7 @@ makeCanon3 flip subj1 subj2 bass = if flip then lower </> upper else upper </> l
 -- FIXME inverse dynamics
 -- TODO should we just scale this up?
 canon3 :: Score Note
-canon3 = down 2 $ text "arco" $ c^*padC |> firstC |> secondC
+canon3 = down 2 $ text "ord" $ c^*padC |> firstC |> secondC
     where
         firstC  = dynamics dn1 (rev (makeCanon3 False subj1 subj2 bass))
         secondC = dynamics dn2 (makeCanon3 True subj1 subj2 bass)
