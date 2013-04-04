@@ -308,13 +308,12 @@ makeCanon_IV flip subj1 subj2 bass = if flip then lower </> upper else upper </>
         reg Db1  t | t < 0.4 = down (octave*1)       | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
         reg Db2  t | t < 0.4 = down (octave*2)       | t < 0.7 = down (octave*1) | t >= 0.7 = down (octave*1)
 
--- FIXME inverse dynamics
--- TODO should we just scale this up?
+
 canon_IV :: Score Note
 canon_IV = text "ord" $ c^*padC |> firstC |> secondC
     where
-        firstC  = dynamics dn1 (rev (makeCanon_IV False subj1 subj2 bass))
-        secondC = dynamics dn2 (makeCanon_IV True subj1 subj2 bass)
+        firstC  = dynamics dn1 $ rev $ makeCanon_IV False subj1 subj2 bass
+        secondC = dynamics dn2       $ makeCanon_IV True subj1 subj2 bass
         padC    = fromIntegral $ 4 - numerator (getDuration $ duration firstC) `mod` 4
         dn1     = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
         dn2     = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
@@ -501,11 +500,7 @@ rt = do
 
 
 
--- TODO move all this...
-
--- TODO reverse score (note: do recursive reverse, for Score (Score a) etc)
--- TODO split score (note: do recursive split, for Score (Score a) etc)
--- TODO invert/retrograde etc
+-- TODO move stuff
 
 resetDynamics :: HasDynamic c => c -> c
 resetDynamics = setBeginCresc False . setEndCresc False . setBeginDim False . setEndDim False
