@@ -51,7 +51,7 @@ cmdScore = mempty
     <> delay (109*4)     echoCanon1
     <> delay (111*4)     echoCanon1
 
-    <> delay (22*60+20+0) echoCanon3
+    <> delay (22*60+20+0) echoCanon_IV
 
     -- <> delay (25*60+24+0)  echoEnd
     -- <> delay (25*60+24+2)  echoEnd
@@ -74,7 +74,7 @@ echoEnd = mempty
 echoCanon1 = mempty
     |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
 
-echoCanon3 = mempty
+echoCanon_IV = mempty
     |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 1.0))
     |> rest^*30
     |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 0.3))
@@ -127,27 +127,27 @@ noteScore = {-addInstrChange $-}
 
     -- * Part 1 (first canon and col legno)
         (colLegno1  </> delay (4*3) colLegno1)
-    ||> (canon0 <> (delay (4*5) $ moveToPart vl2 $ canon0))     -- A
+    ||> (canon_I <> (delay (4*5) $ moveToPart vl2 $ canon_I))     -- A
     ||> (colLegno2  </> delay (4*3) colLegno2)                  -- B
 
-    -- * Part 2 (canon4 and surrounding)
+    -- * Part 2 (canon_II and surrounding)
     -- C
     ||> (dynamics _p $ bar^*30
             <> delay 0      (moveToPart vc2 g_^*(4*15))
             <> delay (4*15) (moveToPart vc1 a_^*(4*15))
             )
     -- D, E
-    ||> canon4
-    ||> (bar^*15 <> moveToPart vl2 (rev canon4))
+    ||> canon_II
+    ||> (bar^*15 <> moveToPart vl2 (rev canon_II))
     -- F
     ||> (dynamics _p $ bar^*30
             <> delay 0      (moveToPart vc2 bb_^*(4*15))
             <> delay (4*15) (moveToPart vc1 c  ^*(4*15))
             )
-    ||> (canon5 <> (delay (4*30) $ moveToPart vl2 $ canon5))     -- A
+    ||> (canon_III <> (delay (4*30) $ moveToPart vl2 $ canon_III))     -- A
 
 
-    -- * Part 3 (development to canon3)
+    -- * Part 3 (development to canon_IV)
     -- G
     ||> (bar^*45
             <> delay 0      (moveToPart vl1  f'  ^*(4*15)) 
@@ -159,7 +159,7 @@ noteScore = {-addInstrChange $-}
             <> delay (4*45) (moveToPart vc1 c   ^*(4*15))
             )
     -- H    
-    ||> canon3
+    ||> canon_IV
 
     -- * Part 4 (jete)
     ||> mconcat [
@@ -237,8 +237,8 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
 
 --------------------------------------------------------------------------------
 
-makeCanon0 :: Double -> Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon0 n dn subj1 subj2 =
+makeCanon_I :: Double -> Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon_I n dn subj1 subj2 =
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
         a = (repTimes (5*n/(4/3)) $ subj1 ^*(4/3))
@@ -246,15 +246,15 @@ makeCanon0 n dn subj1 subj2 =
         c = (repTimes (5*n/2)     $ subj1 ^*2)
         d = (repTimes (5*n/3)     $ subj2 ^*3)
 
-canon0 :: Score Note
-canon0 = text "ord" $ (^*2) $ makeCanon0 1 dn subj1 subj2
+canon_I :: Score Note
+canon_I = text "ord" $ (^*2) $ makeCanon_I 1 dn subj1 subj2
     where
         subj1 = g_ |> a_^*(3/2) |> g_^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*3
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
-makeCanon4 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon4 dn subj1 subj2 =
+makeCanon_II :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon_II dn subj1 subj2 =
         dynamics dn (rev $ a </> b </> c </> d)
     where
         a = (repWithTime 5 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*(4/3))
@@ -262,15 +262,15 @@ makeCanon4 dn subj1 subj2 =
         c = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj1 ^*2)
         d = (repWithTime 2 $ \t -> {-up (round $ octave * t) $ -}subj2 ^*3)
 
-canon4 :: Score Note
-canon4 = text "ord" $ (^*2) $ makeCanon4 dn subj1 subj2
+canon_II :: Score Note
+canon_II = text "ord" $ (^*2) $ makeCanon_II dn subj1 subj2
     where
         subj1 = g_ |> d^*(3/2) |> c^/2 |> a_^/2 |> bb_^/2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> d_^*3
         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
 
-makeCanon5 :: Double -> Score (Levels Double) -> Score Note -> Score Note -> Score Note
-makeCanon5 n dn subj1 subj2 =
+makeCanon_III :: Double -> Score (Levels Double) -> Score Note -> Score Note -> Score Note
+makeCanon_III n dn subj1 subj2 =
         dynamics dn (rev (a </> b </> c </> d) |> (a </> b </> c </> d))
     where
         a = (repTimes (5*n/(4/3)) $ subj1 ^*(4/3))
@@ -278,15 +278,15 @@ makeCanon5 n dn subj1 subj2 =
         c = (repTimes (5*n/2)     $ subj1 ^*2)
         d = (repTimes (5*n/3)     $ subj2 ^*3)
 
-canon5 :: Score Note
-canon5 = text "ord" $ makeCanon5 1.6 dn subj1 subj2
+canon_III :: Score Note
+canon_III = text "ord" $ makeCanon_III 1.6 dn subj1 subj2
     where
         subj1 = g^*2 |> d |> eb^*(3/2) |> c^*2 |> d^*2
         subj2 = f_^*3 |> bb_^*1 |> a_ |> g_^*2 |> d^*3 |> c^*1
         dn   = (repTimes 5 $ (mf `cresc` _f)^*3 |> (_f `dim` mf)^*3 )
 
-makeCanon3 :: Bool -> Score Note -> Score Note -> Score Note -> Score Note
-makeCanon3 flip subj1 subj2 bass = if flip then lower </> upper else upper </> lower
+makeCanon_IV :: Bool -> Score Note -> Score Note -> Score Note -> Score Note
+makeCanon_IV flip subj1 subj2 bass = if flip then lower </> upper else upper </> lower
     where
         upper = (repWithTime (10/(4/5)) $ \t -> reg Vl1 t   $ subj1 ^* (4/5) )
             </> (repWithTime (12/(2/3)) $ \t -> reg Vla1 t  $ subj1 ^* (2/3) )
@@ -310,11 +310,11 @@ makeCanon3 flip subj1 subj2 bass = if flip then lower </> upper else upper </> l
 
 -- FIXME inverse dynamics
 -- TODO should we just scale this up?
-canon3 :: Score Note
-canon3 = text "ord" $ c^*padC |> firstC |> secondC
+canon_IV :: Score Note
+canon_IV = text "ord" $ c^*padC |> firstC |> secondC
     where
-        firstC  = dynamics dn1 (rev (makeCanon3 False subj1 subj2 bass))
-        secondC = dynamics dn2 (makeCanon3 True subj1 subj2 bass)
+        firstC  = dynamics dn1 (rev (makeCanon_IV False subj1 subj2 bass))
+        secondC = dynamics dn2 (makeCanon_IV True subj1 subj2 bass)
         padC    = fromIntegral $ 4 - numerator (getDuration $ duration firstC) `mod` 4
         dn1     = (repTimes 10 $ (mf `cresc` _f)^*5 |> (_f `dim` mf)^*5)
         dn2     = (repTimes 10 $ (_f `cresc` ff)^*5 |> (ff `dim` _f)^*5)
