@@ -195,16 +195,10 @@ colLegno1 :: Score Note
 colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
     </> (down 12 $ delay 1 $ repTimes 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
-    </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
+    </> (down 24 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
+    </> (down 24 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
 
--- colLegno1V :: Score Note
--- colLegno1V = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
---         (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
---     </> (down 12 $ delay 1 $ repTimes 7 $ [4,4,5,4,5] `groupWith` g |> rest^*6)
---     </> (down 12 $ delay 3 $ repTimes 7 $ [4,5,4,5,4] `groupWith` g |> rest^*6)
---     </> (down 12 $ delay 6 $ repTimes 7 $ [3,3,5,3,5] `groupWith` g |> rest^*6)
--- 
+-- dur 45
 
 colLegno2 :: Score Note
 colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
@@ -212,6 +206,13 @@ colLegno2 = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
     </> (down 12 $ delay 1 $ repTimes 4 $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
     </> (down 12 $ delay 3 $ repTimes 4 $ [4,5,4,5,4,4]  `groupWith` g |> rest^*6)
     </> (down 12 $ delay 6 $ repTimes 4 $ [3,3,5,3,3]    `groupWith` g |> rest^*6)
+
+colLegno2Alt :: Score Note
+colLegno2Alt = {-staccato $ -} dynamics (mp) $ text "col legno battuto"  $
+        (down 12 $ delay 0 $ repWithIndex 4 $ \t -> [4,4,5,4,5,4]  `groupWith` g |> rest^*(1+4*t))
+    </> (down 12 $ delay 1 $ repWithIndex 4 $ \t -> [4,4,5,4,5,4]  `groupWith` g |> rest^*(1+4*t))
+    </> (down 24 $ delay 3 $ repWithIndex 4 $ \t -> [4,5,4,5,4,4]  `groupWith` g |> rest^*(1+4*t))
+    </> (down 24 $ delay 6 $ repWithIndex 4 $ \t -> [3,3,5,3,3]    `groupWith` g |> rest^*(1+4*t))
 
 
 makeJete :: Pitch Note -> Bool -> Duration -> Score Note
