@@ -2,3 +2,7 @@ dist
 .DS_Store
 *.wav
 *.osc
+sounds
+test.xml
+score.svg
+output*
