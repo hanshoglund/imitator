@@ -126,42 +126,41 @@ noteScore :: Score Note
 noteScore = {-addInstrChange $-}
 
     -- * Part 1 (first canon and col legno)
-        (colLegno1  </> delay (4*3) colLegno1)
+        (colLegno1  </> delay (4*3) colLegno1) 
     ||> (canon_I <> (delay (4*5) $ moveToPart vl2 $ canon_I))     -- A
     ||> (colLegno2  </> delay (4*3) colLegno2)                  -- B
-
+    
     -- * Part 2 (canon_II and surrounding)
     -- C
     ||> (dynamics _p $ bar^*30
-            <> delay 0      (moveToPart vc2 g_^*(4*15))
-            <> delay (4*15) (moveToPart vc1 a_^*(4*15))
+            <> delay 0      (moveToPart vc2 g_^*(4*13))
+            <> delay (4*15) (moveToPart vc1 a_^*(4*13))
             )
-    -- D, E
+    -- -- D, E
     ||> canon_II
     ||> (bar^*15 <> moveToPart vl2 (rev canon_II))
-    -- F
+    -- -- F
     ||> (dynamics _p $ bar^*30
             <> delay 0      (moveToPart vc2 bb_^*(4*15))
             <> delay (4*15) (moveToPart vc1 c  ^*(4*15))
             )
     ||> (canon_III <> (delay (4*30) $ moveToPart vl2 $ canon_III))     -- A
-
-
+    
+    
     -- * Part 3 (development to canon_IV)
-    -- G
-    ||> (bar^*45
-            <> delay 0      (moveToPart vl1  f'  ^*(4*15)) 
-
-            <> delay (4*15) (moveToPart vl2  bb  ^*(4*15)) 
-
-            <> delay (4*30) (moveToPart vc1  bb_ ^*(4*15))
-
-            <> delay (4*45) (moveToPart vc1 c   ^*(4*15))
+    -- I
+    ||> (mempty
+            <> delay 0      (moveToPart vl1  f'  ^*(4*15))     
+            <> delay (4*15) (moveToPart vl2  f'  ^*(4*15)) 
             )
-    -- H    
+    -- K
+    ||> bar^*1
     ||> canon_IV
-
+    
+    ||> rest^*20
+    
     -- * Part 4 (jete)
+    -- FIXME sync back to score
     ||> mconcat [
             delay 0 $ dynamics ppp $ up (12*3) $ moveToPart vl2  $ d_^*(4*30),
             delay (4*10) (dynamics _p $ jete1 </> delay (12*8) jete1)
