@@ -113,14 +113,6 @@ echoShort2 = mempty
 
 --------------------------------------------------------------------------------
 
--- TODO register in canon III
--- TODO replace rep with repWith, work on continous transforms
--- TODO pedals
--- TODO harmonics?
--- TODO extra bass notes in canon III
--- TODO 301 vl1 transpose a
-
--- dur 1976 (99 pages)
 
 noteScore :: Score Note
 noteScore = {-addInstrChange $-}
@@ -548,6 +540,14 @@ rt = do
     startServer
     threadDelay 1000000
     runImitatorRT (scoreToTrack cmdScore)
+
+
+
+
+
+
+
+
 
 
 
