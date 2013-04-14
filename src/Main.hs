@@ -283,9 +283,7 @@ gui = do
         relPos = absPos ^/ totalDur
         totalDur = offset cmdScore
 
-        -- totalDur = pure $ offset cmdScore
-        transpPulse = pulse 0.05
-        transpPulse2 = pulse 0.05
+        transpPulse  = pulse 0.05
         
         initTempo = 1
 
@@ -296,8 +294,8 @@ gui = do
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ tempoS $ once 0.5) -- FIXME does not show
         
-        <> (continue $ {-showing "Sending: "   $ -}commandsS $ serverMessages)
-        <> (continue $ transportS $ fromTime <$> relPos `sample` transpPulse2)
+        <> (continue $ showing "Sending: "   $ commandsS $ serverMessages)
+        <> (continue $ transportS            $ fromTime <$> relPos `sample` transpPulse)
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
