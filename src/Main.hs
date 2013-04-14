@@ -195,6 +195,7 @@ gui = do
         stopE   = tickE $ widgetSources "stop"  <> menuSources "stop"
         pauseE  = tickE $ widgetSources "pause" <> menuSources "pause"
         abortE  = tickE $ widgetSources "abort" <> menuSources "abort"
+        quitE   = tickE $ menuSources "quit"
 
         tempoR, gainR, volumeR :: Reactive Double
         tempoR  = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
@@ -234,9 +235,9 @@ gui = do
         <> (continue $ serverS     $ serverMessages)
 
         -- TODO
-        <> (continue $ showing "Quitting" $ menuSources "quit")
+        <> (continue $ notify "Quitting " $ putE (const $ close frame) $ quitE)
+        <> (continue $ notify "Aborting " $ putE (const $ abort) $ abortE)
 
-        <> (continue $ showing "Aborting" $ putE (const $ abort) $ abortE)
         <> (continue $ showing "Sending to server:  " $ serverMessages)
 
     -- --------------------------------------------------------
