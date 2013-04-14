@@ -173,10 +173,10 @@ addWidgets frame = do
 
     let refreshServerStatus = do
         cpuB           >>= (set' cpu text . fmap show)
-        memoryB        >>= (set' cpu text . fmap show)
-        serverB        >>= (set' cpu text . fmap show)
-        serverMeanCpuB >>= (set' cpu text . fmap show)
-        serverPeakCpuB >>= (set' cpu text . fmap show)        
+        memoryB        >>= (set' memory text . fmap show)
+        serverB        >>= (set' server text . fmap show)
+        serverMeanCpuB >>= (set' serverMeanCpu text . fmap show)
+        serverPeakCpuB >>= (set' serverPeakCpu text . fmap show)        
         return ()
 
     -- FIXME should match pulses below
@@ -201,8 +201,8 @@ addWidgets frame = do
         ; "cpu"             -> cpuS
         ; "memory"          -> memoryS
         ; "server"          -> serverS
-        ; "serverMeanCpuB"  -> serverMeanCpuS
-        ; "serverPeakCpuB"  -> serverPeakCpuS
+        ; "serverMeanCpu"   -> serverMeanCpuS
+        ; "serverPeakCpu"   -> serverPeakCpuS
         ;  _                -> error "No such sink"
         }
     return (sources, sinks)
@@ -293,9 +293,15 @@ gui = do
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ tempoS $ once 0.5) -- FIXME does not show
+
+        <> (continue $ cpuS             $ pure 0.1 `sample` pulse 1)
+        <> (continue $ memoryS          $ pure 0.2 `sample` pulse 1)
+        <> (continue $ serverS          $ pure 0.3 `sample` pulse 1)
+        <> (continue $ serverMeanCpuS   $ pure 0.4 `sample` pulse 1)
+        <> (continue $ serverPeakCpuS   $ pure 0.5 `sample` pulse 1)
         
-        <> (continue $ showing "Sending: "   $ commandsS $ serverMessages)
-        <> (continue $ transportS            $ fromTime <$> relPos `sample` transpPulse)
+        <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
+        <> (continue                         $ transportS $ fromTime <$> relPos `sample` transpPulse)
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
