@@ -294,8 +294,7 @@ gui = do
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        -- TODO send initTempo to tempoS
-        <> (continue $ tempoS $ once 0.5)
+        <> (continue $ tempoS $ once 0.5) -- FIXME does not show
         
         <> (continue $ {-showing "Sending: "   $ -}commandsS $ serverMessages)
         <> (continue $ transportS $ fromTime <$> relPos `sample` transpPulse2)
