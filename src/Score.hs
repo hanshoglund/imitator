@@ -551,7 +551,10 @@ rt = do
 
 
 
--- TODO move stuff
+--------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
+
+-- TODO move all this stuff
 
 resetDynamics :: HasDynamic c => c -> c
 resetDynamics = setBeginCresc False . setEndCresc False . setBeginDim False . setEndDim False
@@ -684,21 +687,27 @@ rotr xs = (last xs:init xs)
 rotated n as | n >= 0 = iterate rotr as !! n
              | n <  0 = iterate rotl as !! (abs n)
 
-
+-- | 
+-- @a `sampleS` b@ extracts notes from b whenever a has an occurence.
+--
 sampleS :: (Ord v, v ~ Voice a, HasVoice a) => Score b -> Score a -> Score (b, Score a)
 sampleS x = mapVoices (fmap $ sampleSingle x)
 
+-- | 
+-- @a `sampleS` b@ filters notes from b whenever a has an occurence.
+--
 gateS :: Score a -> Score b -> Score b
 gateS p as = mconcat $ toList $ fmap snd $ sampleSingle p as
 
+-- | 
+-- @d `takeS` a@ extracts notes occuring during duration d in a.
+--
 takeS :: Duration -> Score a -> Score a
 takeS d = gateS (on^*d)
-
-on :: Score ()
-on = note ()
-
-off :: Score ()
-off = rest
+    where
+        on  = note ()
+        off = rest
+        
 
 
 tau = pi*2
