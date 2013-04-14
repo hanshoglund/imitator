@@ -29,7 +29,7 @@ addMenus frame = do
     record          <- menuPane [text := "&Record"]
     recordStart     <- menuItem record [text := "&Start\tCtrl+R"]
     recordPause     <- menuItem record [text := "&Pause\tCtrl+P"]
-    recordResume    <- menuItem record [text := "&Resume\tCtrl+U"]
+    recordAbort    <- menuItem record  [text := "&Abort\tCtrl+A"]
     recordStop      <- menuItem record [text := "&Stop\tCtrl+S"]
 
     window          <- menuPane [text := "&Window"]
@@ -42,8 +42,32 @@ addMenus frame = do
         on (menu recordStart) := return ()
         ]
 
-    let sources    = error "No such source"
-    let sinks = error "No such sink"
+    -- Create sources/sinks
+    (startA, startE)            <- newSource
+    (stopA, stopE)              <- newSource
+    (pauseA, pauseE)            <- newSource
+    (abortA, abortE)            <- newSource
+    (openA, openE)              <- newSource
+    (quitA, quitE)              <- newSource
+    (volumeA, volumeE)          <- newSource
+
+    set fileOpen      [on command := openA 0]
+    set fileQuit      [on command := quitA 0]
+    set recordStart   [on command := startA 0]
+    set recordStop    [on command := stopA 0]
+    set recordPause   [on command := pauseA 0]
+    set recordAbort   [on command := abortA 0]
+
+    let sources     = \x -> case x of
+        { "open"          -> openE
+        ; "quit"          -> quitE
+        ; "start"         -> startE
+        ; "stop"          -> stopE
+        ; "pause"         -> pauseE
+        ; "abort"         -> abortE
+        ;  _              -> error "No such source"
+        }                          
+    let sinks       = error "No such sink"
     return (sources, sinks)
 
 
@@ -95,7 +119,7 @@ addWidgets frame = do
     (startA, startE)            <- newSource
     (stopA, stopE)              <- newSource
     (pauseA, pauseE)            <- newSource
-    (abortA, abortE)          <- newSource
+    (abortA, abortE)            <- newSource
     (tempoA, tempoE)            <- newSource
     (gainA, gainE)              <- newSource
     (volumeA, volumeE)          <- newSource
@@ -167,10 +191,10 @@ gui = do
 
     let 
         startE, stopE, pauseE, abortE :: Event ()
-        startE  = tickE $ widgetSources "start"
-        stopE   = tickE $ widgetSources "stop"
-        pauseE  = tickE $ widgetSources "pause"
-        abortE  = tickE $ widgetSources "abort"
+        startE  = tickE $ widgetSources "start" <> menuSources "start"
+        stopE   = tickE $ widgetSources "stop"  <> menuSources "stop"
+        pauseE  = tickE $ widgetSources "pause" <> menuSources "pause"
+        abortE  = tickE $ widgetSources "abort" <> menuSources "abort"
 
         tempoR, gainR, volumeR :: Reactive Double
         tempoR  = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
@@ -208,6 +232,10 @@ gui = do
 
         <> (continue $ transportS  $ (fromRational . getTime) <$> position `sample` pulse 0.1)
         <> (continue $ serverS     $ serverMessages)
+
+        -- TODO
+        <> (continue $ showing "Quitting" $ menuSources "quit")
+
         <> (continue $ showing "Aborting" $ putE (const $ abort) $ abortE)
         <> (continue $ showing "Sending to server:  " $ serverMessages)
 
