@@ -219,7 +219,9 @@ gui = do
 
 
 main :: IO ()
-main = start gui
+main = do
+    start gui   -- blocking until GUI finishes
+    stopServer
 
 -- wxhaskell extra
 set' :: w -> Attr w a -> Maybe a -> IO ()
