@@ -4,6 +4,7 @@
 module Main where
 
 import Data.Monoid
+import Data.VectorSpace
 import Control.Applicative
 import Control.Monad (join)
 import Control.Concurrent (forkIO, forkOS, threadDelay)
@@ -239,9 +240,13 @@ gui = do
 
         -- | Control inputs from GUI
         tempoR, gainR, volumeR :: Reactive Double
-        tempoR  = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
+        tempoE  = scaleTempo . (/ 1000) . fromIntegral <$>             widgetSources "tempo"
+        tempoR  = scaleTempo . (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
         gainR   = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
         volumeR = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
+
+        -- Tempo interpolation is linear from 0.2 to 1.8
+        scaleTempo x = 0.8*(x*2-1) + 1
 
         -- | Transport and gain to GUI
         transportS, gainS :: Sink Double
@@ -266,27 +271,33 @@ gui = do
             <> (Pause   <$ pauseE) 
             <> (Stop    <$ stopE) 
 
-        -- duration :: Reactive Time
-        -- duration = (1*60)                               
-        
-        position :: Reactive Time
-        position  = transport control transpPulse ((toTime <$> tempoR))
+        -- | Advances in seconds at tempo 1
+        --   Should go from 0 to totalDur during performance 
+        absPos :: Reactive Time
+        absPos  = transport control transpPulse ((toTime <$> tempoR))
+
+        -- | Goes from 0 to 1 during performance
+        relPos :: Reactive Time
+        relPos = absPos ^/ totalDur
+        totalDur = offset cmdScore
+
+        -- totalDur = pure $ offset cmdScore
         transpPulse = pulse 0.05
         transpPulse2 = pulse 0.05
 
         serverMessages :: Event OscMessage
-        serverMessages = imitatorRT (scoreToTrack cmdScore) position -- TODO proper position scaling
+        serverMessages = imitatorRT (scoreToTrack cmdScore) absPos -- TODO proper absPos scaling
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
 
-        <> (continue $ transportS $ fromTime <$> position `sample` transpPulse2)
         <> (continue $ {-showing "Sending: "   $ -}commandsS $ serverMessages)
+        <> (continue $ transportS $ fromTime <$> relPos `sample` transpPulse2)
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
-        <> (continue $ showing "Position: "  $ fmap toDouble $ position `sample` transpPulse2)
-        <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` widgetSources "tempo")
+        <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transpPulse2)
+        <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
 
     -- --------------------------------------------------------
 
