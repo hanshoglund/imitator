@@ -89,6 +89,12 @@ addWidgets frame = do
     gain        <- hslider frame True 0 1000 [text := "Gain"]
     volume      <- hslider frame True 0 1000 [text := "Volume"]
 
+    cpu           <- textEntry frame [enabled := False]
+    memory        <- textEntry frame [enabled := False]
+    server        <- textEntry frame [enabled := False]
+    serverMeanCpu <- textEntry frame [enabled := False]
+    serverPeakCpu <- textEntry frame [enabled := False]
+
     transport   <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
 
     -- Set layout
@@ -101,18 +107,26 @@ addWidgets frame = do
                         [label "Gain:", widget gain],
                         [label "Volume:", widget volume] ]
 
+        -- const (-1)
+        -- const (-1)
+        -- isServerRunning
+        -- serverCPUAverage
+        -- serverCPUPeak
         status = margin 10 $ boxed "Status" $
-            column 0 [
-                label "CPU (%):",
-                label "Memory (MB):",
-                label "Server:",
-                label "Server mean CPU (%):",
-                label "Server peak CPU (%):"
+            grid 0 0 [
+                [label "CPU (%):",              widget cpu],
+                [label "Memory (MB):",          widget memory],
+                [label "Server:",               widget server],
+                [label "Server mean CPU (%):",  widget serverMeanCpu],
+                [label "Server peak CPU (%):",  widget serverPeakCpu]
             ]
 
         positioning = shaped $ margin 10 $ column 10 [
             widget transport,
-            row 10 [label "Time:", label "Section:", label "Bar:"]
+            row 10 [
+                label "Time:", 
+                label "Section:", 
+                label "Bar:"]
             ]
 
     windowSetLayout frame $ margin 10 $
@@ -133,6 +147,12 @@ addWidgets frame = do
     (volumeB, volumeS)          <- newSink
     (transportB, transportS)    <- newSink
 
+    (cpuB, cpuS)                        <- newSink
+    (memoryB, memoryS)                  <- newSink
+    (serverB, serverS)                  <- newSink
+    (serverMeanCpuB, serverMeanCpuS)    <- newSink
+    (serverPeakCpuB, serverPeakCpuS)    <- newSink
+
     set start   [on command := startA 0]
     set stop    [on command := stopA 0]
     set pause   [on command := pauseA 0]
@@ -142,14 +162,23 @@ addWidgets frame = do
     set gain    [on command := get gain   selection >>= gainA]
     set volume  [on command := get volume selection >>= volumeA]
 
-    let refreshWidgets = do
+    let refreshControls = do
         tempoB      >>= set' tempo selection
         gainB       >>= set' gain selection
         volumeB     >>= set' volume selection
         transportB  >>= set' transport selection
         return ()
 
-    timer frame [interval := 100, on command := refreshWidgets]
+    let refreshServerStatus = do
+        cpuB           >>= (set' cpu text . fmap show)
+        memoryB        >>= (set' cpu text . fmap show)
+        serverB        >>= (set' cpu text . fmap show)
+        serverMeanCpuB >>= (set' cpu text . fmap show)
+        serverPeakCpuB >>= (set' cpu text . fmap show)        
+        return ()
+
+    timer frame [interval := 100, on command := refreshControls]
+    timer frame [interval := 100, on command := refreshServerStatus]
 
     let sources     = \x -> case x of
         { "start"         -> startE
@@ -162,11 +191,16 @@ addWidgets frame = do
         ;  _              -> error "No such source"
         }
     let sinks     = \x -> case x of
-        { "tempo"         -> tempoS
-        ; "gain"          -> gainS
-        ; "volume"        -> volumeS
-        ; "transport"     -> transportS
-        ;  _              -> error "No such sink"
+        { "tempo"           -> tempoS
+        ; "gain"            -> gainS
+        ; "volume"          -> volumeS
+        ; "transport"       -> transportS
+        ; "cpu"             -> cpuS
+        ; "memory"          -> memoryS
+        ; "server"          -> serverS
+        ; "serverMeanCpuB"  -> serverMeanCpuS
+        ; "serverPeakCpuB"  -> serverPeakCpuS
+        ;  _                -> error "No such sink"
         }
     return (sources, sinks)
 
