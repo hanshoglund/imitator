@@ -24,22 +24,26 @@ addMenus :: Frame a -> IO (String -> Event Int, String -> Sink ())
 addMenus frame = do
     file            <- menuPane [text := "&File"]
     fileOpen        <- menuItem file [text := "&Open...\tCtrl+O"]
+    menuLine file
+    fileSave        <- menuItem file [text := "&Save\tCtrl+S"]
+    fileSaveAs      <- menuItem file [text := "&Save As...\tCtrl+Shift+S"]
+    menuLine file
     fileQuit        <- menuItem file [text := "&Quit\tCtrl+Q"]
 
-    record          <- menuPane [text := "&Record"]
-    recordStart     <- menuItem record [text := "&Start\tCtrl+R"]
-    recordPause     <- menuItem record [text := "&Pause\tCtrl+P"]
-    recordAbort    <- menuItem record  [text := "&Abort\tCtrl+A"]
-    recordStop      <- menuItem record [text := "&Stop\tCtrl+S"]
+    transport          <- menuPane [text := "&Transport"]
+    transportStart     <- menuItem transport [text := "&Start\tCtrl+R"]
+    transportPause     <- menuItem transport [text := "&Pause\tCtrl+P"]
+    transportAbort     <- menuItem transport  [text := "&Abort\tCtrl+A"]
+    transportStop      <- menuItem transport [text := "&Stop\tCtrl+S"]
 
-    window          <- menuPane [text := "&Window"]
-    windowMinimize  <- menuItem window [text := "&Minimize\tCtrl+M"]
-    windowZoom      <- menuItem window [text := "&Zoom"]
+    -- window          <- menuPane [text := "&Window"]
+    -- windowMinimize  <- menuItem window [text := "&Minimize\tCtrl+M"]
+    -- windowZoom      <- menuItem window [text := "&Zoom"]
 
     set frame [
-        menuBar            := [file, record, window],
+        menuBar            := [file, transport{-, window-}],
         on (menu fileQuit) := close frame,
-        on (menu recordStart) := return ()
+        on (menu transportStart) := return ()
         ]
 
     -- Create sources/sinks
@@ -53,10 +57,10 @@ addMenus frame = do
 
     set fileOpen      [on command := openA 0]
     set fileQuit      [on command := quitA 0]
-    set recordStart   [on command := startA 0]
-    set recordStop    [on command := stopA 0]
-    set recordPause   [on command := pauseA 0]
-    set recordAbort   [on command := abortA 0]
+    set transportStart   [on command := startA 0]
+    set transportStop    [on command := stopA 0]
+    set transportPause   [on command := pauseA 0]
+    set transportAbort   [on command := abortA 0]
 
     let sources     = \x -> case x of
         { "open"          -> openE
