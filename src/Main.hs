@@ -270,13 +270,9 @@ gui = do
     eventLoop <- return $ runLoopUntil $ mempty
 
         <> (continue $ transportS  $ (fromRational . getTime) <$> position `sample` pulse 0.1)
-        <> (continue $ serverS     $ serverMessages)
-
-        -- TODO
+        <> (continue $ showing "Sending to server: " $ serverS $ serverMessages)
         <> (continue $ notify "Quitting " $ putE (const $ close frame) $ quitE)
         <> (continue $ notify "Aborting " $ putE (const $ abort) $ abortE)
-
-        <> (continue $ showing "Sending to server:  " $ serverMessages)
 
     -- --------------------------------------------------------
 
