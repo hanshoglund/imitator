@@ -240,14 +240,20 @@ gui = do
         gainR   = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
         volumeR = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
 
-        transportS :: Sink Double
+        transportS, gainS :: Sink Double
         transportS = widgetSinks "transport" . (round . (* 1000.0) <$>)
+        gainS      = widgetSinks "gain"      . (round . (* 1000.0) <$>)
+
+        cpuS, memoryS, serverS, serverMeanCpuS, serverPeakCpuS :: Sink Double
+        cpuS            = widgetSinks "cpu"           . (round . (* 1000.0) <$>)
+        memoryS         = widgetSinks "memory"        . (round . (* 1000.0) <$>)
+        serverS         = widgetSinks "server"        . (round . (* 1000.0) <$>)
+        serverMeanCpuS  = widgetSinks "serverMeanCpu" . (round . (* 1000.0) <$>)
+        serverPeakCpuS  = widgetSinks "serverPeakCpu" . (round . (* 1000.0) <$>)
         
-        gainS :: Sink Double
-        gainS = widgetSinks "gain" . (round . (* 1000.0) <$>)
         
-        serverS :: Event OscMessage -> Event OscMessage
-        serverS msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
+        commandsS :: Event OscMessage -> Event OscMessage
+        commandsS msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
 
         -- TODO write server status etc
 
@@ -270,7 +276,7 @@ gui = do
     eventLoop <- return $ runLoopUntil $ mempty
 
         <> (continue $ transportS  $ (fromRational . getTime) <$> position `sample` pulse 0.1)
-        <> (continue $ showing "Sending to server: " $ serverS $ serverMessages)
+        <> (continue $ showing "Sending to server: " $ commandsS $ serverMessages)
         <> (continue $ notify "Quitting " $ putE (const $ close frame) $ quitE)
         <> (continue $ notify "Aborting " $ putE (const $ abort) $ abortE)
 
