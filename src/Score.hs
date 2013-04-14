@@ -163,22 +163,6 @@ noteScore = {-addInstrChange $-}
 
 --------------------------------------------------------------------------------
 
--- makeMidCanon1 :: Score (Levels Double) -> Score Note -> Score Note -> Score Note
--- makeMidCanon1 dn subj1 subj2 = dynamics dn $ rev $ a </> b </> c
---     where
---         a = (repTimes 5  $ {- legato $ -} subj1 ^*(2/3))
---         b = (repTimes 4  $ {- legato $ -} subj2 ^*1)
---         c = (repTimes 4  $ {- legato $ -} subj2 ^*(3/2))
--- 
--- midCanon1 :: Score Note
--- midCanon1 = text "ord" $ (^*2) $ up 7 $ makeMidCanon1 dn subj1 subj2
---     where
---         subj1 = down 2 $ (c' |> b |> g |> a^*3)
---         subj2 = down 2 $ (c' |> b |> c' |> b |> g |> a^*3)
---         dn   = (repTimes 5 $ (pp `cresc` mf)^*3 |> (mf `dim` pp)^*3 )
-
---------------------------------------------------------------------------------
-
 colLegno1 :: Score Note
 colLegno1 = {-staccato $ -} dynamics (ppp `cresc` mp |> mp^*0.2) $ text "col legno battuto"  $
         (down 12 $ delay 0 $ repTimes 7 $ [4,4,4,5,4] `groupWith` g |> rest^*6)
