@@ -55,7 +55,7 @@ addWidgets frame = do
     start       <- button frame [text := "Start"]
     stop        <- button frame [text := "Stop"]
     pause       <- button frame [text := "Pause"]
-    -- resume      <- button frame [text := "Resume"]
+    abort       <- button frame [text := "Abort"]
 
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
     gain        <- hslider frame True 0 1000 [text := "Gain"]
@@ -66,7 +66,7 @@ addWidgets frame = do
     -- Set layout
     let buttons = margin 10 $ boxed "Transport" $
             grid 10 10 [ [widget start, widget pause],
-                         [widget stop{-, widget resume-}] ]
+                         [widget stop, widget abort] ]
 
         controls  = margin 10 $ boxed "Controls" $
             grid 10 5 [ [label "Tempo:", widget tempo],
@@ -95,7 +95,7 @@ addWidgets frame = do
     (startA, startE)            <- newSource
     (stopA, stopE)              <- newSource
     (pauseA, pauseE)            <- newSource
-    -- (resumeA, resumeE)          <- newSource
+    (abortA, abortE)          <- newSource
     (tempoA, tempoE)            <- newSource
     (gainA, gainE)              <- newSource
     (volumeA, volumeE)          <- newSource
@@ -108,7 +108,7 @@ addWidgets frame = do
     set start   [on command := startA 0]
     set stop    [on command := stopA 0]
     set pause   [on command := pauseA 0]
-    -- set resume  [on command := resumeA 0]
+    set abort   [on command := abortA 0]
 
     set tempo   [on command := get tempo  selection >>= tempoA]
     set gain    [on command := get gain   selection >>= gainA]
@@ -127,7 +127,7 @@ addWidgets frame = do
         { "start"         -> startE
         ; "stop"          -> stopE
         ; "pause"         -> pauseE
-        -- ; "resume"        -> resumeE
+        ; "abort"         -> abortE
         ; "tempo"         -> tempoE
         ; "gain"          -> gainE
         ; "volume"        -> volumeE
@@ -166,11 +166,11 @@ gui = do
     (timerSources,  timerSinks)  <- addTimers frame
 
     let 
-        startE, stopE, pauseE{-, resumeE-} :: Event ()
+        startE, stopE, pauseE, abortE :: Event ()
         startE  = tickE $ widgetSources "start"
         stopE   = tickE $ widgetSources "stop"
         pauseE  = tickE $ widgetSources "pause"
-        -- resumeE = tickE $ widgetSources "resume"
+        abortE  = tickE $ widgetSources "abort"
 
         tempoR, gainR, volumeR :: Reactive Double
         tempoR  = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
@@ -208,7 +208,7 @@ gui = do
 
         <> (continue $ transportS  $ (fromRational . getTime) <$> position `sample` pulse 0.1)
         <> (continue $ serverS     $ serverMessages)
-
+        <> (continue $ showing "Aborting" $ putE (const $ abort) $ abortE)
         <> (continue $ showing "Sending to server:  " $ serverMessages)
 
     -- --------------------------------------------------------

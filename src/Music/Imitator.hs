@@ -35,6 +35,7 @@ module Music.Imitator (
         imitatorNRT,
 
         -- ** Control
+        abort,
         stopServer,
         startServer,
         writeSynthDefs,

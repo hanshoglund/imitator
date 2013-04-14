@@ -8,7 +8,6 @@ module Score (
   ) where
 
 import Control.Monad
-import Control.Applicative
 import Control.Apply.Reverse
 import Control.Concurrent (threadDelay)
 import Math.Tau
