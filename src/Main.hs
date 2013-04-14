@@ -12,6 +12,7 @@ import Control.Reactive
 import Control.Reactive.Chan
 import Control.Reactive.Midi
 import Control.Reactive.Osc
+import System.IO.Unsafe
 import System.Exit
 
 import Graphics.UI.WX hiding (Event, Reactive)
@@ -240,17 +241,18 @@ gui = do
 
         -- | Control inputs from GUI
         tempoR, gainR, volumeR :: Reactive Double
-        tempoE  = scaleTempo . (/ 1000) . fromIntegral <$>             widgetSources "tempo"
-        tempoR  = scaleTempo . (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
+        tempoE  = scaleTempo . (/ 1000) . fromIntegral <$> widgetSources "tempo"
+        tempoR  = initTempo `stepper` tempoE
         gainR   = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
         volumeR = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
 
         -- Tempo interpolation is linear from 0.2 to 1.8
-        scaleTempo x = 0.8*(x*2-1) + 1
+        scaleTempo x   = 0.8*(x*2-1) + 1
 
         -- | Transport and gain to GUI
         transportS, gainS :: Sink Double
         transportS = widgetSinks "transport" . (round . (* 1000) <$>)
+        tempoS     = widgetSinks "tempo"     . (round . (* 1000) <$>)
         gainS      = widgetSinks "gain"      . (round . (* 1000) <$>)
 
         -- | Server status to GUI
@@ -284,20 +286,24 @@ gui = do
         -- totalDur = pure $ offset cmdScore
         transpPulse = pulse 0.05
         transpPulse2 = pulse 0.05
+        
+        initTempo = 1
 
         serverMessages :: Event OscMessage
         serverMessages = imitatorRT (scoreToTrack cmdScore) absPos -- TODO proper absPos scaling
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-
+        -- TODO send initTempo to tempoS
+        <> (continue $ tempoS $ once 0.5)
+        
         <> (continue $ {-showing "Sending: "   $ -}commandsS $ serverMessages)
         <> (continue $ transportS $ fromTime <$> relPos `sample` transpPulse2)
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
-        <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transpPulse2)
-        <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
+        -- <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transpPulse2)
+        -- <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
 
     -- --------------------------------------------------------
 
@@ -331,3 +337,12 @@ fromTime = fromRational . getTime
 
 toDouble :: Real a => a -> Double
 toDouble = fromRational . toRational
+
+once :: a -> Event a
+once x = unsafePerformIO $ do
+    (k,s) <- newSource
+    k x
+    return s
+
+-- once x = (const x) <$> firstE (pulse 0.000000001)
+
