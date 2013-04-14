@@ -177,8 +177,9 @@ addWidgets frame = do
         serverPeakCpuB >>= (set' cpu text . fmap show)        
         return ()
 
-    timer frame [interval := 100, on command := refreshControls]
-    timer frame [interval := 100, on command := refreshServerStatus]
+    -- FIXME should match pulses below
+    timer frame [interval := 20, on command := refreshControls]
+    timer frame [interval := 20, on command := refreshServerStatus]
 
     let sources     = \x -> case x of
         { "start"         -> startE
@@ -244,8 +245,8 @@ gui = do
 
         -- | Transport and gain to GUI
         transportS, gainS :: Sink Double
-        transportS = widgetSinks "transport" . (round . (* 1000.0) <$>)
-        gainS      = widgetSinks "gain"      . (round . (* 1000.0) <$>)
+        transportS = widgetSinks "transport" . (round . (* 1000) <$>)
+        gainS      = widgetSinks "gain"      . (round . (* 1000) <$>)
 
         -- | Server status to GUI
         cpuS, memoryS, serverS, serverMeanCpuS, serverPeakCpuS :: Sink Double
@@ -265,22 +266,27 @@ gui = do
             <> (Pause   <$ pauseE) 
             <> (Stop    <$ stopE) 
 
-        duration :: Reactive Time
-        duration = (1*60)                               
+        -- duration :: Reactive Time
+        -- duration = (1*60)                               
         
         position :: Reactive Time
-        position  = transport control (pulse 0.1) ((Time . toRational <$> tempoR) * 10) / duration
+        position  = transport control transpPulse ((toTime <$> tempoR))
+        transpPulse = pulse 0.05
+        transpPulse2 = pulse 0.05
 
         serverMessages :: Event OscMessage
-        serverMessages = imitatorRT (scoreToTrack cmdScore) (position * 100)
+        serverMessages = imitatorRT (scoreToTrack cmdScore) position -- TODO proper position scaling
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
 
-        <> (continue $ transportS  $ (fromRational . getTime) <$> position `sample` pulse 0.1)
-        <> (continue $ showing "Sending to server: " $ commandsS $ serverMessages)
-        <> (continue $ notify "Quitting " $ putE (const $ close frame) $ quitE)
-        <> (continue $ notify "Aborting " $ putE (const $ abort) $ abortE)
+        <> (continue $ transportS $ fromTime <$> position `sample` transpPulse2)
+        <> (continue $ {-showing "Sending: "   $ -}commandsS $ serverMessages)
+        <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
+        <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
+
+        <> (continue $ showing "Position: "  $ fmap toDouble $ position `sample` transpPulse2)
+        <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` widgetSources "tempo")
 
     -- --------------------------------------------------------
 
@@ -306,3 +312,11 @@ noContinue = (Just <$>)
 
 fromJust :: Maybe a -> a
 fromJust (Just x) = x
+
+toTime :: Real a => a -> Time
+toTime = Time . toRational
+
+fromTime = fromRational . getTime
+
+toDouble :: Real a => a -> Double
+toDouble = fromRational . toRational
