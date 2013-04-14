@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Applicative
 import Control.Apply.Reverse
 import Control.Concurrent (threadDelay)
+import Math.Tau
 import Data.Semigroup
 import Data.VectorSpace
 import Data.AffineSpace
@@ -694,6 +695,5 @@ takeS d = gateS (on^*d)
         
 
 
-tau = pi*2
 
 
