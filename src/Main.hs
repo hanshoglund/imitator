@@ -228,6 +228,7 @@ gui = do
     (timerSources,  timerSinks)  <- addTimers frame
 
     let 
+        -- | Transport events from GUI
         startE, stopE, pauseE, abortE :: Event ()
         startE  = tickE $ widgetSources "start" <> menuSources "start"
         stopE   = tickE $ widgetSources "stop"  <> menuSources "stop"
@@ -235,27 +236,28 @@ gui = do
         abortE  = tickE $ widgetSources "abort" <> menuSources "abort"
         quitE   = tickE $ menuSources "quit"
 
+        -- | Control inputs from GUI
         tempoR, gainR, volumeR :: Reactive Double
         tempoR  = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "tempo"
         gainR   = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "gain"
         volumeR = (/ 1000) . fromIntegral <$> 0 `stepper` widgetSources "volume"
 
+        -- | Transport and gain to GUI
         transportS, gainS :: Sink Double
         transportS = widgetSinks "transport" . (round . (* 1000.0) <$>)
         gainS      = widgetSinks "gain"      . (round . (* 1000.0) <$>)
 
+        -- | Server status to GUI
         cpuS, memoryS, serverS, serverMeanCpuS, serverPeakCpuS :: Sink Double
         cpuS            = widgetSinks "cpu"           . (round . (* 1000.0) <$>)
         memoryS         = widgetSinks "memory"        . (round . (* 1000.0) <$>)
         serverS         = widgetSinks "server"        . (round . (* 1000.0) <$>)
         serverMeanCpuS  = widgetSinks "serverMeanCpu" . (round . (* 1000.0) <$>)
         serverPeakCpuS  = widgetSinks "serverPeakCpu" . (round . (* 1000.0) <$>)
-        
-        
+
+        -- | Commands to server
         commandsS :: Event OscMessage -> Event OscMessage
         commandsS msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
-
-        -- TODO write server status etc
 
         control :: Event (TransportControl Time)
         control = mempty 
