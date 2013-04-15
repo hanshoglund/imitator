@@ -38,6 +38,8 @@ module Music.Imitator (
         abort,
         stopServer,
         startServer,
+        serverCPUPeak,
+        serverCPUAverage,
         writeSynthDefs,
         runImitatorRT,
         runImitatorNRT,

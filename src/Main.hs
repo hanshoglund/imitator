@@ -224,6 +224,7 @@ gui :: IO ()
 gui = do     
     startServer
     writeSynthDefs
+    threadDelay 1000000
     frame <- frame [text := "Imitator"]
 
     (menuSources,   menuSinks)   <- addMenus frame
@@ -294,11 +295,12 @@ gui = do
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ tempoS $ once 0.5) -- FIXME does not show
 
-        <> (continue $ cpuS             $ pure 0.1 `sample` pulse 1)
-        <> (continue $ memoryS          $ pure 0.2 `sample` pulse 1)
-        <> (continue $ serverS          $ pure 0.3 `sample` pulse 1)
-        <> (continue $ serverMeanCpuS   $ pure 0.4 `sample` pulse 1)
-        <> (continue $ serverPeakCpuS   $ pure 0.5 `sample` pulse 1)
+        -- FIXME cpu and memory
+        <> (continue $ cpuS             $ pure 0.0 `sample` pulse 1)
+        <> (continue $ memoryS          $ pure 0.0 `sample` pulse 1)
+        <> (continue $ serverS          $ pure 1.0 `sample` pulse 1)
+        <> (continue $ serverMeanCpuS   $ serverCPUAverage  `sample` pulse 1)
+        <> (continue $ serverPeakCpuS   $ serverCPUPeak     `sample` pulse 1)
         
         <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
         <> (continue                         $ transportS $ fromTime <$> relPos `sample` transpPulse)

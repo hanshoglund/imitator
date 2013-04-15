@@ -141,8 +141,9 @@ module Music.Imitator.Sound (
         
         -- *** Server status
         isServerRunning,
-        serverStatus,
         serverStatusData,
+        serverStatusDataR,
+        serverStatus,
         serverUgens,
         serverSynths,
         serverGroups,
@@ -171,6 +172,7 @@ module Music.Imitator.Sound (
 
 import Data.Monoid
 import Data.Functor.Apply
+import Control.Reactive
 import Control.Exception ( try, SomeException )
 import Control.Applicative
 import Control.Concurrent ( threadDelay )
@@ -708,7 +710,7 @@ checkServerActive = do
 --
 isServerRunning :: IO Bool
 isServerRunning = do
-    status <- try serverStatus :: IO (Either SomeException [String])
+    status <- try serverStatusData :: IO (Either SomeException [Datum])
     case status of
         Left _  -> return False
         Right _ -> return True
@@ -717,7 +719,7 @@ isServerRunning = do
 -- Get server status.
 --
 serverStatus :: IO [String]
-serverStatus = S.withSC3 S.serverStatus
+serverStatus = S.withSC3 S.serverStatus     
 
 -- |
 -- Get server status as a raw message.
@@ -725,22 +727,27 @@ serverStatus = S.withSC3 S.serverStatus
 serverStatusData :: IO [Datum]
 serverStatusData = S.withSC3 S.serverStatusData
 
-serverUgens                 :: IO Int
-serverSynths                :: IO Int
-serverGroups                :: IO Int
-serverInstruments           :: IO Int
-serverCPUAverage            :: IO Double
-serverCPUPeak               :: IO Double
-serverSampleRateNominal     :: IO Double
-serverSampleRateActual      :: IO Double
-serverUgens                 = serverStatusData >>= return . getDatumInt . (!! 1)
-serverSynths                = serverStatusData >>= return . getDatumInt . (!! 2)
-serverGroups                = serverStatusData >>= return . getDatumInt . (!! 3)
-serverInstruments           = serverStatusData >>= return . getDatumInt . (!! 4)
-serverCPUAverage            = serverStatusData >>= return . getDatumFloat . (!! 5)
-serverCPUPeak               = serverStatusData >>= return . getDatumFloat . (!! 6)
-serverSampleRateNominal     = serverStatusData >>= return . getDatumDouble . (!! 7)
-serverSampleRateActual      = serverStatusData >>= return . getDatumDouble . (!! 8)
+serverStatusDataR :: Reactive [Datum]
+serverStatusDataR = pollR (fmap Just $ serverStatusData)
+
+
+
+serverUgens                 :: Reactive Int
+serverSynths                :: Reactive Int
+serverGroups                :: Reactive Int
+serverInstruments           :: Reactive Int
+serverCPUAverage            :: Reactive Double
+serverCPUPeak               :: Reactive Double
+serverSampleRateNominal     :: Reactive Double
+serverSampleRateActual      :: Reactive Double
+serverUgens                 = getDatumInt     . (!! 1) <$> serverStatusDataR
+serverSynths                = getDatumInt     . (!! 2) <$> serverStatusDataR
+serverGroups                = getDatumInt     . (!! 3) <$> serverStatusDataR
+serverInstruments           = getDatumInt     . (!! 4) <$> serverStatusDataR
+serverCPUAverage            = getDatumFloat   . (!! 5) <$> serverStatusDataR
+serverCPUPeak               = getDatumFloat   . (!! 6) <$> serverStatusDataR
+serverSampleRateNominal     = getDatumDouble  . (!! 7) <$> serverStatusDataR
+serverSampleRateActual      = getDatumDouble  . (!! 8) <$> serverStatusDataR
 
 getDatumInt (Int x) = x
 getDatumFloat (Float x) = x
@@ -792,3 +799,10 @@ kOutputOffset           = 0
 kNumSpeakers            = 8
 
 kSampleRate = 44100
+
+
+
+pollR k = eventToReactive $ pollE k
+
+eventToReactive :: Event a -> Reactive a
+eventToReactive = stepper (error "eventToReactive: ")
