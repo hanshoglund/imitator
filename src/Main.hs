@@ -223,17 +223,17 @@ addWidgets frame = do
     return (sources, sinks)
 
 
-addTimers :: Frame a -> IO (String -> Event Int, String -> Sink ())
-addTimers frame = do
-    (timerFired, timerFiredE) <- newSource
-
-    timer frame [interval := 2000,
-                on command := timerFired 0]
-
-    let sources = \x -> case x of { "fired" -> timerFiredE }
-    let sinks   = error "No such sink"
-    return (sources, sinks)
-
+-- addTimers :: Frame a -> IO (String -> Event Int, String -> Sink ())
+-- addTimers frame = do
+--     (timerFired, timerFiredE) <- newSource
+-- 
+--     timer frame [interval := 2000,
+--                 on command := timerFired 0]
+-- 
+--     let sources = \x -> case x of { "fired" -> timerFiredE }
+--     let sinks   = error "No such sink"
+--     return (sources, sinks)
+-- 
 
 gui :: IO ()
 gui = do     
@@ -244,7 +244,7 @@ gui = do
 
     (menuSources,   menuSinks)   <- addMenus frame
     (widgetSources, widgetSinks) <- addWidgets frame
-    (timerSources,  timerSinks)  <- addTimers frame
+    -- (timerSources,  timerSinks)  <- addTimers frame
 
     let 
         -- | Transport events from GUI
@@ -285,13 +285,14 @@ gui = do
         barS           = widgetSinks "bar"
         beatS          = widgetSinks "beat"
 
-        transportPulse, serverStatusPulse :: Event ()
-        transportPulse    = pulse 0.1
-        serverStatusPulse = pulse 10
+        transportPulse{-, serverStatusPulse-} :: Event ()
+        -- transportPulse = mempty
+        -- transportPulse    = pulse 0.1
+        transportPulse = oftenE
         
         initTempo :: Double
         initTempo = 1
-        accelerate = 10
+        accelerate = 1
 
         -- | Commands to server
         commandsS :: Event OscMessage -> Event OscMessage
@@ -306,7 +307,9 @@ gui = do
         -- | Advances in seconds at tempo 1
         --   Should go from 0 to totalDur during performance 
         absPos :: Reactive Time
-        absPos  = transport control transportPulse (toTime <$> tempoR * accelerate)
+        -- absPos = fmap (fromRational . toRational) $ systemTimeSecondsR
+        absPos  = transport2 control transportPulse (toTime <$> tempoR * accelerate)
+        -- absPos  = transport control transportPulse (toTime <$> tempoR * accelerate)
 
         -- | Goes from 0 to 1 during performance
         relPos :: Reactive Time
@@ -318,7 +321,7 @@ gui = do
         serverMessages = imitatorRT (scoreToTrack cmdScore) absPos
          
     -- --------------------------------------------------------
-    eventLoop <- return $ runLoopUntil $ mempty
+    eventLoop <- return $ runLoop{-Until-} $ mempty
 
 {-
         <> (continue $ cpuS             $ pure 0.0          `sample` serverStatusPulse)
@@ -327,19 +330,21 @@ gui = do
         <> (continue $ serverMeanCpuS   $ serverCPUAverage  `sample` serverStatusPulse)
         <> (continue $ serverPeakCpuS   $ serverCPUPeak     `sample` serverStatusPulse)
 -}
-        
-        <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
-        <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
-        <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
+        -- FIXME leaks
+        
+        <> (continue $ {-showing "Sending: "   $-} commandsS  $ serverMessages)
+        <> (continue $ {-notify  "Quitting "   $ -}putE (const $ close frame) $ quitE)
+        <> (continue $ {-notify  "Aborting "   $ -}putE (const $ abort) $ abortE)
+        
         <> (continue                         $ transportS $ fromTime <$> relPos `sample` transportPulse)
 
         <> (continue $ timeS $ fmap toDouble $ absPos `sample` transportPulse)
         <> (continue $ barS  $ fmap getBar $ absPos `sample` transportPulse)
-        <> (continue $ beatS $ fmap getBeat $ absPos `sample` transportPulse)
+        <> (continue $ beatS $ fmap getBeat $ absPos `sample` transportPulse) 
 
-        -- <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transportPulse)
-        -- <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
+        <> (continue $ {-showing "Position: "  $ -}fmap toDouble $ absPos `sample` transportPulse)
+        <> (continue $ {-showing "Tempo: "     $ -}fmap toDouble $ tempoR `sample` tempoE)
 
     -- --------------------------------------------------------
 
@@ -384,5 +389,53 @@ once x = unsafePerformIO $ do
     (k,s) <- newSource
     k x
     return s
+
+
+
+
+
+isStop Stop = True
+isStop _    = False
+
+transport2 :: (Ord t, Fractional t) => Event (TransportControl t) -> Event a -> Reactive t -> Reactive t
+transport2 ctrl trig speed = position'
+    where          
+        -- action :: Reactive (TransportControl t)
+        action    = Pause `stepper` ctrl
+
+        -- direction :: Num a => Reactive a
+        direction = (flip fmap) action $ \a -> case a of
+            Play     -> 1
+            Reverse  -> (-1)
+            Pause    -> 0         
+            Stop     -> 0         
+            
+        -- position :: Num a => Reactive a
+        position = integral2 trig (speed * direction)
+        startPosition = position `sampleAndHold` (filter' (pure isStop) ctrl)
+        position'     = position - startPosition
+
+
+diffE2 :: Num a => Event a -> Event a
+diffE2 = recallEWith_2 $ flip (-)
+recallEWith_2 f e  = (joinMaybes' . fmap combineMaybes) $! (Nothing,Nothing) `accumE` fmap (shift . Just) e
+    where      
+        shift b (_,a) = (a,b)
+        joinMaybes'   = justE
+        combineMaybes = uncurry (liftA2 f)
+
+
+
+integral2 :: Fractional b => Event a -> Reactive b -> Reactive b
+integral2 t b =                                                 
+    sumR $ apply (fmap (*) b) $ fmap (const $ 1/10) $ t
+    -- sumR $ fmap (const $ 1/10) $ t                           NO LEAK, BUT WRONG
+    
+    -- sumR $ snapshotWith (*) b (diffE (tm `sample` t))        LEAK
+    where
+        -- tx = time
+        tm :: Fractional a => Reactive a
+        tm = fmap (fromRational . toRational) $ systemTimeSecondsR
+
 
 
