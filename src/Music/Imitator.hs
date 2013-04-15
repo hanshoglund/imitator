@@ -380,7 +380,7 @@ kMainInputBus   :: (Num a, Num b) => (a, b)
 kMainOutputBus  :: (Num a, Num b) => (a, b)
 kSoundFieldBus  :: (Num a, Num b) => (a, b)
 kMainOutputBus  = (                               0,  8)
-kMainInputBus   = (fromIntegral kInputBuses     + 0,  2)
+kMainInputBus   = (fromIntegral kOutputBuses    + 2,  2)
 kSoundFieldBus  = (fromIntegral kAudioBusOffset + 0,  4)
 
 -- |
