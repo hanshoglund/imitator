@@ -172,11 +172,11 @@ addWidgets frame = do
         return ()
 
     let refreshServerStatus = do
-        cpuB           >>= (set' cpu text . fmap show)
-        memoryB        >>= (set' memory text . fmap show)
-        serverB        >>= (set' server text . fmap show)
-        serverMeanCpuB >>= (set' serverMeanCpu text . fmap show)
-        serverPeakCpuB >>= (set' serverPeakCpu text . fmap show)        
+        cpuB           >>= (set' cpu text . fmap (show . (/ 1000) . toDouble))
+        memoryB        >>= (set' memory text . fmap (show . (/ 1000) . toDouble))
+        serverB        >>= (set' server text . fmap (\x -> if (x > 0) then "Running" else "Stopped"))
+        serverMeanCpuB >>= (set' serverMeanCpu text . fmap (show . (/ 1000) . toDouble))
+        serverPeakCpuB >>= (set' serverPeakCpu text . fmap (show . (/ 1000) . toDouble))        
         return ()
 
     -- FIXME should match pulses below
@@ -224,7 +224,7 @@ gui :: IO ()
 gui = do     
     startServer
     writeSynthDefs
-    threadDelay 1000000
+    threadDelay 500000
     frame <- frame [text := "Imitator"]
 
     (menuSources,   menuSinks)   <- addMenus frame
@@ -264,6 +264,13 @@ gui = do
         serverMeanCpuS  = widgetSinks "serverMeanCpu" . (round . (* 1000.0) <$>)
         serverPeakCpuS  = widgetSinks "serverPeakCpu" . (round . (* 1000.0) <$>)
 
+        transportPulse, serverStatusPulse :: Event ()
+        transportPulse    = pulse 0.05
+        serverStatusPulse = pulse 0.5
+        
+        initTempo :: Double
+        initTempo = 1
+
         -- | Commands to server
         commandsS :: Event OscMessage -> Event OscMessage
         commandsS msgs = oscOutUdp "127.0.0.1" 57110 $ msgs         
@@ -277,37 +284,34 @@ gui = do
         -- | Advances in seconds at tempo 1
         --   Should go from 0 to totalDur during performance 
         absPos :: Reactive Time
-        absPos  = transport control transpPulse ((toTime <$> tempoR))
+        absPos  = transport control transportPulse (toTime <$> tempoR)
 
         -- | Goes from 0 to 1 during performance
         relPos :: Reactive Time
         relPos = absPos ^/ totalDur
         totalDur = offset cmdScore
 
-        transpPulse  = pulse 0.05
-        
-        initTempo = 1
-
+       
         serverMessages :: Event OscMessage
-        serverMessages = imitatorRT (scoreToTrack cmdScore) absPos -- TODO proper absPos scaling
+        serverMessages = imitatorRT (scoreToTrack cmdScore) absPos
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
         <> (continue $ tempoS $ once 0.5) -- FIXME does not show
 
         -- FIXME cpu and memory
-        <> (continue $ cpuS             $ pure 0.0 `sample` pulse 1)
-        <> (continue $ memoryS          $ pure 0.0 `sample` pulse 1)
-        <> (continue $ serverS          $ pure 1.0 `sample` pulse 1)
-        <> (continue $ serverMeanCpuS   $ serverCPUAverage  `sample` pulse 1)
-        <> (continue $ serverPeakCpuS   $ serverCPUPeak     `sample` pulse 1)
+        <> (continue $ cpuS             $ pure 0.0          `sample` serverStatusPulse)
+        <> (continue $ memoryS          $ pure 0.0          `sample` serverStatusPulse)
+        <> (continue $ serverS          $ pure 1.0          `sample` serverStatusPulse)
+        <> (continue $ serverMeanCpuS   $ serverCPUAverage  `sample` serverStatusPulse)
+        <> (continue $ serverPeakCpuS   $ serverCPUPeak     `sample` serverStatusPulse)
         
         <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
-        <> (continue                         $ transportS $ fromTime <$> relPos `sample` transpPulse)
+        <> (continue                         $ transportS $ fromTime <$> relPos `sample` transportPulse)
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
-        -- <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transpPulse2)
+        <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transportPulse)
         -- <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
 
     -- --------------------------------------------------------
