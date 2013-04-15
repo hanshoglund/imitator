@@ -166,7 +166,7 @@ module Music.Imitator.Sound (
         kOutputOffset,
         kAudioBusOffset,
         kControlBusOffset,
-        kNumSpeakers,     
+        -- kNumSpeakers,     
         kSampleRate,
   ) where
 
@@ -794,9 +794,10 @@ kControlBuses           = 4096
 kAudioBusOffset         = kInputBuses + kOutputBuses
 kControlBusOffset       = kInputBuses + kOutputBuses + kAudioBuses
 
-kNumSpeakers, kOutputOffset :: Num a => a
+kOutputOffset :: Num a => a
 kOutputOffset           = 0
-kNumSpeakers            = 8
+-- kNumSpeakers :: Num a => a
+-- kNumSpeakers            = 8
 
 kSampleRate = 44100
 
