@@ -49,5 +49,6 @@ library
 executable "Imitator"
     hs-source-dirs: src
     main-is: Main.hs
-    ghc-options: -threaded -O3 -prof
+    ghc-options: -threaded -O3
+    -- Use --enable-executable-profiling
 
