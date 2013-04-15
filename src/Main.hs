@@ -266,7 +266,7 @@ gui = do
 
         transportPulse, serverStatusPulse :: Event ()
         transportPulse    = pulse 0.05
-        serverStatusPulse = pulse 0.5
+        serverStatusPulse = pulse 10
         
         initTempo :: Double
         initTempo = 1
@@ -297,14 +297,14 @@ gui = do
          
     -- --------------------------------------------------------
     eventLoop <- return $ runLoopUntil $ mempty
-        <> (continue $ tempoS $ once 0.5) -- FIXME does not show
 
-        -- FIXME cpu and memory
+{-
         <> (continue $ cpuS             $ pure 0.0          `sample` serverStatusPulse)
         <> (continue $ memoryS          $ pure 0.0          `sample` serverStatusPulse)
         <> (continue $ serverS          $ pure 1.0          `sample` serverStatusPulse)
         <> (continue $ serverMeanCpuS   $ serverCPUAverage  `sample` serverStatusPulse)
         <> (continue $ serverPeakCpuS   $ serverCPUPeak     `sample` serverStatusPulse)
+-}
         
         <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
         <> (continue                         $ transportS $ fromTime <$> relPos `sample` transportPulse)
