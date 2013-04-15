@@ -165,7 +165,8 @@ addWidgets frame = do
     set pause   [on command := pauseA 0]
     set abort   [on command := abortA 0]
 
-    set tempo   [on command := get tempo  selection >>= tempoA]
+    -- FIXME should set initial value from events
+    set tempo   [on command := get tempo  selection >>= tempoA, selection := 500]
     set gain    [on command := get gain   selection >>= gainA]
     set volume  [on command := get volume selection >>= volumeA]
 
