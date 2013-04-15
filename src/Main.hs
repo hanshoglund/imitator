@@ -291,6 +291,7 @@ gui = do
         
         initTempo :: Double
         initTempo = 1
+        accelerate = 10
 
         -- | Commands to server
         commandsS :: Event OscMessage -> Event OscMessage
@@ -305,7 +306,7 @@ gui = do
         -- | Advances in seconds at tempo 1
         --   Should go from 0 to totalDur during performance 
         absPos :: Reactive Time
-        absPos  = transport control transportPulse (toTime <$> tempoR)
+        absPos  = transport control transportPulse (toTime <$> tempoR * accelerate)
 
         -- | Goes from 0 to 1 during performance
         relPos :: Reactive Time
@@ -332,7 +333,10 @@ gui = do
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
         <> (continue                         $ transportS $ fromTime <$> relPos `sample` transportPulse)
+
         <> (continue $ timeS $ fmap toDouble $ absPos `sample` transportPulse)
+        <> (continue $ barS  $ fmap getBar $ absPos `sample` transportPulse)
+        <> (continue $ beatS $ fmap getBeat $ absPos `sample` transportPulse)
 
         -- <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transportPulse)
         -- <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
@@ -342,6 +346,11 @@ gui = do
     forkIO eventLoop
     return ()
 
+getBar :: Time -> Int 
+getBar = fst . notePos . floor . getTime
+
+getBeat :: Time -> Int
+getBeat = snd . notePos . floor . getTime
 
 main :: IO ()
 main = do
