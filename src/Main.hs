@@ -113,11 +113,6 @@ addWidgets frame = do
                         [label "Gain:", widget gain],
                         [label "Volume:", widget volume] ]
 
-        -- const (-1)
-        -- const (-1)
-        -- isServerRunning
-        -- serverCPUAverage
-        -- serverCPUPeak
         status = margin 10 $ boxed "Status" $
             grid 0 0 [
                 [label "CPU (%):",              widget cpu],
