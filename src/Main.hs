@@ -286,7 +286,7 @@ gui = do
         beatS          = widgetSinks "beat"
 
         transportPulse, serverStatusPulse :: Event ()
-        transportPulse    = pulse 0.05
+        transportPulse    = pulse 0.1
         serverStatusPulse = pulse 10
         
         initTempo :: Double
@@ -385,5 +385,4 @@ once x = unsafePerformIO $ do
     k x
     return s
 
--- once x = (const x) <$> firstE (pulse 0.000000001)
 
