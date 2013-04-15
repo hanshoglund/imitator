@@ -4,6 +4,7 @@
 
 module Score (
         cmdScore,
+        notePos,
         noteScore
   ) where
 
@@ -113,6 +114,17 @@ echoShort2 = mempty
 
 --------------------------------------------------------------------------------
 
+-- Get (bar,beat)
+-- 400 bars in 60 BPM
+-- 20 seconds in bar 401
+-- 45 bars (to 446)
+-- 30 seconds in bar 447       
+
+notePos :: Int -> (Int,Int)
+notePos t |                 t < 1600  =  ( t `div` 4 + 1 , t `mod` 4   + 1)
+          | 1600    <= t && t < 1620  =  ( 401           , t - (400*4)  + 1)
+          | 400*4+20 <= t && t < 445*4+20  =  ( (t-20) `div` 4 + 2, (t-20) `mod` 4 + 1 )
+          | otherwise                     =  447
 
 noteScore :: Score Note
 noteScore = {-addInstrChange $-}
