@@ -88,8 +88,8 @@ addWidgets frame = do
     abort       <- button frame [text := "Abort"]
 
     tempo       <- hslider frame True 0 1000 [text := "Tempo"]
-    gain        <- hslider frame True 0 1000 [text := "Gain"]
-    volume      <- hslider frame True 0 1000 [text := "Volume"]
+    gain        <- hslider frame True 0 1000 [text := "Gain", enabled := False]
+    volume      <- hslider frame True 0 1000 [text := "Volume", enabled := False]
 
     cpu           <- textEntry frame [enabled := False]
     memory        <- textEntry frame [enabled := False]
@@ -122,7 +122,7 @@ addWidgets frame = do
                 [label "Server peak CPU (%):",  widget serverPeakCpu]
             ]
 
-        positioning = shaped $ margin 10 $ column 10 [
+        positioning = shaped $ margin 10 $ column 30 [
             widget transport,
             row 10 [
                 label "Time:",      widget time,
@@ -132,7 +132,7 @@ addWidgets frame = do
             ]
 
     windowSetLayout frame $ margin 10 $
-        column 0 [row 0 [buttons, shaped $ controls, status],
+        column 0 [row 0 [buttons, shaped controls, status],
                   positioning]
 
     -- Create sources/sinks
