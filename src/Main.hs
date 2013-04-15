@@ -97,6 +97,10 @@ addWidgets frame = do
     serverMeanCpu <- textEntry frame [enabled := False]
     serverPeakCpu <- textEntry frame [enabled := False]
 
+    time          <- textEntry frame [enabled := False, size := sz 175 (-1)]
+    bar           <- textEntry frame [enabled := False]
+    beat          <- textEntry frame [enabled := False]
+
     transport   <- hgauge frame 1000 [text := "Volume", size := sz 750 30]
 
     -- Set layout
@@ -126,9 +130,10 @@ addWidgets frame = do
         positioning = shaped $ margin 10 $ column 10 [
             widget transport,
             row 10 [
-                label "Time:", 
-                label "Section:", 
-                label "Bar:"]
+                label "Time:",      widget time,
+                label "Bar:",       widget bar,
+                label "Beat:",      widget beat
+                ]
             ]
 
     windowSetLayout frame $ margin 10 $
@@ -311,7 +316,7 @@ gui = do
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
 
-        <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transportPulse)
+        -- <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transportPulse)
         -- <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
 
     -- --------------------------------------------------------
