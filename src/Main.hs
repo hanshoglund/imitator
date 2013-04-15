@@ -155,15 +155,22 @@ addWidgets frame = do
     (serverMeanCpuB, serverMeanCpuS)    <- newSink
     (serverPeakCpuB, serverPeakCpuS)    <- newSink
 
+    (timeB, timeS)                      <- newSink
+    (barB, barS)                        <- newSink
+    (beatB, beatS)                      <- newSink
+
+
     set start   [on command := startA 0]
     set stop    [on command := stopA 0]
     set pause   [on command := pauseA 0]
     set abort   [on command := abortA 0]
 
-    -- FIXME should set initial value from events
-    set tempo   [on command := get tempo  selection >>= tempoA, selection := 500]
+    set tempo   [on command := get tempo  selection >>= tempoA]
     set gain    [on command := get gain   selection >>= gainA]
     set volume  [on command := get volume selection >>= volumeA]
+
+    -- FIXME not here
+    set tempo   [selection := 500] 
 
     let refreshControls = do
         tempoB      >>= set' tempo selection
@@ -173,11 +180,15 @@ addWidgets frame = do
         return ()
 
     let refreshServerStatus = do
-        cpuB           >>= (set' cpu text . fmap (show . (/ 1000) . toDouble))
-        memoryB        >>= (set' memory text . fmap (show . (/ 1000) . toDouble))
-        serverB        >>= (set' server text . fmap (\x -> if (x > 0) then "Running" else "Stopped"))
-        serverMeanCpuB >>= (set' serverMeanCpu text . fmap (show . (/ 1000) . toDouble))
-        serverPeakCpuB >>= (set' serverPeakCpu text . fmap (show . (/ 1000) . toDouble))        
+        cpuB            >>= (set' cpu text . fmap (show . (/ 1000) . toDouble))
+        memoryB         >>= (set' memory text . fmap (show . (/ 1000) . toDouble))
+        serverB         >>= (set' server text . fmap (\x -> if (x > 0) then "Running" else "Stopped"))
+        serverMeanCpuB  >>= (set' serverMeanCpu text . fmap (show . (/ 1000) . toDouble))
+        serverPeakCpuB  >>= (set' serverPeakCpu text . fmap (show . (/ 1000) . toDouble))        
+
+        timeB           >>= (set' time text . fmap (show . (/ 1000) . toDouble))
+        barB            >>= (set' bar text . fmap show)
+        beatB           >>= (set' beat text . fmap show)
         return ()
 
     -- FIXME should match pulses below
@@ -204,6 +215,9 @@ addWidgets frame = do
         ; "server"          -> serverS
         ; "serverMeanCpu"   -> serverMeanCpuS
         ; "serverPeakCpu"   -> serverPeakCpuS
+        ; "time"            -> timeS
+        ; "bar"             -> barS
+        ; "beat"            -> beatS
         ;  _                -> error "No such sink"
         }
     return (sources, sinks)
@@ -265,6 +279,12 @@ gui = do
         serverMeanCpuS  = widgetSinks "serverMeanCpu" . (round . (* 1000.0) <$>)
         serverPeakCpuS  = widgetSinks "serverPeakCpu" . (round . (* 1000.0) <$>)
 
+        timeS :: Sink Double
+        barS, beatS :: Sink Int
+        timeS          = widgetSinks "time"           . (round . (* 1000.0) <$>)
+        barS           = widgetSinks "bar"
+        beatS          = widgetSinks "beat"
+
         transportPulse, serverStatusPulse :: Event ()
         transportPulse    = pulse 0.05
         serverStatusPulse = pulse 10
@@ -308,9 +328,11 @@ gui = do
 -}
         
         <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
-        <> (continue                         $ transportS $ fromTime <$> relPos `sample` transportPulse)
         <> (continue $ notify  "Quitting "   $ putE (const $ close frame) $ quitE)
         <> (continue $ notify  "Aborting "   $ putE (const $ abort) $ abortE)
+
+        <> (continue                         $ transportS $ fromTime <$> relPos `sample` transportPulse)
+        <> (continue $ timeS $ fmap toDouble $ absPos `sample` transportPulse)
 
         -- <> (continue $ showing "Position: "  $ fmap toDouble $ absPos `sample` transportPulse)
         -- <> (continue $ showing "Tempo: "     $ fmap toDouble $ tempoR `sample` tempoE)
