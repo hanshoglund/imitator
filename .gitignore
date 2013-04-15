@@ -6,3 +6,7 @@ sounds
 test.xml
 score.svg
 output*
+*.aux
+*.hp
+*.prof
+*.ps
