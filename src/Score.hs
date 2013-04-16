@@ -27,10 +27,7 @@ import Music.Score
 import Music.Score.Combinators
 import Music.Score.Rhythm (quantize)
 
-import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, (|>), Time, Duration, (&), text, e, tau)
-import Diagrams.Backend.SVG (SVG(..), Options(..))
-import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
-import qualified Data.ByteString.Lazy as ByteString
+import Data.NumInstances
 
 import Music.Imitator
 
@@ -440,97 +437,97 @@ simple = id
 
 --------------------------------------------------------------------------------
 
-main :: IO ()
-main = drp
-
--- |
--- Ad-hoc drawing of commands notes.
---
-drawScores
-    :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b)
-    => Score b -> Score c -> Diagram SVG R2
-drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
-    where
-        notes1 = mfilter (\x -> getPartGroup (getVoice x) == 1) notes
-        notes2 = mfilter (\x -> getPartGroup (getVoice x) == 2) notes
-
-        notes1D     = mconcat $ fmap (drawNote 1) $ perform notes1
-        notes2D     = mconcat $ fmap (drawNote 2) $ perform notes2
-        cmdsD       = mconcat $ fmap drawCmd $ perform cmds
-        middleLines = translateX ((/ 2) $ totalDur) (hrule $ totalDur)
-        crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 100)) $ [0..5]
-
-        drawNote n (t,d,x) = translateY (getP x + off n) $ translateX (getT (t.+^(d^/2))) $ scaleX (getD d) $ noteShape n
-        off 1 = 50
-        off 2 = (-50)
-        drawCmd (t,d,x) = translateY 0 $ translateX (getT t) $ cmdShape
-
-        noteShape 1 = lcA transparent $ fcA (blue  `withOpacity` 0.3) $ square 1
-        noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ square 1
-        cmdShape = lcA (red `withOpacity` 0.3) $ vrule (200)
-
-        totalDur = getD $ duration notes
-        getT = fromRational . toRational
-        getD = fromRational . toRational
-        getP = (subtract 60) . fromIntegral . getPitch
-
-reset x = moveBack (offset x .-. 0) x
--- |
--- Ad-hoc drawing of commands notes.
---
-drawPoster :: Diagram SVG R2
-drawPoster = mconcat $ fmap (\(i,a) -> translate (rotate (tau*a::Rad) $ r2 (0,z)) $ alignB $ rotate (tau*a::Rad) $ alignX 0 $ alignY 0 $ notes i) $ zip [0,1..] $ [0,(1/n)..1]
-    where     
-        notes i = alignTR $ mconcat $ fmap (drawNote 1) $ perform $ ns (i `mod` 4)
-                                                                               
-        
-        n  = 8
-        z  = 100
-        dr = 40
-        ns v = (takeS dr $ (!! v) $ voices $ rev canon_IV)
-
-        drawNote n (t,d,x) =
-                drawNote' n (t,d,x)
-                 <> drawFigure n (t,d,x)
-        
-        drawFigure n (t,d,x) = id
-                $ translateY (getP x-30) 
-                $ translateX (getT (t.+^(d)))  
-                $ lw 0.2
-                $ alignTL
-                $ lcA transparent
-                $ fcA (black `withOpacity` 0.2) 
-                -- $ vrule (fromIntegral $ 2 * (round $ getTime $ t) `mod` 4)
-                $ rect 0.4 (fromIntegral $ 2 * (round $ getTime $ t) `mod` 4)
-
-
-        drawNote' n (t,d,x) = id
-                $ translateY ((getP x-30)) 
-                $ translateX (getT (t.+^(d^/2))) 
-                $ scaleX (getD d) $ noteShape n
-
-        noteShape 1 = id
-                $ lcA transparent
-                $ fcA (black `withOpacity` 0.2) 
-                $ square 1
-        noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ square 1
-
-        totalDur = getD $ dr{-duration ns-}
-        getT = fromRational . toRational
-        getD = fromRational . toRational
-        getP = (subtract 60) . fromIntegral . getPitch  
-
-dr = do
-    let dia = drawScores noteScore cmdScore
-    let svg = renderDia SVG (SVGOptions (Dims 1800 800)) dia
-    let bs  = renderSvg svg
-    ByteString.writeFile "score.svg" bs
-
-drp = do
-    let dia = drawPoster
-    let svg = renderDia SVG (SVGOptions (Dims 1800 800)) dia
-    let bs  = renderSvg svg
-    ByteString.writeFile "poster.svg" bs
+-- main :: IO ()
+-- main = drp
+-- 
+-- -- |
+-- -- Ad-hoc drawing of commands notes.
+-- --
+-- drawScores
+--     :: (Integral p, p ~ Pitch b, HasPitch b, Voice b ~ NotePart, HasVoice b)
+--     => Score b -> Score c -> Diagram SVG R2
+-- drawScores notes cmds = notes1D <> notes2D <> cmdsD <> middleLines <> crossLines
+--     where
+--         notes1 = mfilter (\x -> getPartGroup (getVoice x) == 1) notes
+--         notes2 = mfilter (\x -> getPartGroup (getVoice x) == 2) notes
+-- 
+--         notes1D     = mconcat $ fmap (drawNote 1) $ perform notes1
+--         notes2D     = mconcat $ fmap (drawNote 2) $ perform notes2
+--         cmdsD       = mconcat $ fmap drawCmd $ perform cmds
+--         middleLines = translateX ((/ 2) $ totalDur) (hrule $ totalDur)
+--         crossLines  = mconcat $ fmap (\n -> translateX ((totalDur/5) * n) (vrule 100)) $ [0..5]
+-- 
+--         drawNote n (t,d,x) = translateY (getP x + off n) $ translateX (getT (t.+^(d^/2))) $ scaleX (getD d) $ noteShape n
+--         off 1 = 50
+--         off 2 = (-50)
+--         drawCmd (t,d,x) = translateY 0 $ translateX (getT t) $ cmdShape
+-- 
+--         noteShape 1 = lcA transparent $ fcA (blue  `withOpacity` 0.3) $ square 1
+--         noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ square 1
+--         cmdShape = lcA (red `withOpacity` 0.3) $ vrule (200)
+-- 
+--         totalDur = getD $ duration notes
+--         getT = fromRational . toRational
+--         getD = fromRational . toRational
+--         getP = (subtract 60) . fromIntegral . getPitch
+-- 
+-- reset x = moveBack (offset x .-. 0) x
+-- -- |
+-- -- Ad-hoc drawing of commands notes.
+-- --
+-- drawPoster :: Diagram SVG R2
+-- drawPoster = mconcat $ fmap (\(i,a) -> translate (rotate (tau*a::Rad) $ r2 (0,z)) $ alignB $ rotate (tau*a::Rad) $ alignX 0 $ alignY 0 $ notes i) $ zip [0,1..] $ [0,(1/n)..1]
+--     where     
+--         notes i = alignTR $ mconcat $ fmap (drawNote 1) $ perform $ ns (i `mod` 4)
+--                                                                                
+--         
+--         n  = 8
+--         z  = 100
+--         dr = 40
+--         ns v = (takeS dr $ (!! v) $ voices $ rev canon_IV)
+-- 
+--         drawNote n (t,d,x) =
+--                 drawNote' n (t,d,x)
+--                  <> drawFigure n (t,d,x)
+--         
+--         drawFigure n (t,d,x) = id
+--                 $ translateY (getP x-30) 
+--                 $ translateX (getT (t.+^(d)))  
+--                 $ lw 0.2
+--                 $ alignTL
+--                 $ lcA transparent
+--                 $ fcA (black `withOpacity` 0.2) 
+--                 -- $ vrule (fromIntegral $ 2 * (round $ getTime $ t) `mod` 4)
+--                 $ rect 0.4 (fromIntegral $ 2 * (round $ getTime $ t) `mod` 4)
+-- 
+-- 
+--         drawNote' n (t,d,x) = id
+--                 $ translateY ((getP x-30)) 
+--                 $ translateX (getT (t.+^(d^/2))) 
+--                 $ scaleX (getD d) $ noteShape n
+-- 
+--         noteShape 1 = id
+--                 $ lcA transparent
+--                 $ fcA (black `withOpacity` 0.2) 
+--                 $ square 1
+--         noteShape 2 = lcA transparent $ fcA (green `withOpacity` 0.3) $ square 1
+-- 
+--         totalDur = getD $ dr{-duration ns-}
+--         getT = fromRational . toRational
+--         getD = fromRational . toRational
+--         getP = (subtract 60) . fromIntegral . getPitch  
+-- 
+-- dr = do
+--     let dia = drawScores noteScore cmdScore
+--     let svg = renderDia SVG (SVGOptions (Dims 1800 800)) dia
+--     let bs  = renderSvg svg
+--     ByteString.writeFile "score.svg" bs
+-- 
+-- drp = do
+--     let dia = drawPoster
+--     let svg = renderDia SVG (SVGOptions (Dims 1800 800)) dia
+--     let bs  = renderSvg svg
+--     ByteString.writeFile "poster.svg" bs  
 
 nrt = do
     writeSynthDefs
@@ -712,3 +709,7 @@ takeS d = gateS (on^*d)
 
 
 
+-- import Diagrams.Prelude hiding (open, duration, stretch, stretchTo, (|>), Time, Duration, (&), text, e, tau)
+-- import Diagrams.Backend.SVG (SVG(..), Options(..))
+-- import Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
+-- import qualified Data.ByteString.Lazy as ByteString

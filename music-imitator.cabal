@@ -25,6 +25,7 @@ library
         hsc3,
         reenact,
         tau,
+        NumInstances,
         diagrams,
         diagrams-lib,
         diagrams-svg,
