@@ -47,6 +47,9 @@ library
         Music.Imitator.Sound.Event
         Music.Imitator.Util
 
+    other-modules:
+        Score
+
 executable "Imitator"
     hs-source-dirs: src
     main-is: Main.hs
