@@ -36,10 +36,17 @@ import Music.Imitator
 -- TODO spread out source positions (minimize risk of noise etc)
 
 cmdScore :: Score Command
-cmdScore = mempty
-    <> note StartRecord
-    -- <> delay 0          (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
-    -- <> delay 0          (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))
+cmdScore = cmdScore' False
+
+
+cmdScore' :: Bool -> Score Command
+cmdScore' rt = mempty
+    <> if rt
+        then note StartRecord
+        else (mempty
+            <> delay 0 (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
+            <> delay 0 (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))            
+        )
     <> delay 20  echoShort1 -- FIXME
 
 
