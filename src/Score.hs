@@ -65,13 +65,15 @@ cmdScore' rt = mempty
     <> delay (104*4)    echoMiddleC2
     <> delay (108*4)    echoMiddleC2
 
-    -- canon_II
+    <> delay (115*4)    echoCanon_II
+    <> delay (138*4)    echoCanon_II
 
     <> delay (166*4)    echoMiddleF1
     <> delay (170*4)    echoShort1Mini
     <> delay (180*4)    echoMiddleF2
 
-    -- canon_III
+    <> delay (198*4)     echoCanon_III
+    <> delay (230*4)     echoCanon_III
 
     -- nothing at all here?
 
@@ -83,12 +85,20 @@ cmdScore' rt = mempty
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
 echoCanon_I = mempty
-    |> (playOnce (28*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> (playOnce (28*4) (25*4) & setCurve Smooth & setAzim (0.0 + 0.5))
     |> rest^*(4*8)
-    |> (playOnce (28*4) (30*4) & setCurve Smooth & setAzim (0.0 - 0.5))
+    |> (playOnce (28*4) (25*4) & setCurve Smooth & setAzim (0.0 - 0.5))
 
 echoCanon_II = mempty
     |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
+
+echoCanon_III = mempty
+    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> rest^*(8*8)
+    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> rest^*(8*8)
+    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> rest^*(8*8)
 
 echoCanon_IV = mempty
     |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 1.0))
