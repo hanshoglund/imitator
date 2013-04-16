@@ -30,13 +30,16 @@ addMenus frame = do
     fileSave        <- menuItem file [text := "&Save\tCtrl+S"]
     fileSaveAs      <- menuItem file [text := "&Save As...\tCtrl+Shift+S"]
     menuLine file
+    fileRecord      <- menuItem file [text := "&Record\t\tCtrl+Shift+R", checkable := True, checked := True]
+    menuLine file
     fileQuit        <- menuItem file [text := "&Quit\tCtrl+Q"]
 
     transport          <- menuPane [text := "&Transport"]
-    transportStart     <- menuItem transport [text := "&Start\tCtrl+R"]
-    transportPause     <- menuItem transport [text := "&Pause\tCtrl+P"]
-    transportAbort     <- menuItem transport  [text := "&Abort\tCtrl+A"]
-    transportStop      <- menuItem transport [text := "&Stop\tCtrl+S"]
+    transportStart     <- menuItem transport [text := "&Start\tSpace"]
+    transportPause     <- menuItem transport [text := "&Pause\tP"]
+    transportStop      <- menuItem transport [text := "&Stop\tReturn"]
+    menuLine transport
+    transportAbort     <- menuItem transport  [text := "&Abort\tCtrl+."]
 
     -- window          <- menuPane [text := "&Window"]
     -- windowMinimize  <- menuItem window [text := "&Minimize\tCtrl+M"]
@@ -286,8 +289,7 @@ gui = do
         beatS          = widgetSinks "beat"
 
         transportPulse{-, serverStatusPulse-} :: Event ()
-        -- transportPulse = mempty
-        -- transportPulse    = pulse 0.1
+        -- serverStatusPulse = pulse 1
         transportPulse = oftenE
         
         initTempo :: Double
@@ -323,6 +325,7 @@ gui = do
     -- --------------------------------------------------------
     eventLoop <- return $ runLoop{-Until-} $ mempty
 
+
 {-
         <> (continue $ cpuS             $ pure 0.0          `sample` serverStatusPulse)
         <> (continue $ memoryS          $ pure 0.0          `sample` serverStatusPulse)
@@ -331,8 +334,7 @@ gui = do
         <> (continue $ serverPeakCpuS   $ serverCPUPeak     `sample` serverStatusPulse)
 -}
 
-        -- FIXME leaks
-        
+
         <> (continue $ {-showing "Sending: "   $-} commandsS  $ serverMessages)
         <> (continue $ {-notify  "Quitting "   $ -}putE (const $ close frame) $ quitE)
         <> (continue $ {-notify  "Aborting "   $ -}putE (const $ abort) $ abortE)
