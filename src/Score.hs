@@ -52,26 +52,29 @@ cmdScore' rt = mempty
             <> delay 0 (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))            
         )
 
-    <> delay (12*4)  echoShort1
-    <> delay (57*4)  echoShort2
+    <> delay (12*4)     echoShort1
+    <> delay (57*4)     echoShort2
 
-    <> delay (37*4)  echoCanon_I
-    <> delay (42*4)  echoCanon_I
+    <> delay (37*4)     echoCanon_I
+    <> delay (42*4)     echoCanon_I
 
-    <> delay (88*4)   echoMiddleC1
-    <> delay (92*4)   echoMiddleC1
-    <> delay (96*4)   echoMiddleC1
-    <> delay (100*4)  echoMiddleC2
-    <> delay (104*4)  echoMiddleC2
-    <> delay (108*4)  echoMiddleC2
+    <> delay (88*4)     echoMiddleC1
+    <> delay (92*4)     echoMiddleC1
+    <> delay (96*4)     echoMiddleC1
+    <> delay (100*4)    echoMiddleC2
+    <> delay (104*4)    echoMiddleC2
+    <> delay (108*4)    echoMiddleC2
 
     -- canon_II
 
-    <> delay (166*4)   echoMiddleF1
+    <> delay (166*4)    echoMiddleF1
     <> delay (170*4)    echoShort1Mini
-    <> delay (180*4)   echoMiddleF2
+    <> delay (180*4)    echoMiddleF2
 
     -- canon_III
+
+    -- nothing at all here?
+
     -- canon_IV
 
     <> delay (400*4+15)    echoLongNote
