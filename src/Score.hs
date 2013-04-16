@@ -58,14 +58,21 @@ cmdScore' rt = mempty
     <> delay (37*4)  echoCanon_I
     <> delay (42*4)  echoCanon_I
 
-    <> delay (88*4)  echoMiddleC1
-    <> delay (92*4)  echoMiddleC1
-    <> delay (96*4)  echoMiddleC1
+    <> delay (88*4)   echoMiddleC1
+    <> delay (92*4)   echoMiddleC1
+    <> delay (96*4)   echoMiddleC1
     <> delay (100*4)  echoMiddleC2
     <> delay (104*4)  echoMiddleC2
     <> delay (108*4)  echoMiddleC2
 
+    -- canon_II
 
+    <> delay (166*4)   echoMiddleF1
+    <> delay (170*4)    echoShort1Mini
+    <> delay (180*4)   echoMiddleF2
+
+    -- canon_III
+    -- canon_IV
 
     <> delay (400*4+15)    echoLongNote
     <> delay (400*4+20+30) echoEnd
@@ -86,6 +93,12 @@ echoCanon_IV = mempty
     |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 + 0.3))
     |> rest^*30
     |> (playOnce (21*60+0) (60*4) & setCurve Smooth & setAzim (0.0 - 0.3))
+
+echoShort1Mini = mempty
+    |> (playOnce 10  50 & setCurve Smooth & setAzim (0 + 0.1))
+    |> rest^*10
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 - 0.1))
+    |> rest^*10
 
 echoShort1 = mempty
     |> (playOnce 10  50 & setCurve Smooth & setAzim (0 + 0.1))
@@ -120,6 +133,13 @@ echoMiddleC1 = mempty
     |> (playOnce (87*4)  (8*4))
 echoMiddleC2 = mempty
     |> (playOnce (100*4) (8*4))
+
+
+echoMiddleF1 = mempty
+    |> (playOnce (161*4) (12*4))
+echoMiddleF2 = mempty
+    |> (playOnce (176*4) (12*4))
+
 
 -- dur ca 200
 echoLongNote = repTimes 30 (capture |> rest^*5)
