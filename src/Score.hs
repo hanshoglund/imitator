@@ -52,25 +52,17 @@ cmdScore' rt = mempty
             <> delay 0 (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))            
         )
 
-    <> delay (12*4) echoShort1
-    <> delay (57*4) echoShort2
+    <> delay (12*4)  echoShort1
+    <> delay (57*4)  echoShort2
 
-    <> delay (37*4)     echoCanon_I
-    <> delay (42*4)     echoCanon_I
+    <> delay (37*4)  echoCanon_I
+    <> delay (42*4)  echoCanon_I
 
-    <> delay (22*60+20+0) echoCanon_IV
 
-    -- <> delay (25*60+24+0)  echoEnd
-    -- <> delay (25*60+24+2)  echoEnd
 
-    -- <> delay (25*60+34+0)  echoEnd
-    -- <> delay (25*60+34+2)  echoEnd
-    -- <> delay (25*60+34+4)  echoEnd
-    -- <> delay (25*60+34+6)  echoEnd
 
-    -- <> delay (25*60+44+0)  echoEnd
-    -- <> delay (25*60+44+2)  echoEnd
-    -- <> delay (25*60+44+4)  echoEnd
+    <> delay (400*4+15)    echoLongNote
+    <> delay (400*4+20+30) echoEnd
 
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
@@ -102,21 +94,36 @@ echoShort1 = mempty
     |> rest^*10
 
 echoShort2 = mempty
-    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 + 1.0))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 + 0.5))
     |> rest^*10
-    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 - 0.4))
+    |> (playOnce 10 50 & setCurve Smooth & setAzim (0 - 0.35))
     |> rest^*10
-    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 + 0.4))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 + 0.35))
     |> rest^*10
-    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 - 0.2))
+    |> (playOnce 20 50 & setCurve Smooth & setAzim (0 - 0.25))
     |> rest^*10
-    |> (playOnce 30 50 & setCurve Smooth & setAzim (0 + 0.2))
+    |> (playOnce 30 50 & setCurve Smooth & setAzim (0 + 0.25))
     |> rest^*10
     |> (playOnce 30 50 & setCurve Smooth & setAzim (0 - 0.0))
     |> rest^*10
 
+
+-- dur ca 200
+echoLongNote = repTimes 30 (capture |> rest^*5)
+    where
+        capture = playOnce (400*4+5) 15 & setCurve Smooth & setAzim (0 + 0.0)
+
 echoEnd = mempty
-    |> (playOnce (25*60+4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce (400*4+20+10) (60*3) & setCurve Smooth & setAzim (0 + 0.5))
+    |> rest^*30
+    |> (playOnce (400*4+20+20) (60*3) & setCurve Smooth & setAzim (0 - 0.35))
+    |> rest^*30
+    |> (playOnce (400*4+20+30) (60*3) & setCurve Smooth & setAzim (0 + 0.35))
+    |> rest^*30
+    |> (playOnce (400*4+20+40) (60*3) & setCurve Smooth & setAzim (0 - 0.25))
+    |> rest^*30
+    |> (playOnce (400*4+20+10) (60*3) & setCurve Smooth & setAzim (0 + 0.25))
+    |> rest^*30
 
 
 --------------------------------------------------------------------------------
