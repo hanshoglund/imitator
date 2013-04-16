@@ -335,7 +335,7 @@ gui = do
 -}
 
 
-        <> (continue $ {-showing "Sending: "   $-} commandsS  $ serverMessages)
+        <> (continue $ showing "Sending: "   $ commandsS  $ serverMessages)
         <> (continue $ {-notify  "Quitting "   $ -}putE (const $ close frame) $ quitE)
         <> (continue $ {-notify  "Aborting "   $ -}putE (const $ abort) $ abortE)
         
