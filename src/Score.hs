@@ -19,6 +19,7 @@ import Data.Foldable (Foldable(..), toList)
 import Data.Ord (comparing)
 import Data.String
 import Data.Ratio
+import Data.NumInstances
 import qualified Data.List as List
 
 import Music.Pitch.Literal
@@ -26,8 +27,6 @@ import Music.Dynamics.Literal
 import Music.Score
 import Music.Score.Combinators
 import Music.Score.Rhythm (quantize)
-
-import Data.NumInstances
 
 import Music.Imitator
 
