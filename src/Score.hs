@@ -65,8 +65,8 @@ cmdScore' rt = mempty
     <> delay (104*4)    echoMiddleC2
     <> delay (108*4)    echoMiddleC2
 
-    <> delay (115*4)    echoCanon_II
-    <> delay (138*4)    echoCanon_II
+    <> delay (115*4)    echoCanon_IIa
+    <> delay (138*4)    echoCanon_IIb
 
     <> delay (166*4)    echoMiddleF1
     <> delay (170*4)    echoShort1Mini
@@ -86,31 +86,33 @@ cmdScore' rt = mempty
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
 echoCanon_I = mempty
-    |> (playOnce (28*4) (25*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> (playOnce (28*4) (25*4) & setCurve Smooth & setAzim (0.0 + 0.3))
     |> rest^*(4*8)
-    |> (playOnce (28*4) (25*4) & setCurve Smooth & setAzim (0.0 - 0.5))
+    |> (playOnce (28*4) (25*4) & setCurve Smooth & setAzim (0.0 - 0.3))
 
-echoCanon_II = mempty
-    |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
+echoCanon_IIa = mempty
+    |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0.15))
+echoCanon_IIb = mempty
+    |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 - 0.15))
 
 echoCanon_III = mempty
-    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.2))
     |> rest^*(8*8)
-    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 - 0.2))
     |> rest^*(8*8)
     |> (playOnce (191*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
     |> rest^*(8*8)
 
 echoCanon_IV = mempty
-    |> (playOnce (296*4) (60*4) & setCurve Smooth & setAzim (0.0 + 1.0))
+    |> (playOnce (296*4) (60*4) & setCurve Smooth & setAzim (0.0 + 0.2))
     |> rest^*(4*16)
-    |> (playOnce (304*4) (60*4) & setCurve Smooth & setAzim (0.0 + 0.3))
+    |> (playOnce (304*4) (60*4) & setCurve Smooth & setAzim (0.0 - 0.2))
     |> rest^*(4*16)
-    |> (playOnce (312*4) (30*4) & setCurve Smooth & setAzim (0.0 - 0.3))
+    |> (playOnce (312*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.4))
     |> rest^*(4*16)
-    |> (playOnce (312*4) (20*4) & setCurve Smooth & setAzim (0.0 - 0.3))
+    |> (playOnce (312*4) (20*4) & setCurve Smooth & setAzim (0.0 - 0.4))
     |> rest^*(4*16)
-    |> (playOnce (312*4) (10*4) & setCurve Smooth & setAzim (0.0 - 0.3))
+    |> (playOnce (312*4) (10*4) & setCurve Smooth & setAzim (0.0 - 0.5))
 
 echoShort1Mini = mempty
     |> (playOnce 10  50 & setCurve Smooth & setAzim (0 + 0.1))
@@ -148,15 +150,15 @@ echoShort2 = mempty
 
 
 echoMiddleC1 = mempty
-    |> (playOnce (87*4)  (8*4))
+    |> (playOnce (87*4)  (8*4) & setCurve Smooth & setAzim (0 + 0.4))
 echoMiddleC2 = mempty
-    |> (playOnce (100*4) (8*4))
+    |> (playOnce (100*4) (8*4) & setCurve Smooth & setAzim (0 - 0.4))
 
 
 echoMiddleF1 = mempty
-    |> (playOnce (161*4) (12*4))
+    |> (playOnce (161*4) (12*4) & setCurve Smooth & setAzim (0 + 0.2))
 echoMiddleF2 = mempty
-    |> (playOnce (176*4) (12*4))
+    |> (playOnce (176*4) (12*4) & setCurve Smooth & setAzim (0 - 0.2))
 
 
 -- dur ca 200
@@ -174,6 +176,8 @@ echoEnd = mempty
     |> (playOnce (400*4+20+40) (60*3) & setCurve Smooth & setAzim (0 - 0.25))
     |> rest^*30
     |> (playOnce (400*4+20+10) (60*3) & setCurve Smooth & setAzim (0 + 0.25))
+    |> rest^*30
+    |> (playOnce (400*4+20+10) (60*3) & setCurve Smooth & setAzim (0 + 0))
     |> rest^*30
 
 
