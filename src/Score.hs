@@ -58,6 +58,12 @@ cmdScore' rt = mempty
     <> delay (37*4)  echoCanon_I
     <> delay (42*4)  echoCanon_I
 
+    <> delay (88*4)  echoMiddleC1
+    <> delay (92*4)  echoMiddleC1
+    <> delay (96*4)  echoMiddleC1
+    <> delay (100*4)  echoMiddleC2
+    <> delay (104*4)  echoMiddleC2
+    <> delay (108*4)  echoMiddleC2
 
 
 
@@ -67,7 +73,9 @@ cmdScore' rt = mempty
     <> delay (duration noteScore) (note StopRecord) -- mark end
 
 echoCanon_I = mempty
-    |> (playOnce (28*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0))
+    |> (playOnce (28*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.5))
+    |> rest^*(4*8)
+    |> (playOnce (28*4) (30*4) & setCurve Smooth & setAzim (0.0 - 0.5))
 
 echoCanon_II = mempty
     |> (playOnce (107*4) (20*4) & setCurve Smooth & setAzim (0.0 + 0))
@@ -107,6 +115,11 @@ echoShort2 = mempty
     |> (playOnce 30 50 & setCurve Smooth & setAzim (0 - 0.0))
     |> rest^*10
 
+
+echoMiddleC1 = mempty
+    |> (playOnce (87*4)  (8*4))
+echoMiddleC2 = mempty
+    |> (playOnce (100*4) (8*4))
 
 -- dur ca 200
 echoLongNote = repTimes 30 (capture |> rest^*5)
