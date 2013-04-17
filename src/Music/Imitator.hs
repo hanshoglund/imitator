@@ -1,5 +1,5 @@
 
-{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings, GeneralizedNewtypeDeriving, ScopedTypeVariables #-}
 
 -------------------------------------------------------------------------------------
 -- |
@@ -284,12 +284,15 @@ translateCommand (PlayBuffer n t d vol curve az) = createPlaySynth n t d vol cur
 -- > imitatorRT time
 --
 imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
-imitatorRT cmds time = playback time (pure msgs)
+imitatorRT cmds time = playback time (pure msgs :: Reactive [(Time, OscMessage)])
     where
         msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< allocateNodes cmds
 
         prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
+        
+        -- Experimental
+        correctOnsets = id -- TODO
 
 -- |
 -- Convert commmands to a non-realtime score for @scsynth@.
@@ -307,6 +310,15 @@ imitatorNRT cmds = S.NRT $ fmap toBundle msgs
 
         prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
+
+-- Continously sample time offset and create a time transformer 
+relativeTime :: Event b -> Reactive Time -> Reactive Time -> Reactive (Time -> Time)
+relativeTime t actTime relTime = pure id
+    where
+        rel :: Reactive [(Time, Time)]
+        rel = record actTime (relTime `sample` t)
+
+
 
 -- |
 -- Simplistic node allocator. Assures each PlayBuffer command uses a separate node index.
@@ -407,3 +419,47 @@ listToTrack :: [a] -> Track a
 listToTrack = mconcat . fmap return
 
 
+{-
+-- | Like (flip lookup), but interpolating.
+interp :: (RealFrac a, Fractional b) => [(Int, b)] -> a -> Maybe b
+interp t n = case (lookup i t, lookup j t) of
+    (Nothing , Nothing) -> Nothing
+    (Just a  , Nothing) -> Just a
+    (Nothing , Just b ) -> Just b
+    (Just a  , Just b ) -> Just $ linear a b (fromRational . toRational $ r) 
+    where
+        (i, r) = properFraction n
+        j = i + 1        
+-}
+
+-- interp :: (Ord a,RealFrac a, Fractional b) => [(a, b)] -> a -> b
+
+
+-- FIXME second !! can fail
+interp t n =   
+    -- (lo,hi,z)
+    -- ((as !! lo'), (as !! hi'), z)
+    if doInterp 
+        then linear (as !! lo') (as !! hi') z
+        else (snd $ last t)
+    where             
+        -- as :: [b]        
+        (is,as) = unzip t
+        (lo', hi', doInterp) = case List.findIndex (> n) is of
+            Nothing -> (0, 0,   False)
+            Just a  -> (a-1, a, True)
+        lo = is !! lo'            
+        hi = is !! hi'            
+        z = (n - lo) / (hi - lo)
+
+    -- find index just below n
+    -- find index just above n
+    -- interpolate between them using z = actual - just below
+
+
+
+
+
+-- | Performs linear interpolation between two values.
+linear :: Fractional a => a -> a -> a -> a 
+linear a b z = ((1.0 - z) * a) + (z * b)
