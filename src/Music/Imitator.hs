@@ -71,6 +71,7 @@ import Control.Reactive
 import Control.Reactive.Midi
 import Control.Reactive.Osc
 import Control.Concurrent (forkIO, threadDelay)
+import qualified Control.Reactive as Reactive
 
 import Music.Score
 import Music.Imitator.Sound
@@ -284,7 +285,7 @@ translateCommand (PlayBuffer n t d vol curve az) = createPlaySynth n t d vol cur
 -- > imitatorRT time
 --
 imitatorRT :: Track Command -> Reactive Time -> Event OscMessage
-imitatorRT cmds time = playback time (pure msgs :: Reactive [(Time, OscMessage)])
+imitatorRT cmds time = playback time ({-fixT $ -}pure msgs :: Reactive [(Time, OscMessage)])
     where
         msgs = getTrack $ fixDelayBug $ prependSetup $ (listToTrack . translateCommand) =<< allocateNodes cmds
 
@@ -292,7 +293,7 @@ imitatorRT cmds time = playback time (pure msgs :: Reactive [(Time, OscMessage)]
         fixDelayBug = delay 1
         
         -- Experimental
-        correctOnsets = id -- TODO
+        fixT = fixTime (relativeTime oftenE Reactive.time time)
 
 -- |
 -- Convert commmands to a non-realtime score for @scsynth@.
@@ -311,13 +312,22 @@ imitatorNRT cmds = S.NRT $ fmap toBundle msgs
         prependSetup t = listToTrack setupServer <> delay 2 (listToTrack setupServer2) <> delay 2 t
         fixDelayBug = delay 1
 
+fixTime :: Reactive (Time -> Time) -> Reactive [(Time, a)] -> Reactive [(Time, a)]
+fixTime f a = fmap fmapFirst f <*> a
+
+fmapFirst :: (a -> a) -> [(a,b)] -> [(a,b)]
+fmapFirst = fmap . first
+first f (a,b) = (f a,b)
+
 -- Continously sample time offset and create a time transformer 
 relativeTime :: Event b -> Reactive Time -> Reactive Time -> Reactive (Time -> Time)
-relativeTime t actTime relTime = pure id
+relativeTime t actTime relTime = rel2
     where
         rel :: Reactive [(Time, Time)]
         rel = record actTime (relTime `sample` t)
-
+     
+        rel2 :: Reactive (Time -> Time)
+        rel2 = interp <$> rel
 
 
 -- |
@@ -435,10 +445,8 @@ interp t n = case (lookup i t, lookup j t) of
 -- interp :: (Ord a,RealFrac a, Fractional b) => [(a, b)] -> a -> b
 
 
--- FIXME second !! can fail
+interp :: (Fractional b, Ord b) => [(b, b)] -> b -> b
 interp t n =   
-    -- (lo,hi,z)
-    -- ((as !! lo'), (as !! hi'), z)
     if doInterp 
         then linear (as !! lo') (as !! hi') z
         else (snd $ last t)
