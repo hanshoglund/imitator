@@ -45,12 +45,13 @@ cmdScore = cmdScore' False
 
 cmdScore' :: Bool -> Score Command
 cmdScore' rt = mempty
-    <> if rt
-        then note StartRecord
-        else (mempty
-            <> delay 0 (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
-            <> delay 0 (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))            
-        )
+    -- <> if rt
+    --     then (delay 0 $ note StartRecord)
+    --     else (mempty
+    --         <> delay 0 (readBuffer "/Users/hans/Documents/Kod/hs/music-imitator/sounds/test.aiff")
+    --         <> delay 0 (playOnce 0 1800 & setCurve Sharp & setAzim (0.0 + 0))            
+    --     )
+    <> note StartRecord
 
     <> delay (12*4)     echoShort1
     <> delay (57*4)     echoShort2
