@@ -74,10 +74,11 @@ cmdScore' rt = mempty
     <> delay (180*4)    echoMiddleF2
 
     <> delay (198*4)    echoCanon_III
-    <> delay (230*4)    echoCanon_III
+--    <> delay (230*4)    echoCanon_III
+    <> delay (260*4)    echoShort1Mini
 
-    -- nothing at all here?
-
+    -- break here?
+    
     -- canon_IV
     <> delay (293*4)    echoCanon_IV
 
@@ -109,11 +110,11 @@ echoCanon_IV = mempty
     |> rest^*(4*16)
     |> (playOnce (304*4) (60*4) & setCurve Smooth & setAzim (0.0 - 0.2))
     |> rest^*(4*16)
-    |> (playOnce (312*4) (30*4) & setCurve Smooth & setAzim (0.0 + 0.4))
+    |> (playOnce (312*4) (60*4) & setCurve Smooth & setAzim (0.0 + 0.4))
     |> rest^*(4*16)
-    |> (playOnce (312*4) (20*4) & setCurve Smooth & setAzim (0.0 - 0.4))
+    |> (playOnce (312*4) (50*4) & setCurve Smooth & setAzim (0.0 - 0.4))
     |> rest^*(4*16)
-    |> (playOnce (312*4) (10*4) & setCurve Smooth & setAzim (0.0 - 0.5))
+    |> (playOnce (312*4) (40*4) & setCurve Smooth & setAzim (0.0 - 0.5))
 
 echoShort1Mini = mempty
     |> (playOnce 10  50 & setCurve Smooth & setAzim (0 + 0.1))
