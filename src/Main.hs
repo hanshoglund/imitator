@@ -414,7 +414,7 @@ transport2 ctrl trig speed = position'
             
         -- position :: Num a => Reactive a
         position = integral2 trig (speed * direction)
-        startPosition = position `sampleAndHold` (filter' (pure isStop) ctrl)
+        startPosition = sampleAndHold2 0 position (filter' (pure isStop) ctrl)
         position'     = position - startPosition
 
 

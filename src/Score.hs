@@ -290,7 +290,7 @@ jete1 = (rest <>) $ -- FIXME temporary fix w.r.t onset/padToBar
         n  = 9
 
 -- colLegno3 :: Score Note
--- colLegno3 = (down 12 $ delay 0 $ repeatS $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
+-- colLegno3 = (down 12 $ delay 0 $ rep $ [4,4,5,4,5,4]  `groupWith` g |> rest^*6)
 
 
 --------------------------------------------------------------------------------
@@ -581,7 +581,7 @@ majorThird = 4
 -- |
 -- Repeat exact amount of times.
 --
--- > Duration -> Score Note -> Score Note
+-- > Int -> Score a -> Score a
 --
 repTimes :: (Enum a, Monoid c, HasOnset c, Delayable c) => a -> c -> c
 repTimes n a = replicate (0 `max` fromEnum n) () `repWith` (const a)
@@ -589,7 +589,7 @@ repTimes n a = replicate (0 `max` fromEnum n) () `repWith` (const a)
 -- |
 -- Repeat once for each element in the list.
 --
--- > [a] -> (a -> Score Note) -> Score Note
+-- > [a] -> (a -> Score a) -> Score a
 --
 -- Example:
 -- > repWith [1,2,1] (c^*)
@@ -598,16 +598,9 @@ repWith :: (Monoid c, HasOnset c, Delayable c) => [a] -> (a -> c) -> c
 repWith = flip (\f -> scat . fmap f)
 
 -- |
--- Combination of 'scat' and 'fmap'. Note that
---
--- > scatMap = flip repWith
---
-scatMap f = scat . fmap f
-
--- |
 -- Repeat exact amount of times with an index.
 --
--- > Duration -> (Duration -> Score Note) -> Score Note
+-- > Int -> (Int -> Score a) -> Score a
 --
 repWithIndex :: (Enum a, Num a, Monoid c, HasOnset c, Delayable c) => a -> (a -> c) -> c
 repWithIndex n = repWith [0..n-1]
@@ -615,7 +608,7 @@ repWithIndex n = repWith [0..n-1]
 -- |
 -- Repeat exact amount of times with relative time.
 --
--- > Real a => a -> (Time -> Score Note) -> Score Note
+-- > Real a => Time -> (Time -> Score a) -> Score a
 --
 repWithTime :: (Enum a, Fractional a, Monoid c, HasOnset c, Delayable c) => a -> (a -> c) -> c
 repWithTime n = repWith $ fmap (/ n') [0..(n' - 1)]
@@ -652,10 +645,20 @@ rev = startAt 0 . rev'
 --
 -- > Score Note -> Score Note
 --
-repeatS :: Score a -> Score a
-repeatS a = a `plus` delay (duration a) (repeatS a)
+rep :: Score a -> Score a
+rep a = a `plus` delay (duration a) (rep a)
     where
         Score as `plus` Score bs = Score (as <> bs)
+
+
+-- |
+-- Combination of 'scat' and 'fmap'. Note that
+--
+-- > scatMap = flip repWith
+--
+-- > (a -> Score a) -> [a] -> Score a
+--
+scatMap f = scat . fmap f
 
 
 infixl 6 ||>
